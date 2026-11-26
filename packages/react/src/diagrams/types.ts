@@ -1,9 +1,9 @@
 import type { FC } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import type { View } from '@poney/core'
-import type { SceneBase } from '@poney/layout'
+import type { View } from '@hattoriai/poney-core'
+import type { SceneBase } from '@hattoriai/poney-layout'
 
-export type { Rect, Point, SceneBase } from '@poney/layout'
+export type { Rect, Point, SceneBase } from '@hattoriai/poney-layout'
 
 /**
  * A renderer draws one kind of view from a positioned scene. It never

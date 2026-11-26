@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
-const bin = fileURLToPath(new URL('../bin/poney-mcp.mjs', import.meta.url))
+// The MCP server from source, as in development.
+const mcpSource = fileURLToPath(new URL('./mcp.ts', import.meta.url))
 const examplePath = fileURLToPath(new URL('../examples/walkthrough.poney', import.meta.url))
 const port = 5339 + Math.floor(Math.random() * 50)
 const client = new Client({ name: 'test', version: '0' })
@@ -14,7 +15,7 @@ const call = async (name: string, args: Record<string, unknown> = {}) => (await 
 const textOf = (r: Result) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n')
 
 beforeAll(async () => {
-  await client.connect(new StdioClientTransport({ command: 'node', args: [bin], env: { ...process.env, PONEY_PORT: String(port) } as Record<string, string>, stderr: 'ignore' }))
+  await client.connect(new StdioClientTransport({ command: 'node', args: ['--conditions=poney-source', '--import', 'tsx', mcpSource], env: { ...process.env, PONEY_PORT: String(port) } as Record<string, string>, stderr: 'ignore' }))
 }, 30_000)
 afterAll(async () => client.close())
 

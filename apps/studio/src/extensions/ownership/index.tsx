@@ -1,7 +1,7 @@
 import { Hash, PhoneCall } from 'lucide-react'
-import { ownedBy, ownership, ownershipOf, teamOf, TEAM_KIND } from '@poney/ext-ownership'
-import { layoutTeamMap } from '@poney/ext-ownership/layout'
-import { teamMap } from '@poney/ext-ownership/diagram'
+import { ownedBy, ownership, ownershipOf, teamOf, TEAM_KIND } from '@hattoriai/poney-ext-ownership'
+import { layoutTeamMap } from '@hattoriai/poney-ext-ownership/layout'
+import { teamMap } from '@hattoriai/poney-ext-ownership/diagram'
 import { EntityLink, Facts } from '@/components/inspector/parts'
 import type { StudioExtension } from '@/features/extensions'
 

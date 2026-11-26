@@ -1,4 +1,4 @@
-import { plainText } from '@poney/core'
+import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Check, CircleAlert, Loader2, MessageCircle, Plug, Square, Wrench, X } from 'lucide-react'
 import { useStudio, WALK, type ContextItem, type Message } from '@/features/store'

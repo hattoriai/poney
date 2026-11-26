@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import type { ModelIndex, Ref, PoneyDocument, PoneyExtension } from '@poney/core'
-import { registerExtensionLayout, type ExtensionLayout } from '@poney/layout'
-import { registerDiagram } from '@poney/react'
-import type { AnyDiagramModule } from '@poney/react'
+import type { ModelIndex, Ref, PoneyDocument, PoneyExtension } from '@hattoriai/poney-core'
+import { registerExtensionLayout, type ExtensionLayout } from '@hattoriai/poney-layout'
+import { registerDiagram } from '@hattoriai/poney-react'
+import type { AnyDiagramModule } from '@hattoriai/poney-react'
 
 /**
  * A studio extension pairs a format extension (from its own package, with no

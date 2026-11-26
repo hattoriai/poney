@@ -4,15 +4,13 @@
  * start hubs this way; an MCP server that finds a hub already running attaches
  * to it instead (see attachOrStart).
  */
-import { fileURLToPath } from 'node:url'
 import { AgentBridge } from '../agents/bridge'
 import { isPoneyHub, LocalLive, RemoteLive, type LiveApi } from './api'
 import { LiveServer } from './server'
 import { LiveState } from './state'
 import { DocumentFiles } from './files'
+import { mcpCommand } from '../paths'
 
-/** The MCP server's entry, which an agent started by the Studio runs to reach this hub. */
-const MCP_BIN = fileURLToPath(new URL('../../bin/poney-mcp.mjs', import.meta.url))
 
 export interface Hub {
   state: LiveState
@@ -25,7 +23,8 @@ export interface Hub {
 export async function startHub(port?: number): Promise<Hub> {
   const state = new LiveState()
   let server: LiveServer | undefined
-  const bridge = new AgentBridge(state, () => ({ command: process.execPath, args: [MCP_BIN], hubUrl: server!.url }))
+  // The MCP server an agent started by the Studio runs to reach this hub.
+  const bridge = new AgentBridge(state, () => ({ ...mcpCommand(), command: process.execPath, hubUrl: server!.url }))
   const files = new DocumentFiles(state)
   server = new LiveServer(state, bridge, files)
   await server.start(port)

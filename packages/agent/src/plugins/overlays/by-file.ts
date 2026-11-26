@@ -1,5 +1,5 @@
 import { isAbsolute, relative } from 'node:path'
-import type { PoneyDocument } from '@poney/core'
+import type { PoneyDocument } from '@hattoriai/poney-core'
 
 /** A path as the document writes source refs: relative to the folder, with "/". */
 export function relativeTo(dir: string, path: string): string {

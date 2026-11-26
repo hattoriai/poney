@@ -17,8 +17,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { toJSON } from '@poney/core'
-import { renderScene, renderScenePng } from '@poney/react/static'
+import { toJSON } from '@hattoriai/poney-core'
+import { renderScene, renderScenePng } from '@hattoriai/poney-render'
 import { brief, check, example, excerpt, outline, readInput, schema } from './ops'
 
 const [command, ...rest] = process.argv.slice(2)

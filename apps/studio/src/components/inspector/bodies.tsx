@@ -1,5 +1,5 @@
 import { ArrowRight, Database, Key, Link2, Table2, Workflow, Zap } from 'lucide-react'
-import { fragmentLabel, isDefined, type Ref, type View } from '@poney/core'
+import { fragmentLabel, isDefined, type Ref, type View } from '@hattoriai/poney-core'
 import { useIndex, useStudio } from '@/features/store'
 import { inspectorSections } from '@/features/extensions'
 import { Chips, EntityLink, Facts, Prose, RefLink, Section, Sources, ViewLink } from './parts'

@@ -6,7 +6,7 @@
 
 /*
  * Poney palette. The colours Poney's diagrams use come from
- * @poney/react/styles.css (--poney-*); the Studio's own tokens point at them,
+ * @hattoriai/poney-react/styles.css (--poney-*); the Studio's own tokens point at them,
  * and add what only the Studio needs (shadows, fonts, the dotted canvas).
  *
  * The canvas is a pale, cool plaster. Ink is a cool slate. The accent, a red

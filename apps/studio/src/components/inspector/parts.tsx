@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 import { ArrowUpRight, ChevronRight, FileCode2 } from 'lucide-react'
-import type { Ref, SourceRef, View } from '@poney/core'
+import type { Ref, SourceRef, View } from '@hattoriai/poney-core'
 import { useIndex } from '@/features/store'
 import { openView, revealRef } from '@/features/navigation'
-import { diagramFor } from '@poney/react'
-import { iconFor } from '@poney/react'
-import { toneColor } from '@poney/react'
+import { diagramFor } from '@hattoriai/poney-react'
+import { iconFor } from '@hattoriai/poney-react'
+import { toneColor } from '@hattoriai/poney-react'
 import { LayoutGrid } from 'lucide-react'
 
 export function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {

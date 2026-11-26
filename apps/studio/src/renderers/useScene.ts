@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { PoneyDocument, View } from '@poney/core'
-import { layoutView, type SceneBase, type ViewLayoutOptions } from '@poney/layout'
+import type { PoneyDocument, View } from '@hattoriai/poney-core'
+import { layoutView, type SceneBase, type ViewLayoutOptions } from '@hattoriai/poney-layout'
 import { useDoc, useStudio } from '@/features/store'
 
 const cache = new WeakMap<PoneyDocument, Map<string, Promise<SceneBase>>>()

@@ -7,7 +7,7 @@ import {
   toJSON,
   type PoneyDocument,
   type ValidationIssue,
-} from '@poney/core'
+} from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
 import { useStudio } from './store'
 

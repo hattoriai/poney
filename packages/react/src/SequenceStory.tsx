@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { fragmentLabel } from '@poney/core'
-import { clip, measure, type SequenceScene } from '@poney/layout'
+import { fragmentLabel } from '@hattoriai/poney-core'
+import { clip, measure, type SequenceScene } from '@hattoriai/poney-layout'
 import { useRenderBind as useBind, useRenderIndex as useIndex } from './render'
 import { Glyph } from './icons'
 import { toneColor } from './tone'

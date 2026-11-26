@@ -7,8 +7,9 @@ import { buildStamp } from "../../packages/agent/src/live/stamp";
 
 const HUB_PORT = Number(process.env.PONEY_PORT ?? 5319);
 const HUB = `http://127.0.0.1:${HUB_PORT}`;
-const PONEY_BIN = fileURLToPath(
-  new URL("../../packages/agent/bin/poney.mjs", import.meta.url),
+// The CLI from source, as in development (the packages' "poney-source" condition, and tsx for TypeScript).
+const PONEY_CLI = fileURLToPath(
+  new URL("../../packages/agent/src/cli.ts", import.meta.url),
 );
 
 type HubInfo = { poney?: boolean; build?: string; owner?: string };
@@ -63,7 +64,7 @@ function poneyHub(): Plugin {
           if (!child || child.exitCode !== null)
             child = spawn(
               process.execPath,
-              [PONEY_BIN, "studio", "--port", String(HUB_PORT)],
+              ["--conditions=poney-source", "--import", "tsx", PONEY_CLI, "studio", "--port", String(HUB_PORT)],
               {
                 stdio: ["ignore", "ignore", "inherit"],
                 env: { ...process.env, PONEY_HUB_OWNER: "dev" },
@@ -105,5 +106,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), poneyHub()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    // Workspace packages resolve to their source, not dist (see package.json "exports").
+    conditions: ["poney-source"],
   },
 });

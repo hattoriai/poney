@@ -1,5 +1,5 @@
-import { classesOf, crossings, inZone, protectionOf, security, zoneOf, CLASS_LABEL, ZONE_KIND, type Trust } from '@poney/ext-security'
-import { readFacet } from '@poney/core'
+import { classesOf, crossings, inZone, protectionOf, security, zoneOf, CLASS_LABEL, ZONE_KIND, type Trust } from '@hattoriai/poney-ext-security'
+import { readFacet } from '@hattoriai/poney-core'
 import { EntityLink, Facts } from '@/components/inspector/parts'
 import type { StudioExtension } from '@/features/extensions'
 

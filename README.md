@@ -12,7 +12,25 @@ Poney has three parts:
 2. **An agent kit.** A guide, a checker that explains how to fix problems, a headless renderer so an agent can see its pictures, a CLI (`poney`) and an MCP server.
 3. **Poney Studio**, where people read walkthroughs, explore diagrams (architecture, sequence, data flow, activity, entity relationship, state machine, use case, dependency, map), and answer or leave notes for the agent, live.
 
-## Run it
+## Install
+
+```sh
+npx poney studio                                      # Poney Studio, in your browser
+npx poney render shop.poney --view architecture --format svg
+claude mcp add poney -- npx -y --package=poney poney-mcp   # the MCP server, for your agent
+npm install @hattoriai/poney-react                    # the renderers, for your own app
+```
+
+| Package | What it is |
+|---|---|
+| [`poney`](packages/agent) | The CLI (`poney`), the MCP server (`poney-mcp`) and Poney Studio |
+| [`@hattoriai/poney-core`](packages/core) | The format: schema, validation, commands, Mermaid import |
+| [`@hattoriai/poney-layout`](packages/layout) | Lays views out into scenes |
+| [`@hattoriai/poney-react`](packages/react) | Renderers for every diagram type, and a plain stylesheet |
+| [`@hattoriai/poney-render`](packages/render) | Any view to SVG or PNG, in Node |
+| [`@hattoriai/poney-ext-ownership`](packages/ext-ownership), [`@hattoriai/poney-ext-security`](packages/ext-security) | Extensions |
+
+## Develop
 
 ```sh
 npm install
@@ -25,7 +43,7 @@ npm run spec       # regenerate spec/poney.schema.json and the example document
 npm run poney -- check spec/examples/walkthrough.poney
 ```
 
-Node 20 or later. The Studio works on its own in the browser. With `npm run studio`, a small local hub also lets it start agents and talk to agents in their own sessions; it listens on 127.0.0.1 only.
+Node 20 or later. Nothing needs building to develop: the packages resolve to their source here (the `poney-source` export condition); `npm run build:packages` builds what is published (see [RELEASING.md](RELEASING.md)). The Studio works on its own in the browser. With `npm run studio`, a small local hub also lets it start agents and talk to agents in their own sessions; it listens on 127.0.0.1 only.
 
 ## Working with agents
 
@@ -42,7 +60,7 @@ Both kinds of agent share one document and one conversation, so the Studio is th
 
 An agent learns the format from the guide, writes a `.poney` file, checks it, looks at each scene, and shows it to a person.
 
-**CLI** (`packages/agent/bin/poney.mjs`, or `npm run poney --`):
+**CLI** (`npx poney`, or `npm run poney --` in this repository):
 
 ```sh
 poney brief                                   # the guide and a complete example
@@ -56,10 +74,10 @@ poney import schema . --into app.poney        # add tables and foreign keys from
 poney overlay coverage app.poney .            # live facts on the parts: test coverage, recent changes
 ```
 
-**MCP server** (`packages/agent/bin/poney-mcp.mjs`, stdio). This repository's `.mcp.json` registers it for Claude Code. In another project:
+**MCP server** (`poney-mcp`, stdio). This repository's `.mcp.json` registers it for Claude Code, from source. In another project:
 
 ```sh
-claude mcp add poney -- node /path/to/poney/packages/agent/bin/poney-mcp.mjs
+claude mcp add poney -- npx -y --package=poney poney-mcp
 ```
 
 | Tool | What it does |
@@ -92,13 +110,13 @@ spec/                      The format (internal draft)
   conformance/             Valid and invalid documents with expected results
 
 packages/
-  core/      @poney/core    Schema, validation and lints, model queries, commands, extensions,
+  core/      @hattoriai/poney-core    Schema, validation and lints, model queries, commands, extensions,
                             projections, JSON and Mermaid adapters. Depends only on Zod.
-  layout/    @poney/layout  Diagram graph → positioned scene. ELK and custom layouts. No UI framework.
-  react/     @poney/react   Renderers for every diagram type and for walkthrough stories, for any
+  layout/    @hattoriai/poney-layout  Diagram graph → positioned scene. ELK and custom layouts. No UI framework.
+  react/     @hattoriai/poney-react   Renderers for every diagram type and for walkthrough stories, for any
                             React app (the host passes selection and interaction); and
-                            @poney/react/static renders any view to SVG and PNG in Node.
-  agent/     @poney/agent   The guide, the CLI and the MCP server (src/), and:
+                            @hattoriai/poney-render renders any view to SVG and PNG in Node.
+  agent/     poney   The guide, the CLI and the MCP server (src/), and:
                               src/live/    the live hub: state, HTTP server, and the API MCP tools use
                                            (in this process, or a hub in another one)
                               src/agents/  agents the Studio starts over ACP: providers, the bridge,
@@ -112,7 +130,7 @@ apps/
   studio/                   Poney Studio.
 ```
 
-Each package depends only on the ones above it. A test in `@poney/core` fails if the format package ever imports React, a layout engine, or another UI library.
+Each package depends only on the ones above it. A test in `@hattoriai/poney-core` fails if the format package ever imports React, a layout engine, or another UI library.
 
 ## Walkthroughs
 
@@ -166,7 +184,7 @@ What is selected, hovered or zoomed is **not** in the document. It lives in the 
 `validateDocument()` checks a document in three passes: shape (Zod, the same rules as the JSON Schema), referential integrity (rules R1–R13), and extensions.
 
 ```ts
-import { validateDocument, indexOf } from '@poney/core'
+import { validateDocument, indexOf } from '@hattoriai/poney-core'
 
 const result = validateDocument(json, { extensions: [ownership] })
 if (result.ok) {
@@ -180,7 +198,7 @@ if (result.ok) {
 
 ```
 document ─▶ validate ─▶ model ─▶ projection ─▶ layout ─▶ scene ─▶ renderer
-            @poney/core          @poney/core   @poney/layout       apps/studio
+            @hattoriai/poney-core          @hattoriai/poney-core   @hattoriai/poney-layout       apps/studio
 ```
 
 - **Projections** (`packages/core/src/projections`) are pure functions from a model and a view to a diagram graph. For example, the architecture projection nests entities by containment and group, and lifts relationships to the nearest visible container when a group is closed.
@@ -191,7 +209,7 @@ document ─▶ validate ─▶ model ─▶ projection ─▶ layout ─▶ sce
 
 ## How rendering works
 
-The renderers are in **`@poney/react`**, not in the Studio, so any app can draw a Poney document its own way, as with Mermaid. The Studio is one host among others. Every diagram type is a **diagram module** (`packages/react/src/diagrams/<type>/index.tsx`):
+The renderers are in **`@hattoriai/poney-react`**, not in the Studio, so any app can draw a Poney document its own way, as with Mermaid. The Studio is one host among others. Every diagram type is a **diagram module** (`packages/react/src/diagrams/<type>/index.tsx`):
 
 ```ts
 interface DiagramModule {
@@ -205,7 +223,7 @@ interface DiagramModule {
 }
 ```
 
-Renderers draw SVG from a scene that `@poney/layout` computed. They do not compute layout and do not change the model. Everything else comes from the **host**, through `RenderProvider`:
+Renderers draw SVG from a scene that `@hattoriai/poney-layout` computed. They do not compute layout and do not change the model. Everything else comes from the **host**, through `RenderProvider`:
 
 | | What it gives | Without it |
 |---|---|---|
@@ -217,10 +235,10 @@ Renderers draw SVG from a scene that `@poney/layout` computed. They do not compu
 | `ZoomProvider` | The zoom level, for level of detail | 1 |
 
 ```tsx
-import '@poney/react/styles.css'
-import { RenderProvider, diagramFor } from '@poney/react'
-import { indexOf } from '@poney/core'
-import { layoutView } from '@poney/layout'
+import '@hattoriai/poney-react/styles.css'
+import { RenderProvider, diagramFor } from '@hattoriai/poney-react'
+import { indexOf } from '@hattoriai/poney-core'
+import { layoutView } from '@hattoriai/poney-layout'
 
 const view = doc.views[0]
 const scene = await layoutView(doc, view)
@@ -230,18 +248,18 @@ const { Renderer } = diagramFor(view)!
 </RenderProvider>
 ```
 
-**Styles.** Import `@poney/react/styles.css` once. It is plain CSS: no Tailwind, nothing to install, under 4 KB (1.3 KB gzipped).
+**Styles.** Import `@hattoriai/poney-react/styles.css` once. It is plain CSS: no Tailwind, nothing to install, under 4 KB (1.3 KB gzipped).
 
 - **Nothing global, easy to override.** Every rule is in the cascade layer `poney` and uses `:where()`, so your own CSS always wins without `!important`. It sets only `--poney-*` tokens and `.poney-*` classes: no resets, no element styles.
 - **Theming.** Override any `--poney-*` token (colours, `--poney-font-sans`, `--poney-font-mono`). Light is the default; set `data-poney-theme="dark"` on any element (often `<html>`) to draw Poney dark inside it.
 - **With a bundler** (Vite, webpack, Next…), the file and its parts (`src/styles/`: tokens, diagrams, stories, motion, legend) are inlined, minified and fingerprinted by your build.
-- **Without one**, or from a CDN, use the prebuilt single file `@poney/react/styles.min.css` (built with `npm run build:styles -w @poney/react`, and before publishing).
+- **Without one**, or from a CDN, use the prebuilt single file `@hattoriai/poney-react/styles.min.css` (built with `npm run build:styles -w @hattoriai/poney-react`, and before publishing).
 - Motion stops for readers who ask for reduced motion. The package is marked `sideEffects: ["*.css"]`, so bundlers drop the renderers an app does not use.
 - The PNG and static SVG renderer uses the same colours (`THEMES`); a test keeps the two equal.
 
 The Studio's host (`apps/studio/src/story/StudioRender.tsx`) passes its store's selection and view state, and a `bind` with its own behavior: rename on double-click, the context menu, pointing for the agent. The Studio also adds its chrome: the `Canvas` (zoom, pan, fit, the tooltip), and toolbar buttons per diagram type (`apps/studio/src/renderers/tools.tsx`).
 
-**Headless.** `@poney/react/static` draws any view to SVG or PNG in Node, with the real fonts: `poney render doc.poney --view <id> [--format svg]`. A test renders every view of the Kestrel example.
+**Headless.** `@hattoriai/poney-render` draws any view to SVG or PNG in Node, with the real fonts: `poney render doc.poney --view <id> [--format svg]`. A test renders every view of the Kestrel example.
 
 React Flow is not used. With a custom SVG canvas, every diagram type gets its own interaction model, and the model never has to look like a node-and-edge list. A Canvas or WebGL renderer can draw the same scenes.
 
@@ -275,7 +293,7 @@ export const ownership = defineExtension({
 
 `validate` reports errors (the document is invalid); `lint` gives warnings with a stable code and a hint, like the core lints. `packages/ext-security` uses `lint` to warn where personal data or secrets cross a trust zone without encryption or a named authentication. It needs no view type of its own: zones are drawn with an architecture view's groups.
 
-**Drawing part** (`@poney/ext-ownership/layout` and `/diagram`): a layout and a renderer for the view type, for any app. Register them with `registerExtensionLayout(...)` (`@poney/layout`) and `registerDiagram(...)` (`@poney/react`); the CLI does, so `poney render` draws the team map too.
+**Drawing part** (`@hattoriai/poney-ext-ownership/layout` and `/diagram`): a layout and a renderer for the view type, for any app. Register them with `registerExtensionLayout(...)` (`@hattoriai/poney-layout`) and `registerDiagram(...)` (`@hattoriai/poney-react`); the CLI does, so `poney render` draws the team map too.
 
 **Studio part** (`apps/studio/src/extensions/ownership`): an inspector section, registered with `registerStudioExtension(...)`.
 
@@ -290,10 +308,10 @@ Plugins run in the local hub, next to the code, and the Studio shows what they r
 
 Agents use both through `poney_import` and `poney_overlay`, and people through `poney import` and `poney overlay`.
 
-**Your own plugins.** A plugin is a module whose default export comes from `definePlugin` (`@poney/agent/plugins`), with `importers`, `overlays` and format `extensions`:
+**Your own plugins.** A plugin is a module whose default export comes from `definePlugin` (`poney/plugins`), with `importers`, `overlays` and format `extensions`:
 
 ```js
-import { definePlugin } from '@poney/agent/plugins'
+import { definePlugin } from 'poney/plugins'
 
 export default definePlugin({
   name: 'sentry',
@@ -328,10 +346,10 @@ A first editing feature would be: drag a node → `dispatch({ type: 'layout.move
 ## Using Poney without the Studio
 
 ```ts
-import { parseDocument, applyCommand, toJSON, fromMermaid } from '@poney/core'
-import { layoutView } from '@poney/layout'
-import { RenderProvider, diagramFor } from '@poney/react'            // any view, in your React app
-import { renderScene, renderScenePng } from '@poney/react/static'    // any view, to SVG or PNG in Node
+import { parseDocument, applyCommand, toJSON, fromMermaid } from '@hattoriai/poney-core'
+import { layoutView } from '@hattoriai/poney-layout'
+import { RenderProvider, diagramFor } from '@hattoriai/poney-react'            // any view, in your React app
+import { renderScene, renderScenePng } from '@hattoriai/poney-render'    // any view, to SVG or PNG in Node
 ```
 
 Or from a terminal: `poney render doc.poney --view <id> --format svg --out view.svg`.

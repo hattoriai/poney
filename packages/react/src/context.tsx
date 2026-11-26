@@ -1,7 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { createContext, useContext, type ReactNode } from 'react'
-import type { Badge, ChangeState, Effect } from '@poney/core'
-import { measure } from '@poney/layout'
+import type { Badge, ChangeState, Effect } from '@hattoriai/poney-core'
+import { measure } from '@hattoriai/poney-layout'
 
 /**
  * How a story renderer shows the change.

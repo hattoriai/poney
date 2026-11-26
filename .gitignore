@@ -10,3 +10,6 @@ dist
 .env
 .env.*
 coverage/
+
+# Build output copied into the CLI package before publishing
+packages/agent/studio/

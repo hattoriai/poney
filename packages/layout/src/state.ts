@@ -1,4 +1,4 @@
-import { indexOf, refKey, type PoneyDocument, type State, type Transition, type ViewOf } from '@poney/core'
+import { indexOf, refKey, type PoneyDocument, type State, type Transition, type ViewOf } from '@hattoriai/poney-core'
 import { BASE_OPTIONS, runElk } from './elk'
 import { union } from './geometry'
 import { measure } from './text'

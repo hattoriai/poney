@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
 import { checkDocument, formatCheck } from './lint'
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v))

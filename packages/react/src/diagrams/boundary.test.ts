@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : /\.tsx?$/.test(f) && !f.includes('.test.') ? [join(dir, f)] : []))
 
-describe('@poney/react', () => {
+describe('@hattoriai/poney-react', () => {
   it('imports no app code and no app state library', () => {
     const bad = files(root).flatMap((f) =>
       [...readFileSync(f, 'utf8').matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]).filter((spec) => spec.startsWith('@/') || /^(zustand|@poney\/studio)/.test(spec)).map((spec) => `${f.slice(root.length)}: ${spec}`),

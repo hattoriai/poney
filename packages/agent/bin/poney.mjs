@@ -1,4 +1,3 @@
 #!/usr/bin/env node
-import { register } from 'tsx/esm/api'
-register()
-await import('../src/cli.ts')
+// The Poney CLI, built. In the Poney repository, `npm run poney -- <args>` runs it from source.
+import '../dist/cli.js'

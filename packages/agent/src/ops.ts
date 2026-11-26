@@ -3,16 +3,16 @@
  * it, render a scene, convert Mermaid. Both front ends stay thin.
  */
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { checkDocument, detectMermaid, formatCheck, fromMermaid, PoneyDocument, toJSON, type CheckResult } from '@poney/core'
-import { ownership } from '@poney/ext-ownership'
-import { security } from '@poney/ext-security'
-import { teamMap } from '@poney/ext-ownership/diagram'
-import { layoutTeamMap } from '@poney/ext-ownership/layout'
-import { registerDiagram } from '@poney/react'
-import { registerExtensionLayout } from '@poney/layout'
+import { checkDocument, detectMermaid, formatCheck, fromMermaid, PoneyDocument, toJSON, type CheckResult } from '@hattoriai/poney-core'
+import { ownership } from '@hattoriai/poney-ext-ownership'
+import { security } from '@hattoriai/poney-ext-security'
+import { teamMap } from '@hattoriai/poney-ext-ownership/diagram'
+import { layoutTeamMap } from '@hattoriai/poney-ext-ownership/layout'
+import { registerDiagram } from '@hattoriai/poney-react'
+import { registerExtensionLayout } from '@hattoriai/poney-layout'
 import { diffFromGit, filesAt, verifyCode, verifyExcerpts, verifySources } from './verify'
+import { packagePath } from './paths'
 
 export const EXTENSIONS = [ownership, security]
 
@@ -20,7 +20,8 @@ export const EXTENSIONS = [ownership, security]
 registerDiagram(teamMap)
 registerExtensionLayout('ownership/team-map', layoutTeamMap)
 
-const here = (p: string) => fileURLToPath(new URL(p, import.meta.url))
+/** A file of this package, by its path from src/ (the same from dist/). */
+const here = (p: string) => packagePath(p.replace(/^\.\.\//, ''))
 
 /** What a walkthrough explains: one change, or a codebase as it is. */
 export type Topic = 'change' | 'tour'

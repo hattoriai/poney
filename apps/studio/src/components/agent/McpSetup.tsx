@@ -3,38 +3,41 @@ import { Check, Copy } from 'lucide-react'
 import { useStudio } from '@/features/store'
 import { listAgents } from '@/features/agent'
 
-const PLACEHOLDER = '<poney>/packages/agent/bin/poney-mcp.mjs'
+/** How to start the Poney MCP server: what this install reports, else the published package. */
+type Command = { command: string; args: string[] }
+const PUBLISHED: Command = { command: 'npx', args: ['-y', '--package=poney', 'poney-mcp'] }
+const shell = (c: Command) => [c.command, ...c.args].map((x) => (/\s/.test(x) ? `"${x}"` : x)).join(' ')
 
 /** How to add the Poney MCP server, per agent: a command where the agent has one, else its config. */
-const AGENTS: { id: string; name: string; how: string; text(bin: string): string }[] = [
-  { id: 'claude', name: 'Claude Code', how: 'Run in a terminal:', text: (bin) => `claude mcp add poney -- node ${bin}` },
-  { id: 'codex', name: 'Codex', how: 'Run in a terminal:', text: (bin) => `codex mcp add poney -- node ${bin}` },
+const AGENTS: { id: string; name: string; how: string; text(c: Command): string }[] = [
+  { id: 'claude', name: 'Claude Code', how: 'Run in a terminal:', text: (c) => `claude mcp add poney -- ${shell(c)}` },
+  { id: 'codex', name: 'Codex', how: 'Run in a terminal:', text: (c) => `codex mcp add poney -- ${shell(c)}` },
   {
     id: 'opencode',
     name: 'OpenCode',
     how: 'Add to opencode.json:',
-    text: (bin) => JSON.stringify({ mcp: { poney: { type: 'local', command: ['node', bin], enabled: true } } }, null, 2),
+    text: (c) => JSON.stringify({ mcp: { poney: { type: 'local', command: [c.command, ...c.args], enabled: true } } }, null, 2),
   },
   {
     id: 'copilot',
     name: 'Copilot',
     how: 'Add to ~/.copilot/mcp-config.json:',
-    text: (bin) => JSON.stringify({ mcpServers: { poney: { type: 'local', command: 'node', args: [bin], tools: ['*'] } } }, null, 2),
+    text: (c) => JSON.stringify({ mcpServers: { poney: { type: 'local', command: c.command, args: c.args, tools: ['*'] } } }, null, 2),
   },
-  { id: 'other', name: 'Other', how: 'Add to its MCP settings:', text: (bin) => JSON.stringify({ mcpServers: { poney: { command: 'node', args: [bin] } } }, null, 2) },
+  { id: 'other', name: 'Other', how: 'Add to its MCP settings:', text: (c) => JSON.stringify({ mcpServers: { poney: { command: c.command, args: c.args } } }, null, 2) },
 ]
 
-/** Pick your agent; get what adds the Poney MCP server to it, with this install's path. */
+/** Pick your agent; get what adds the Poney MCP server to it: this install's command, else the published package. */
 export function McpSetup() {
   const live = useStudio((s) => s.live.state === 'on')
-  const [bin, setBin] = useState(PLACEHOLDER)
+  const [command, setCommand] = useState<Command>(PUBLISHED)
   const [agent, setAgent] = useState(AGENTS[0].id)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
-    if (live) void listAgents().then((r) => r.mcpServer && setBin(r.mcpServer), () => undefined)
+    if (live) void listAgents().then((r) => r.mcpServer && setCommand(r.mcpServer), () => undefined)
   }, [live])
   const a = AGENTS.find((x) => x.id === agent)!
-  const text = a.text(bin)
+  const text = a.text(command)
   return (
     <div>
       <div role="tablist" aria-label="Your agent" className="flex flex-wrap gap-1">

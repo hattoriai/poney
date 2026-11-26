@@ -1,10 +1,10 @@
 /**
- * @poney/react — renderers for Poney documents.
+ * @hattoriai/poney-react — renderers for Poney documents.
  *
  * Every diagram type (diagrams/) and the walkthrough story renderers. The
  * same components draw in any React app (interactive, through
- * RenderProvider) and headless (`@poney/react/static`: SVG and PNG in Node).
- * They read a scene laid out by @poney/layout and never compute layout.
+ * RenderProvider) and headless (`@hattoriai/poney-render`: SVG and PNG in Node).
+ * They read a scene laid out by @hattoriai/poney-layout and never compute layout.
  */
 export * from './context'
 export * from './render'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { parseDocument } from '@poney/core'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
+import { parseDocument } from '@hattoriai/poney-core'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
 import { layoutView } from './scenes'
 
 const doc = parseDocument(commerce, { extensions: [ownership] })

@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { UsersRound } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import { clip, type UseCaseScene } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import { clip, type UseCaseScene } from '@hattoriai/poney-layout'
 import { ArrowHead } from '../shared/Edge'
 import { EntityNode, Rings } from '../shared/EntityNode'
 import { LegendRow, LegendShape } from '../shared/Legend'

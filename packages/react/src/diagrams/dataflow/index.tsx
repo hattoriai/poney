@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { Waypoints } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import { clip, type DataFlowScene } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import { clip, type DataFlowScene } from '@hattoriai/poney-layout'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'

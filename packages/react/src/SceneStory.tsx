@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import type { Entity, View } from '@poney/core'
-import type { MapScene, SceneBase, SequenceScene, StateScene } from '@poney/layout'
+import type { Entity, View } from '@hattoriai/poney-core'
+import type { MapScene, SceneBase, SequenceScene, StateScene } from '@hattoriai/poney-layout'
 import { MapStory } from './MapStory'
 import { SequenceStory } from './SequenceStory'
 import { StateStory } from './StateStory'

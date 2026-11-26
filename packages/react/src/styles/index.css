@@ -1,5 +1,5 @@
 /*
- * @poney/react styles. Import once, e.g. `import '@poney/react/styles.css'`.
+ * @hattoriai/poney-react styles. Import once, e.g. `import '@hattoriai/poney-react/styles.css'`.
  *
  * Everything is in the cascade layer "poney" and uses :where(), so any
  * style of the host app wins without !important. Nothing is global: no
@@ -7,7 +7,7 @@
  *
  * With a bundler, this file and its parts are inlined, minified and
  * fingerprinted by the app's build. Without one, use the prebuilt
- * @poney/react/styles.min.css (one file, made before publishing).
+ * @hattoriai/poney-react/styles.min.css (one file, made before publishing).
  */
 @layer poney;
 @import './tokens.css';

@@ -1,5 +1,5 @@
 /**
- * @poney/core — the Poney format without any user interface.
+ * @hattoriai/poney-core — the Poney format without any user interface.
  *
  * Use it to read, validate, query, change and convert Poney documents in
  * any JavaScript runtime. Readers in other languages use spec/SPEC.md and

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, normalize } from 'node:path'
-import type { Entity, Relationship } from '@poney/core'
+import type { Entity, Relationship } from '@hattoriai/poney-core'
 import { listFiles } from '../files'
 import { slug, type ImportResult, type Importer } from '../types'
 

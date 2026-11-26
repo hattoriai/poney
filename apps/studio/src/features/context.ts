@@ -1,4 +1,4 @@
-import { indexOf, plainText, refKey, type Ref } from '@poney/core'
+import { indexOf, plainText, refKey, type Ref } from '@hattoriai/poney-core'
 import { useStudio, type ContextItem } from './store'
 
 /**

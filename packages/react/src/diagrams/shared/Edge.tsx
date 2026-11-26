@@ -1,5 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { endAngle, measure, roundedPath, startAngle, trimEnd, type Point } from '@poney/layout'
+import { endAngle, measure, roundedPath, startAngle, trimEnd, type Point } from '@hattoriai/poney-layout'
 
 export type Head = 'arrow' | 'open-arrow' | 'triangle' | 'none'
 

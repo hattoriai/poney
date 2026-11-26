@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { ListOrdered } from 'lucide-react'
-import { fragmentLabel, type ViewOf } from '@poney/core'
-import { clip, measure, type SequenceScene } from '@poney/layout'
+import { fragmentLabel, type ViewOf } from '@hattoriai/poney-core'
+import { clip, measure, type SequenceScene } from '@hattoriai/poney-layout'
 import { ArrowHead } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'

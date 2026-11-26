@@ -1,4 +1,4 @@
-import type { Tone } from '@poney/core'
+import type { Tone } from '@hattoriai/poney-core'
 
 /** Named pigments map to theme variables (--poney-<name>; the tone "poney" is --poney-accent); hex colors pass through. */
 export const toneColor = (tone: Tone | string) => (tone.startsWith('#') ? tone : `var(--poney-${tone === 'poney' ? 'accent' : tone})`)

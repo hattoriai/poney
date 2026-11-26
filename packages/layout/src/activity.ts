@@ -1,4 +1,4 @@
-import { indexOf, refKey, type ActivityNode, type PoneyDocument, type ViewOf } from '@poney/core'
+import { indexOf, refKey, type ActivityNode, type PoneyDocument, type ViewOf } from '@hattoriai/poney-core'
 import { union } from './geometry'
 import { measure, wrap } from './text'
 import type { Point, Rect, SceneBase } from './types'

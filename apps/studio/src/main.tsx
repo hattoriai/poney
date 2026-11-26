@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // Poney's diagram styles first; the Studio's own (Tailwind) after.
-import '@poney/react/styles.css'
+import '@hattoriai/poney-react/styles.css'
 import './app/styles.css'
 import { registerStudioExtension } from './features/extensions'
 import { ownershipStudio } from './extensions/ownership'

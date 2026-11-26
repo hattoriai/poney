@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useStudio } from '@/features/store'
-import { refKey, type Ref } from '@poney/core'
+import { refKey, type Ref } from '@hattoriai/poney-core'
 import { startRename } from '@/features/rename'
 import { askAbout, elementChip } from '@/features/context'
 

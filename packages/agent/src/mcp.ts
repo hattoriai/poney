@@ -7,12 +7,12 @@
  * live link to the Studio — open a document for a person, read back what
  * they looked at, answered and wrote, and answer the questions they ask.
  *
- * Run: node packages/agent/bin/poney-mcp.mjs (stdio). Logs go to stderr.
+ * Run: poney-mcp (stdio), or npm run mcp in the Poney repository. Logs go to stderr.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { renderScenePng } from '@poney/react/static'
+import { renderScenePng } from '@hattoriai/poney-render'
 import { brief, check, example, excerpt, outline, schema, type Input, type Topic } from './ops'
 import { attachOrStart } from './live/hub'
 

@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { Blocks } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import { clip, type DependencyScene } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import { clip, type DependencyScene } from '@hattoriai/poney-layout'
 import { ArrowHead } from '../shared/Edge'
 import { EntityNode, Rings, useReadableSize } from '../shared/EntityNode'
 import { LegendRow } from '../shared/Legend'

@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import type { Entity } from '@poney/core'
-import { clip, measure, type MapScene } from '@poney/layout'
+import type { Entity } from '@hattoriai/poney-core'
+import { clip, measure, type MapScene } from '@hattoriai/poney-layout'
 import { useRenderBind as useBind, useRenderIndex as useIndex } from './render'
 import { Glyph } from './icons'
 import { toneColor } from './tone'

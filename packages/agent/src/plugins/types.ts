@@ -1,4 +1,4 @@
-import type { DataRelation, DataType, EffectKind, Entity, PoneyDocument, PoneyExtension, Relationship, Tone } from '@poney/core'
+import type { DataRelation, DataType, EffectKind, Entity, PoneyDocument, PoneyExtension, Relationship, Tone } from '@hattoriai/poney-core'
 
 /**
  * Poney plugins run in the local server (the hub), next to the code: they

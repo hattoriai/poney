@@ -1,9 +1,9 @@
-import { indexOf, refKey } from '@poney/core'
-import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@poney/agent/live'
+import { indexOf, refKey } from '@hattoriai/poney-core'
+import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from 'poney/live'
 import { useStudio, walkId, type ContextItem } from './store'
 
 /**
- * Talking to agents through the live hub (see @poney/agent): ask a question,
+ * Talking to agents through the live hub (see poney): ask a question,
  * start or stop an agent, answer its permission requests, pick a workspace.
  * Every call needs the Studio to be live; without a hub there is no agent.
  */
@@ -59,7 +59,7 @@ export function ask(text: string, context: ContextItem[] = []) {
   })
 }
 
-export const listAgents = () => call<{ providers: Provider[]; canStart: boolean; mcpServer?: string }>('/api/agent')
+export const listAgents = () => call<{ providers: Provider[]; canStart: boolean; mcpServer?: { command: string; args: string[] } }>('/api/agent')
 /** An agent as the Studio names it: a known one, or one the person added by command. */
 export type AgentChoice = { providerId: string } | { custom: { name: string; command: string } }
 export const connectAgent = (cwd: string, agent: AgentChoice) => call('/api/agent/connect', { cwd, ...agent })

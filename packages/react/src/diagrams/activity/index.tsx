@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { GitBranch } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import { measure, type ActivityScene } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import { measure, type ActivityScene } from '@hattoriai/poney-layout'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'

@@ -1,4 +1,4 @@
-import type { PoneyDocumentInput } from '@poney/core'
+import type { PoneyDocumentInput } from '@hattoriai/poney-core'
 
 type WalkthroughInput = NonNullable<PoneyDocumentInput['walkthroughs']>[number]
 type Line = { kind: 'add' | 'del' | 'ctx'; old?: number; new?: number; text: string }

@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import type { CodeBlock, PoneyDocument, ValidationIssue } from '@poney/core'
+import type { CodeBlock, PoneyDocument, ValidationIssue } from '@hattoriai/poney-core'
 
 /** The revision "working" means the files on disk, with changes not yet committed. */
 export const WORKING = 'working'

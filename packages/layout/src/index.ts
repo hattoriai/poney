@@ -1,5 +1,5 @@
 /**
- * @poney/layout — positions Poney diagrams.
+ * @hattoriai/poney-layout — positions Poney diagrams.
  *
  * Input: a validated document and a view. Output: a scene — plain numbers
  * (rectangles, routed points, label positions) with anchors keyed by the
