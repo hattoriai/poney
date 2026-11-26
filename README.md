@@ -1,6 +1,6 @@
-<img src="media/logo.svg" width="112" alt="Poney">
-
 # Poney
+
+![Poney — Software explained in pictures](media/banner.png)
 
 **Explain software in pictures that agents can write and people can read.**
 
