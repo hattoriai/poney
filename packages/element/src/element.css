@@ -21,6 +21,60 @@
     height: 100%;
     overflow: hidden;
   }
+  /* A mouse drags the diagram; touch drags scroll the page. */
+  :where(poney-diagram:not([still])) > :where(.poney-diagram-svg) {
+    cursor: grab;
+  }
+  :where(poney-diagram.poney-diagram-dragging) > :where(.poney-diagram-svg) {
+    cursor: grabbing;
+    user-select: none;
+  }
+  :where(.poney-diagram-controls) {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    font: 500 12px/1 var(--poney-font-sans);
+    color: var(--poney-ink-2);
+    background: var(--poney-paper-raised);
+    border: 1px solid var(--poney-rule);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.06);
+  }
+  :where(.poney-diagram-controls button) {
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  :where(.poney-diagram-controls button:hover) {
+    background: var(--poney-sunken);
+  }
+  :where(.poney-diagram-controls button:focus-visible) {
+    outline: 2px solid var(--poney-accent);
+    outline-offset: 1px;
+  }
+  :where(.poney-diagram-zoom) {
+    width: 44px;
+    text-align: center;
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--poney-ink-3);
+  }
+  /* After the rules above, which set display. */
+  :where(.poney-diagram-controls[hidden], .poney-diagram-controls [hidden]) {
+    display: none;
+  }
   :where(poney-diagram) > :where(script) {
     display: none;
   }

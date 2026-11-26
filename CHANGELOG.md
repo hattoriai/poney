@@ -14,6 +14,7 @@ Every package in this repository has the same version. The format has its own ve
 ### `<poney-diagram>`
 
 - New package `@hattoriai/poney-element`: the custom element `<poney-diagram>` draws a view or a walkthrough scene in any web page, with no framework. Attributes say what to draw (`view`, `walkthrough`, `scene`, `mode`, `hot`, `selection`, `trace-step`, `theme`, `still`, `fill`); events tell the page what the reader clicks and points at (`poney-select`, `poney-hover`, `poney-ready`, `poney-error`). The camera glides between frames in one view and follows a playing trace.
+- Zoom and pan, as in the Studio: pinch or ⌘/Ctrl + scroll, a mouse drag, a double click, and controls with the zoom level and "Reset view". `still` turns them off. `@hattoriai/poney-diagrams` exports the camera math, `zoomViewBox` and `panViewBox`, which the Studio uses too.
 - `dist/browser/poney.js` (one ES module with no imports) and `poney.css`: everything a page needs, with no bundler and no Node at run time.
 - `@hattoriai/poney-diagrams` exports `findTarget`, `followFrame` and `STORY_TYPES`, shared by the element, `poney-render` and the Studio. `drawInto(…).update` takes new props.
 

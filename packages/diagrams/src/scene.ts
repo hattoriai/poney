@@ -85,6 +85,24 @@ export function fit(frame: Rect, W: number, H: number, pad: number, maxScale: nu
   return { x: f.x + f.w / 2 - w / 2, y: f.y + f.h / 2 - h / 2, w, h }
 }
 
+/**
+ * Zooms a view box by `factor` (above 1: closer) around a point given as a
+ * fraction of the box. It stays between 6 times closer and 4 times farther
+ * than `base`, the box that frames the scene.
+ */
+export function zoomViewBox(current: ViewBox, base: ViewBox, factor: number, fx = 0.5, fy = 0.5): ViewBox {
+  const w = Math.min(base.w * 4, Math.max(base.w / 6, current.w / factor))
+  const h = w * (current.h / current.w)
+  const x = current.x + fx * current.w
+  const y = current.y + fy * current.h
+  return { x: x - fx * w, y: y - fy * h, w, h }
+}
+
+/** Moves a view box with the pointer: `dx`, `dy` in screen pixels, on a stage of `width` by `height` pixels. */
+export function panViewBox(current: ViewBox, dx: number, dy: number, width: number, height: number): ViewBox {
+  return { ...current, x: current.x - (dx * current.w) / Math.max(width, 1), y: current.y - (dy * current.h) / Math.max(height, 1) }
+}
+
 /** The story state of a scene: marks, mode, focus and numbered callouts. */
 export function storyState(input: {
   marks: Map<string, ChangeState>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { Minus, Plus } from 'lucide-react'
 import type { ChangeState, Scene, View, Walkthrough } from '@hattoriai/poney-core'
 import { layoutView, type SceneBase, type ViewLayoutOptions, type Rect } from '@hattoriai/poney-layout'
-import { fit, followFrame, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, type Mode, type ViewBox } from '@hattoriai/poney-react'
+import { fit, followFrame, panViewBox, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, zoomViewBox, type Mode, type ViewBox } from '@hattoriai/poney-react'
 import { useDoc, useIndex } from '@/features/store'
 import { useOverlayFacts } from '@/features/overlays'
 import { diagramFor } from '@hattoriai/poney-react'
@@ -79,11 +79,7 @@ export function Stage({ frame, label, children, pad = 56, maxScale = 1.25 }: { f
       const cur = current.current
       if (!cur || !target) return
       cancelAnimationFrame(raf.current)
-      const w = Math.min(target.w * 4, Math.max(target.w / 6, cur.w / factor))
-      const h = w * (cur.h / cur.w)
-      const wx = cur.x + fx * cur.w
-      const wy = cur.y + fy * cur.h
-      show({ x: wx - fx * w, y: wy - fy * h, w, h })
+      show(zoomViewBox(cur, target, factor, fx, fy))
       setMoved(true)
     },
     [target, show],
@@ -133,7 +129,7 @@ export function Stage({ frame, label, children, pad = 56, maxScale = 1.25 }: { f
     d.y = e.clientY
     const r = host.current.getBoundingClientRect()
     cancelAnimationFrame(raf.current)
-    show({ ...cur, x: cur.x - (dx * cur.w) / r.width, y: cur.y - (dy * cur.h) / r.height })
+    show(panViewBox(cur, dx, dy, r.width, r.height))
     setMoved(true)
   }
   const onPointerUp = () => {

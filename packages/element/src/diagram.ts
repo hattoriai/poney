@@ -31,16 +31,23 @@
 import { indexOf, marksOf, parseRef, refKey, validateDocument, type ModelIndex, type PoneyDocument, type PoneyExtension, type Ref, type ValidationIssue } from '@hattoriai/poney-core'
 import { layoutView, setFonts, type Rect, type SceneBase, type ViewLayoutOptions } from '@hattoriai/poney-layout'
 import {
+  createElement,
   diagramFor,
   drawInto,
   findTarget,
   fit,
   followFrame,
+  Icon,
+  LUCIDE,
+  panViewBox,
+  resolve,
   sceneFrame,
   sceneLayoutOptions,
   SceneStory,
   storyState,
   STORY_TYPES,
+  toMarkup,
+  zoomViewBox,
   type BindFn,
   type Component,
   type Drawing,
@@ -56,6 +63,8 @@ const SVG = 'http://www.w3.org/2000/svg'
 const PAD = 32
 const MAX_SCALE = 1.25
 const GLIDE_MS = 700
+/** A pointer must move this far before a press becomes a drag. */
+const DRAG_PX = 4
 
 const extensions: PoneyExtension[] = []
 
@@ -98,6 +107,12 @@ export class PoneyDiagramElement extends HTMLElement {
   #viewBox?: ViewBox
   #raf = 0
   #gliding = false
+  /** The view box that frames the scene; zoom and pan move away from it. */
+  #home?: ViewBox
+  /** The reader zoomed or panned: "Reset view" brings the frame back. */
+  #moved = false
+  #drag: { x: number; y: number; id: number; moved: boolean } | null = null
+  #controls?: { root: HTMLElement; zoom: HTMLElement; reset: HTMLButtonElement }
   #resize?: ResizeObserver
   #pending = false
   #run = 0
@@ -139,6 +154,7 @@ export class PoneyDiagramElement extends HTMLElement {
       this.#svg.setAttribute('class', 'poney-diagram-svg')
       this.#svg.setAttribute('role', 'img')
       this.append(this.#svg)
+      this.#camera(this.#svg)
     }
     if (!this.#doc) {
       const script = this.querySelector('script[type="application/json"]')
@@ -159,6 +175,7 @@ export class PoneyDiagramElement extends HTMLElement {
   attributeChangedCallback(name: string, before: string | null, after: string | null) {
     if (before === after) return
     if (name === 'theme') return this.#theme()
+    if (name === 'still') this.#updateControls()
     if (name === 'view' || name === 'walkthrough' || name === 'scene') {
       this.#collapsed = undefined
       this.#current = undefined
@@ -390,6 +407,9 @@ export class PoneyDiagramElement extends HTMLElement {
     const H = box.height || whole.h + PAD * 2
     const to = fit(rect, W, H, PAD, MAX_SCALE)
     const from = this.#viewBox
+    this.#home = to
+    this.#moved = false
+    this.#updateControls()
     cancelAnimationFrame(this.#raf)
     this.#gliding = false
     if (!glide || !from || reducedMotion()) return this.#show(to)
@@ -408,6 +428,145 @@ export class PoneyDiagramElement extends HTMLElement {
   #show(vb: ViewBox) {
     this.#viewBox = vb
     this.#svg?.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`)
+    if (this.#controls) {
+      const width = this.#svg?.getBoundingClientRect().width || vb.w
+      this.#controls.zoom.textContent = `${Math.round((width / vb.w) * 100)}%`
+    }
+  }
+
+  /* ─── Zoom and pan ─────────────────────────────────────────────────────── */
+
+  /**
+   * The reader's own camera, as in Poney Studio: pinch or ⌘/Ctrl + scroll
+   * zooms around the pointer (never the page), dragging with a mouse pans,
+   * a double click on empty space zooms in, and the buttons zoom and reset.
+   * Plain scrolling scrolls the page, and touch drags scroll it too.
+   */
+  #camera(svg: SVGSVGElement) {
+    const at = (e: { clientX: number; clientY: number }): [number, number] => {
+      const r = svg.getBoundingClientRect()
+      const fx = (e.clientX - r.left) / (r.width || 1)
+      const fy = (e.clientY - r.top) / (r.height || 1)
+      // Without a pointer position, the zoom goes around the centre.
+      return [Number.isFinite(fx) ? fx : 0.5, Number.isFinite(fy) ? fy : 0.5]
+    }
+    this.addEventListener(
+      'wheel',
+      (e) => {
+        if (this.hasAttribute('still') || !(e.ctrlKey || e.metaKey)) return
+        e.preventDefault()
+        this.#zoom(Math.exp(-Math.max(-24, Math.min(24, e.deltaY)) * 0.012), ...at(e))
+      },
+      { passive: false },
+    )
+    // Safari's pinch: the diagram zooms through the wheel events, so the page must not.
+    for (const type of ['gesturestart', 'gesturechange']) this.addEventListener(type, (e) => !this.hasAttribute('still') && e.preventDefault())
+    svg.addEventListener('pointerdown', (e) => {
+      if (this.hasAttribute('still') || e.button !== 0 || e.pointerType === 'touch') return
+      this.#drag = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false }
+    })
+    svg.addEventListener('pointermove', (e) => {
+      const d = this.#drag
+      const cur = this.#viewBox
+      if (!d || !cur) return
+      const dx = e.clientX - d.x
+      const dy = e.clientY - d.y
+      if (!d.moved && Math.hypot(dx, dy) < DRAG_PX) return
+      if (!d.moved) {
+        try {
+          svg.setPointerCapture(d.id)
+        } catch {
+          /* the pointer may already be gone */
+        }
+        this.classList.add('poney-diagram-dragging')
+      }
+      d.moved = true
+      d.x = e.clientX
+      d.y = e.clientY
+      const r = svg.getBoundingClientRect()
+      cancelAnimationFrame(this.#raf)
+      this.#gliding = false
+      this.#show(panViewBox(cur, dx, dy, r.width, r.height))
+      this.#movedAway()
+    })
+    const end = () => {
+      // A drag must not end as a click on the part under the pointer.
+      if (this.#drag?.moved) {
+        const swallow = (ev: Event) => {
+          ev.stopPropagation()
+          ev.preventDefault()
+        }
+        window.addEventListener('click', swallow, { capture: true, once: true })
+        setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0)
+      }
+      this.#drag = null
+      this.classList.remove('poney-diagram-dragging')
+    }
+    svg.addEventListener('pointerup', end)
+    svg.addEventListener('pointercancel', end)
+    svg.addEventListener('dblclick', (e) => {
+      if (this.hasAttribute('still') || (e.target as Element).closest('[data-ref]')) return
+      this.#zoom(1.6, ...at(e))
+    })
+
+    const icon = (data: typeof LUCIDE.plus) => toMarkup(resolve(createElement(Icon as Component<never>, { icon: data, size: 14 })))
+    const button = (label: string, title: string, html: string, onClick: () => void) => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.setAttribute('aria-label', label)
+      b.title = title
+      b.innerHTML = html
+      b.addEventListener('click', onClick)
+      return b
+    }
+    const root = document.createElement('div')
+    root.className = 'poney-diagram-controls'
+    root.setAttribute('role', 'group')
+    root.setAttribute('aria-label', 'Zoom')
+    // A press on the controls is not the start of a drag on the diagram.
+    root.addEventListener('pointerdown', (e) => e.stopPropagation())
+    const zoom = document.createElement('span')
+    zoom.className = 'poney-diagram-zoom'
+    const reset = button('Reset view', 'Reset view', 'Reset view', () => this.#reset())
+    reset.className = 'poney-diagram-reset'
+    root.append(
+      button('Zoom out', 'Zoom out', icon(LUCIDE.minus), () => this.#zoom(1 / 1.3)),
+      zoom,
+      button('Zoom in', 'Zoom in (or pinch)', icon(LUCIDE.plus), () => this.#zoom(1.3)),
+      reset,
+    )
+    this.append(root)
+    this.#controls = { root, zoom, reset }
+    this.#updateControls()
+  }
+
+  /** Zooms by `factor` around a point given as a fraction of the diagram. */
+  #zoom(factor: number, fx = 0.5, fy = 0.5) {
+    const cur = this.#viewBox
+    const base = this.#home
+    if (!cur || !base) return
+    cancelAnimationFrame(this.#raf)
+    this.#gliding = false
+    this.#show(zoomViewBox(cur, base, factor, fx, fy))
+    this.#movedAway()
+  }
+
+  #movedAway() {
+    if (this.#moved) return
+    this.#moved = true
+    this.#updateControls()
+  }
+
+  /** Glides back to the frame of the scene. */
+  #reset() {
+    this.#frame(true)
+  }
+
+  #updateControls() {
+    const c = this.#controls
+    if (!c) return
+    c.root.hidden = this.hasAttribute('still')
+    c.reset.hidden = !this.#moved
   }
 
   /* ─── The page ─────────────────────────────────────────────────────────── */
