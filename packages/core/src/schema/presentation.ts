@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { object } from './strict'
 
 /**
  * Layer 3 — presentation.
@@ -16,7 +17,7 @@ export type Tone = z.infer<typeof NamedTone> | (string & {})
 
 export const NodeShape = z.enum(['card', 'cylinder', 'person', 'stack', 'frame', 'chip'])
 
-export const KindStyle = z.object({
+export const KindStyle = object({
   /** Node renderer variant. */
   shape: NodeShape,
   tone: Tone,
@@ -27,14 +28,14 @@ export const KindStyle = z.object({
 })
 export type KindStyle = z.infer<typeof KindStyle>
 
-export const LineStyle = z.object({
+export const LineStyle = object({
   pattern: z.enum(['solid', 'dashed', 'dotted']),
   /** Marker at the target end. */
   head: z.enum(['arrow', 'open-arrow', 'none', 'triangle']),
 })
 export type LineStyle = z.infer<typeof LineStyle>
 
-export const ElementOverride = z.object({
+export const ElementOverride = object({
   tone: Tone.optional(),
   icon: z.string().optional(),
   width: z.number().positive().optional(),
@@ -43,7 +44,7 @@ export const ElementOverride = z.object({
   emphasis: z.boolean().optional(),
 })
 
-export const Presentation = z.object({
+export const Presentation = object({
   /** Style per entity kind, including extension kinds. */
   kinds: z.record(z.string(), KindStyle),
   relationships: z.record(z.string(), LineStyle),

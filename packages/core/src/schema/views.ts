@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { object } from './strict'
 import { Ext, Id } from './model'
 
 /**
@@ -31,9 +32,9 @@ export type Category = (typeof CORE_CATEGORIES)[number] | (string & {})
 
 export const Direction = z.enum(['right', 'down'])
 
-export const Point = z.object({ x: z.number(), y: z.number() })
+export const Point = object({ x: z.number(), y: z.number() })
 
-const ViewBase = z.object({
+const ViewBase = object({
   id: Id,
   title: z.string(),
   description: z.string(),
@@ -46,7 +47,7 @@ const ViewBase = z.object({
   ext: Ext.default({}),
 })
 
-export const Group = z.object({
+export const Group = object({
   id: Id,
   label: z.string(),
   description: z.string().optional(),
@@ -63,7 +64,7 @@ export const ArchitectureView = ViewBase.extend({
   groups: z.array(Group).default([]),
   /** Container entities shown closed; their children's edges are lifted to them. */
   collapsed: z.array(Id).default([]),
-  layout: z.object({ direction: Direction.default('right') }).default({}),
+  layout: object({ direction: Direction.default('right') }).default({}),
 })
 
 /**
@@ -86,7 +87,7 @@ export const MapView = ViewBase.extend({
    * inside it; a closed group is one box, and its lines join at that box.
    */
   collapsed: z.array(Id).default([]),
-  layout: z.object({ direction: Direction.default('right') }).default({}),
+  layout: object({ direction: Direction.default('right') }).default({}),
 })
 
 export const SequenceView = ViewBase.extend({

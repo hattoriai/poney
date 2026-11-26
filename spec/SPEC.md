@@ -292,6 +292,8 @@ An extension MAY also define lints: warnings about a valid document in the exten
 
 A document MUST match `spec/poney.schema.json`. JSON Schema covers shape and defaults only.
 
+A member that the schema does not define is an error: a reader MUST reject the document and MUST NOT drop the member silently. Data that the format leaves open has its own place: an extension's data under `ext` (section 8), and free key-value data under `metadata`.
+
 ### 9.2 Referential rules
 
 These rules apply after the shape check. Each one is an error unless marked as a warning.

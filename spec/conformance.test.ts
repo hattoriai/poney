@@ -26,7 +26,7 @@ describe('conformance suite', () => {
       const paths = result.issues.filter((i) => i.severity === 'error').map((i) => i.path)
       for (const p of c.errorPaths ?? []) expect(paths).toContain(p)
       // Shape-only failures must also fail the JSON Schema.
-      if (c.rule === '§4') expect(checkShape(doc)).toBe(false)
+      if (c.rule === '§4' || c.rule === '§9.1') expect(checkShape(doc)).toBe(false)
       else expect(checkShape(doc), JSON.stringify(checkShape.errors)).toBe(true)
     })
   }

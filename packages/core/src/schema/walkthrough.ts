@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { object } from './strict'
 import { Entity, Id, Relationship, Transition } from './model'
 import { InlineView } from './views'
 import { Tone } from './presentation'
@@ -23,13 +24,13 @@ export const RefKey = z.string().regex(/^[a-zA-Z]+:[a-z0-9][a-z0-9-_.:#]*$/, 'A 
 export const ChangeState = z.enum(['new', 'changed', 'removed'])
 export type ChangeState = z.infer<typeof ChangeState>
 
-export const Mark = z.object({
+export const Mark = object({
   ref: RefKey,
   state: ChangeState,
   note: z.string().optional(),
 })
 
-export const DiffLine = z.object({
+export const DiffLine = object({
   kind: z.enum(['add', 'del', 'ctx']),
   /** Line number on the old side, for "del" and "ctx". */
   old: z.number().int().positive().optional(),
@@ -39,7 +40,7 @@ export const DiffLine = z.object({
 })
 export type DiffLine = z.infer<typeof DiffLine>
 
-const Hunk = z.object({ header: z.string().optional(), lines: z.array(DiffLine).min(1) })
+const Hunk = object({ header: z.string().optional(), lines: z.array(DiffLine).min(1) })
 
 /**
  * Code to read: diff hunks, or an excerpt of a file as it is.
@@ -57,7 +58,7 @@ export const CodeBlock = z
     /** Excerpt: the lines, as they are in the file. */
     text: z.string().optional(),
     /** Notes under a line, by its (new) line number. */
-    notes: z.array(z.object({ line: z.number().int().positive(), text: z.string() })).default([]),
+    notes: z.array(object({ line: z.number().int().positive(), text: z.string() })).default([]),
   })
   .refine((b) => (b.hunks ? b.text === undefined && b.start === undefined : b.text !== undefined && b.start !== undefined), {
     message: 'Give "hunks" (a diff), or "start" and "text" (an excerpt), not both',
@@ -85,18 +86,18 @@ export const Risk = z.enum(['look', 'routine'])
 export const EffectKind = z.enum(['flow', 'attention', 'hot-path', 'slow', 'failing', 'blocked'])
 export type EffectKind = z.infer<typeof EffectKind>
 
-export const Effect = z.object({ target: RefKey, as: EffectKind, tone: Tone.optional() })
+export const Effect = object({ target: RefKey, as: EffectKind, tone: Tone.optional() })
 export type Effect = z.infer<typeof Effect>
 
 /** A short fact pinned on a box or a line: a count, a latency, an error rate, a size. */
-export const Badge = z.object({ target: RefKey, text: z.string().min(1), tone: Tone.optional() })
+export const Badge = object({ target: RefKey, text: z.string().min(1), tone: Tone.optional() })
 export type Badge = z.infer<typeof Badge>
 
 /** One step of a path the reader can play: a line, a message, a transition, or a box to stop at. */
-export const TraceStep = z.object({ ref: RefKey, caption: z.string().optional() })
+export const TraceStep = object({ ref: RefKey, caption: z.string().optional() })
 export type TraceStep = z.infer<typeof TraceStep>
 
-export const Scene = z.object({
+export const Scene = object({
   id: Id,
   title: z.string(),
   /** The point of the scene, in plain words. */
@@ -107,14 +108,14 @@ export const Scene = z.object({
   /** Elements to frame and keep bright; everything else in the view dims. */
   focus: z.array(RefKey).default([]),
   /** Numbered notes pinned to elements, in reading order. */
-  callouts: z.array(z.object({ target: RefKey, text: z.string() })).default([]),
+  callouts: z.array(object({ target: RefKey, text: z.string() })).default([]),
   /** What the code does in each case. */
-  cases: z.array(z.object({ when: z.string(), then: z.string(), note: z.string().optional() })).default([]),
+  cases: z.array(object({ when: z.string(), then: z.string(), note: z.string().optional() })).default([]),
   /**
    * Evidence: a test, a check, a run. `source` is the file, `test` the name of
    * the test in it. `missing` marks proof that does not exist yet.
    */
-  proof: z.array(z.object({ text: z.string(), source: z.string().optional(), test: z.string().optional(), missing: z.boolean().default(false) })).default([]),
+  proof: z.array(object({ text: z.string(), source: z.string().optional(), test: z.string().optional(), missing: z.boolean().default(false) })).default([]),
   /** A question for the reader: a decision in a change, a check of understanding in a tour. */
   question: z.string().optional(),
   /** More questions, when one is not enough. */
@@ -136,7 +137,7 @@ export type SceneInput = z.input<typeof Scene>
 export const WalkthroughKind = z.enum(['change', 'tour'])
 export type WalkthroughKind = z.infer<typeof WalkthroughKind>
 
-export const Walkthrough = z.object({
+export const Walkthrough = object({
   id: Id,
   kind: WalkthroughKind.default('change'),
   title: z.string(),
@@ -159,18 +160,18 @@ export const Walkthrough = z.object({
     })
     .optional(),
   /** What changes for a person (a change), or what the code is for and who uses it (a tour). A change also gives `before` and `after`. */
-  story: z.object({ text: z.string(), before: z.string().optional(), after: z.string().optional() }),
+  story: object({ text: z.string(), before: z.string().optional(), after: z.string().optional() }),
   /** The view shown next to the story, before and after: an id, or a view written here. */
   overview: z.union([Id, InlineView]).optional(),
   verdict: z
     .object({
       risk: Risk,
-      facts: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
+      facts: z.array(object({ label: z.string(), value: z.string() })).default([]),
       /**
        * What the reviewer found: risks to weigh, and notes. A risk is not a
        * question; it needs no answer, only attention. `scene` points at where it shows.
        */
-      findings: z.array(z.object({ text: z.string(), severity: z.enum(['risk', 'note']).default('risk'), scene: Id.optional() })).default([]),
+      findings: z.array(object({ text: z.string(), severity: z.enum(['risk', 'note']).default('risk'), scene: Id.optional() })).default([]),
     })
     .optional(),
   marks: z.array(Mark).default([]),
@@ -182,7 +183,7 @@ export const Walkthrough = z.object({
     .object({
       entities: z.array(Entity).default([]),
       relationships: z.array(Relationship).default([]),
-      transitions: z.array(z.object({ stateMachine: Id, transition: Transition })).default([]),
+      transitions: z.array(object({ stateMachine: Id, transition: Transition })).default([]),
     })
     .default({}),
   scenes: z.array(Scene).min(1),
