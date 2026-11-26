@@ -1,6 +1,6 @@
 {
   "name": "@hattoriai/poney-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Poney's drawings in React: every diagram type and walkthrough scene from @hattoriai/poney-diagrams, as React components.",
   "license": "MIT",
@@ -29,8 +29,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@hattoriai/poney-core": "0.2.0",
-    "@hattoriai/poney-diagrams": "0.2.0",
+    "@hattoriai/poney-core": "0.3.0",
+    "@hattoriai/poney-diagrams": "0.3.0",
     "lucide-react": "^1.75.0"
   },
   "peerDependencies": {

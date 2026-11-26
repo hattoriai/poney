@@ -2,7 +2,7 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
-## Unreleased
+## 0.3.0
 
 ### Reading documents
 
