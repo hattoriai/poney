@@ -3,9 +3,12 @@ import { knownExtensions } from './extensions'
 import { useStudio, walkId, type AgentStatus, type Message } from './store'
 import { listRecent } from './recent'
 import { agentFor, connectHere } from './agent'
+import { readLocation } from './location'
 
 /** The document the address named when the page opened (?doc=<id>); the start page may remove it from the address. */
 const REQUESTED = new URLSearchParams(window.location.search).get('doc')
+/** The view the address named when the page opened (#/<view>), for a document that only the local server has. */
+const REQUESTED_VIEW = window.location.hash
 
 /**
  * The live link to an agent session (see @poney/agent).
@@ -63,6 +66,11 @@ function connect(base: string) {
       return
     }
     st.reviseDocument(result.document, 'live')
+    // The document the address named, arriving from the local server: show the view the address named too.
+    if (opening && named && REQUESTED_VIEW.startsWith('#/') && REQUESTED_VIEW !== '#/start') {
+      window.history.replaceState(window.history.state, '', REQUESTED_VIEW)
+      readLocation()
+    }
     st.setLive({ state: 'on', url: base, revision })
     st.notify(
       isEmpty(result.document)
