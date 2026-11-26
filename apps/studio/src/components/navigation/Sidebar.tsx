@@ -7,6 +7,7 @@ import { revealRef } from '@/features/navigation'
 import { diagramFor } from '@hattoriai/poney-react'
 import { iconFor } from '@hattoriai/poney-react'
 import { toneColor } from '@hattoriai/poney-react'
+import { MadeBy } from '@/components/shared/MadeBy'
 import { categoryLabel, orderCategories } from './categories'
 
 export function Sidebar() {
@@ -35,6 +36,7 @@ export function Sidebar() {
         </div>
         <ViewNav />
         <SystemTree />
+        <MadeBy />
       </aside>
     </>
   )

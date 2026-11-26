@@ -11,6 +11,10 @@ Every package in this repository has the same version. The format has its own ve
 - `@hattoriai/poney-render` and `@hattoriai/poney` draw with `@hattoriai/poney-diagrams` and no longer need React. The SVG is the same as before.
 - Extensions write their renderers for `@hattoriai/poney-diagrams` and register them with its `registerDiagram`. `DiagramModule.icon` is a Lucide icon (`IconData`); the React adapter turns it into a Lucide React component.
 
+### Studio
+
+- The sidebar ends with "Made by Hattori AI", a link to hattori.ai.
+
 ## 0.2.0
 
 ### Format 0.2.0
