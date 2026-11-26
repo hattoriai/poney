@@ -1,0 +1,9 @@
+{
+  "name": "@poney/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Poney format: schema, validation, model queries, commands, extensions and adapters. No UI.",
+  "license": "MIT",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "zod": "^3.25.76" }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@poney/examples",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Example Poney documents.",
+  "license": "MIT",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@poney/core": "0.1.0", "@poney/ext-ownership": "0.1.0" }
+}

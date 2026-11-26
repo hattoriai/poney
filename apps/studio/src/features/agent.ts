@@ -1,0 +1,172 @@
+import { indexOf, refKey } from '@poney/core'
+import type { Provider, SessionSetting, SignInStatus } from '@poney/agent/live'
+import { useStudio, walkId, type ContextItem } from './store'
+
+/**
+ * Talking to agents through the live hub (see @poney/agent): ask a question,
+ * start or stop an agent, answer its permission requests, pick a workspace.
+ * Every call needs the Studio to be live; without a hub there is no agent.
+ */
+
+export type { Provider, SessionSetting, SignInStatus }
+
+export interface Folder {
+  path: string
+  parent?: string
+  git: boolean
+  folders: { name: string; path: string; git: boolean }[]
+  files: { name: string; path: string }[]
+}
+
+/** The local server's address once linked; a link that is coming back (a restart) is waited for, up to 15 seconds. */
+function linked(): Promise<string | undefined> {
+  const now = useStudio.getState().live
+  if (now.state === 'on' && now.url) return Promise.resolve(now.url)
+  if (now.state === 'off') return Promise.resolve(undefined)
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => (stop(), resolve(undefined)), 15000)
+    const stop = useStudio.subscribe((s) => {
+      if (s.live.state === 'on' && s.live.url) {
+        window.clearTimeout(timer)
+        stop()
+        resolve(s.live.url)
+      }
+    })
+  })
+}
+
+async function call<T>(path: string, body?: unknown): Promise<T> {
+  const url = await linked()
+  if (!url) throw new Error('The Studio cannot reach Poney on this computer. Run "npm run studio" in the Poney folder.')
+  const res = await fetch(`${url}${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+  if (!res.ok) throw new Error(data.error ?? `Poney answered ${res.status}`)
+  return data
+}
+
+/** Sends a question with where the person is and what they point at, so "what is this?" is enough. */
+export function ask(text: string, context: ContextItem[] = []) {
+  const s = useStudio.getState()
+  const w = walkId(s.viewId)
+  const doc = s.history?.present
+  const described = doc && s.selection && indexOf(doc).exists(s.selection) ? indexOf(doc).describe(s.selection) : undefined
+  return call('/api/live/ask', {
+    text,
+    walkthrough: s.startOpen ? undefined : w,
+    scene: !s.startOpen && w ? s.activeScene ?? undefined : undefined,
+    selection: !s.startOpen && s.selection ? { ref: refKey(s.selection), title: described?.title ?? '', kind: described?.kind ?? s.selection.kind } : undefined,
+    ...(context.length ? { context } : {}),
+  })
+}
+
+export const listAgents = () => call<{ providers: Provider[]; canStart: boolean; mcpServer?: string }>('/api/agent')
+/** An agent as the Studio names it: a known one, or one the person added by command. */
+export type AgentChoice = { providerId: string } | { custom: { name: string; command: string } }
+export const connectAgent = (cwd: string, agent: AgentChoice) => call('/api/agent/connect', { cwd, ...agent })
+/** Asks whether an agent is signed in (its own CLI), or whether a test session opens. */
+export const checkAgent = (agent: AgentChoice, fresh = false) => call<SignInStatus>('/api/agent/check', { ...agent, fresh })
+export const disconnectAgent = () => call('/api/agent/disconnect', {})
+export const cancelAgent = () => call('/api/agent/cancel', {})
+export const choosePermission = (messageId: number, optionId: string) => call('/api/agent/permission', { messageId, optionId })
+export const listFolders = (path?: string) => call<Folder>(`/api/workspace/folders${path ? `?path=${encodeURIComponent(path)}` : ''}`)
+/** Changes one of the agent's session settings: the model, the effort, the mode… */
+export const setSetting = (id: string, value: string | boolean) => call('/api/agent/setting', { id, value })
+
+/** Opens a folder (a repository) as the project: agents work there, and its document is saved there. */
+export const openProjectFolder = (path: string) => call<{ root: string }>('/api/project/open', { path })
+/** Starts an agent in the open project's folder, or in `folder`. The open document stays. */
+export const connectHere = (agent: AgentChoice, folder?: string) => call('/api/agent/connect-here', { ...agent, ...(folder ? { folder } : {}) })
+
+/** The agent and folder last used with a document, so a restart can connect them again. */
+export interface DocumentAgent {
+  folder: string
+  agent: AgentChoice
+}
+const AGENT_FOR = 'poney:agent-for:'
+export const agentFor = (docId: string | undefined): DocumentAgent | undefined => {
+  if (!docId) return undefined
+  try {
+    return JSON.parse(localStorage.getItem(AGENT_FOR + docId) ?? 'null') ?? undefined
+  } catch {
+    return undefined
+  }
+}
+export const rememberAgentFor = (docId: string, value: DocumentAgent) => {
+  try {
+    localStorage.setItem(AGENT_FOR + docId, JSON.stringify(value))
+  } catch {
+    /* a convenience only */
+  }
+}
+
+/** Opens a .poney file on this computer; the Studio keeps it saved. */
+export const openFile = (path: string) => call<{ path: string }>('/api/files/open', { path })
+export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
+
+/** Requests the Studio offers once an agent works in a folder. */
+export const STARTERS = [
+  { label: 'Give me a tour of this codebase', prompt: 'Give me a Poney tour of this codebase: what it is for, its main parts, one main flow end to end, and where to start a change. Open it in the Studio.' },
+  { label: 'Walk me through the last commit', prompt: 'Write a Poney walkthrough of the last commit in this repository, check it against the code, and open it in the Studio.' },
+  { label: 'How is this code organised?', prompt: 'Show me how this codebase is organised: its parts and how they connect, as a Poney map with groups. Open it in the Studio.' },
+] as const
+
+/** Requests for a document that already has content: they answer from it, or add to it, and keep what is there. */
+export const MORE_STARTERS = [
+  { label: 'What should I read first?', prompt: 'Using the open Poney document and the code, tell me in a few sentences what to read first and why. Do not change the document.' },
+  { label: 'Explain this scene', prompt: 'Explain the scene I am on in plain words: what it shows and why it matters. Do not change the document.' },
+  { label: 'Add the last commit', prompt: 'Add a walkthrough of the last commit in this repository to the open Poney document. Get the document with poney_read first and keep everything in it. Check it against the code, and open it again.' },
+] as const
+
+/** The starters that fit the open document. */
+export const startersFor = (doc: { walkthroughs: unknown[]; views: unknown[] } | undefined) => (doc && (doc.walkthroughs.length || doc.views.length) ? MORE_STARTERS : STARTERS)
+
+/** Agents the person added by command, kept in this browser. */
+const CUSTOM = 'poney:agents'
+export function customAgents(): { name: string; command: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM) ?? '[]') as { name: string; command: string }[]
+  } catch {
+    return []
+  }
+}
+export function saveCustomAgents(list: { name: string; command: string }[]) {
+  try {
+    localStorage.setItem(CUSTOM, JSON.stringify(list))
+  } catch {
+    /* a convenience only */
+  }
+}
+
+/** The last folder the person worked in, kept in this browser. */
+const FOLDER = 'poney:workspace'
+export const lastFolder = () => {
+  try {
+    return localStorage.getItem(FOLDER) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+export const rememberFolder = (path: string) => {
+  try {
+    localStorage.setItem(FOLDER, path)
+  } catch {
+    /* a convenience only */
+  }
+}
+
+/**
+ * The project's folder: as Poney on this computer says, else the folder an
+ * agent already works in, else the repository a docs/poney/ file is saved in.
+ */
+export function useProjectRoot(): { root: string; name: string } | null {
+  // A string, so the store returns the same value while nothing changes.
+  const root = useStudio(
+    (s) =>
+      s.project?.root ??
+      s.agent.session?.cwd ??
+      (s.liveFile ? /^(.*)\/docs\/poney\/[^/]+\.poney$/.exec(s.liveFile)?.[1] : undefined) ??
+      agentFor(s.history?.present.project.id)?.folder ??
+      null,
+  )
+  return root ? { root, name: root.split('/').pop() ?? root } : null
+}

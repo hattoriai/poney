@@ -1,0 +1,12 @@
+node_modules
+dist
+*.tsbuildinfo
+.DS_Store
+
+# Local tool state (agents, design tools, browser tests); never part of the project
+.claude/
+.impeccable/
+.playwright-mcp/
+.env
+.env.*
+coverage/

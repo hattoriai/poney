@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112" role="img" aria-labelledby="title description">
+<title id="title">Poney</title>
+<desc id="description">A horseshoe in Sumi ink, its nail holes cut through, with one heel in blade orange.</desc>
+<defs>
+  <mask id="poney-shoe" maskUnits="userSpaceOnUse" x="0" y="0" width="112" height="112">
+    <rect width="112" height="112" fill="white"/>
+    <rect x="26.71" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(205.0 28.81 33.32)"/>
+    <rect x="41.22" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(245.0 43.32 18.81)"/>
+    <rect x="66.58" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(295.0 68.68 18.81)"/>
+    <rect x="81.09" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(335.0 83.19 33.32)"/>
+    <rect x="25.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(-4.4 28.00 72.00)"/>
+    <rect x="81.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(4.4 84.00 72.00)"/>
+    <path d="M70 80H98" stroke="black" stroke-width="3.5"/>
+  </mask>
+</defs>
+<g mask="url(#poney-shoe)" fill="none" stroke-width="17">
+  <path d="M30 98L26 46A30 30 0 0 1 86 46L82 98" stroke="#f5f0e8"/>
+  <path d="M83.4 81L82 98" stroke="#e84a1c" stroke-width="17"/>
+</g>
+</svg>

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "poney": {
+      "command": "node",
+      "args": ["packages/agent/bin/poney-mcp.mjs"]
+    }
+  }
+}

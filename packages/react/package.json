@@ -1,0 +1,23 @@
+{
+  "name": "@poney/react",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React/SVG story renderers for Poney scenes, in the browser and headless (SVG and PNG in Node).",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./static": "./src/static.tsx"
+  },
+  "dependencies": {
+    "@fontsource/hanken-grotesk": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@poney/core": "0.1.0",
+    "@poney/layout": "0.1.0",
+    "fontkit": "^2.0.4",
+    "lucide-react": "^1.75.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wawoff2": "^2.0.1"
+  }
+}

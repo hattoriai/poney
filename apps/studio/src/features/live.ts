@@ -1,0 +1,167 @@
+import { indexOf, refKey, validateDocument, plainText } from '@poney/core'
+import { knownExtensions } from './extensions'
+import { useStudio, walkId, type AgentStatus, type Message } from './store'
+import { listRecent } from './recent'
+import { agentFor, connectHere } from './agent'
+
+/**
+ * The live link to an agent session (see @poney/agent).
+ *
+ * The Studio connects when it is served by the agent's hub, or when the
+ * address has ?live=<hub address>. It receives documents as the agent opens
+ * them, and reports what the person sees and does, so the agent can read it.
+ */
+export function installLive() {
+  const param = new URLSearchParams(window.location.search).get('live')
+  const base = param ?? window.location.origin
+  void fetch(`${base}/api/live`)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no hub'))))
+    .then(() => connect(base))
+    .catch(() => {
+      if (param) useStudio.getState().setLive({ state: 'lost', url: base })
+    })
+}
+
+function connect(base: string) {
+  const s = useStudio.getState()
+  s.setLive({ state: 'connecting', url: base })
+  const events = new EventSource(`${base}/api/live/events`)
+  events.onopen = () => {
+    useStudio.getState().setLive({ ...useStudio.getState().live, state: 'on', url: base })
+    void giveBack(base).then(() => reconnect(base))
+  }
+  events.onerror = () => useStudio.getState().setLive({ ...useStudio.getState().live, state: 'lost' })
+  let first = true
+  events.addEventListener('document', (e) => {
+    const { revision, document, source } = JSON.parse((e as MessageEvent).data) as { revision: number; document: unknown; source?: 'agent' | 'file' | 'workspace' }
+    const result = validateDocument(document, { extensions: knownExtensions() })
+    const st = useStudio.getState()
+    if (!result.ok || !result.document) return st.notify('The agent sent a document with errors. It was not opened.')
+    // On connecting, what the local server already holds never replaces a different document opened here on purpose.
+    const opening = first
+    first = false
+    if (opening && st.history && !st.startOpen && st.projectId !== result.document.project.id) {
+      st.keepProject(result.document, 'live')
+      st.setLive({ state: 'on', url: base, revision })
+      return st.notify(`“${result.document.project.name}” from Poney on this computer is in the project menu.`)
+    }
+    // The start page, asked for by its address, stays; the document waits in its list.
+    if (opening && st.startOpen) {
+      st.keepProject(result.document, 'live')
+      return st.setLive({ state: 'on', url: base, revision })
+    }
+    // An empty project for a folder whose work this Studio already has: keep the work, and give it back to the agent.
+    const mine = st.projects.find((p) => p.id === result.document!.project.id)?.doc
+    if (isEmpty(result.document) && mine && !isEmpty(mine)) {
+      st.reviseDocument(mine, 'live')
+      st.setLive({ state: 'on', url: base, revision })
+      void fetch(`${base}/api/live/open`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ document: mine }) }).catch(() => undefined)
+      return
+    }
+    st.reviseDocument(result.document, 'live')
+    st.setLive({ state: 'on', url: base, revision })
+    st.notify(
+      isEmpty(result.document)
+        ? `Opened the project “${result.document.project.name}”. Ask the agent for a tour to fill it.`
+        : source === 'file'
+          ? `Opened “${result.document.project.name}” from its file.`
+          : `The agent opened “${plainText(result.document.walkthroughs[0]?.title ?? result.document.project.name)}” (revision ${revision}).`,
+    )
+    lastSent = ''
+    report(base)
+  })
+
+  // The conversation and who answers: a snapshot on connect, then each change.
+  events.addEventListener('thread', (e) => useStudio.getState().setConversation((JSON.parse((e as MessageEvent).data) as { messages: Message[] }).messages))
+  events.addEventListener('message', (e) => useStudio.getState().putMessage(JSON.parse((e as MessageEvent).data) as Message))
+  events.addEventListener('agent', (e) => useStudio.getState().setAgent(JSON.parse((e as MessageEvent).data) as AgentStatus))
+  events.addEventListener('project', (e) => {
+    const p = JSON.parse((e as MessageEvent).data) as { root: string | null; name: string | null }
+    useStudio.getState().setProject(p.root ? { root: p.root, name: p.name ?? p.root } : null)
+  })
+  events.addEventListener('file', (e) => useStudio.getState().setLiveFile((JSON.parse((e as MessageEvent).data) as { path: string | null }).path))
+
+  // Report what the person does, a moment after they do it.
+  let timer = 0
+  useStudio.subscribe(() => {
+    clearTimeout(timer)
+    timer = window.setTimeout(() => report(base), 400)
+  })
+  window.addEventListener('poney:local', () => {
+    clearTimeout(timer)
+    timer = window.setTimeout(() => report(base), 400)
+  })
+}
+
+let lastSent = ''
+
+function readLocal<T>(key: string): T | undefined {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function report(base: string) {
+  const s = useStudio.getState()
+  if (!s.history) return
+  const doc = s.history.present
+  const w = walkId(s.viewId)
+  const key = (kind: string) => `poney:${kind}:${doc.project.id}:${w ?? ''}`
+  const idx = indexOf(doc)
+  const described = s.selection && idx.exists(s.selection) ? idx.describe(s.selection) : undefined
+  const state = {
+    projectId: doc.project.id,
+    viewId: s.viewId,
+    walkthrough: w,
+    scene: w ? s.activeScene ?? undefined : undefined,
+    selection: s.selection ? { ref: refKey(s.selection), title: described?.title ?? '', kind: described?.kind ?? s.selection.kind } : undefined,
+    answers: w ? readLocal<Record<string, string>>(key('answers')) : undefined,
+    notes: w ? readLocal<Record<string, string>>(key('notes')) : undefined,
+    read: w ? readLocal<string[]>(key('read')) : undefined,
+    // Any change, or an undo back to where it started, so the file always holds what the person sees.
+    document: s.history.past.length || s.history.future.length ? doc : undefined,
+  }
+  const body = JSON.stringify(state)
+  if (body === lastSent) return
+  lastSent = body
+  void fetch(`${base}/api/live/state`, { method: 'POST', headers: { 'content-type': 'application/json' }, body }).catch(() => undefined)
+}
+
+/** A document with nothing drawn yet: a workspace's project before the agent opens anything. */
+const isEmpty = (doc: { views: unknown[]; walkthroughs: unknown[] }) => doc.views.length === 0 && doc.walkthroughs.length === 0
+
+/**
+ * The agent this document last worked with starts again, in the same folder,
+ * when none runs: after the local server restarted, or on a new visit.
+ */
+async function reconnect(base: string) {
+  const s = useStudio.getState()
+  const doc = s.history?.present
+  const origin = s.projects.find((p) => p.id === s.projectId)?.origin
+  const last = agentFor(doc?.project.id)
+  if (!doc || !last || origin === 'example' || s.startOpen) return
+  const info = (await fetch(`${base}/api/agent`).then((r) => r.json()).catch(() => ({}))) as { status?: { session?: unknown; listening?: boolean }; canStart?: boolean }
+  if (!info.canStart || info.status?.session || info.status?.listening) return
+  await connectHere(last.agent, last.folder).catch((e: unknown) => s.notify(`The agent did not start again: ${e instanceof Error ? e.message : String(e)}`))
+}
+
+/**
+ * A local server that restarted knows no document. The one open here goes
+ * back to it: from its file when this Studio knows the file (which also tells
+ * it the project folder), else as it is, so agents can read it.
+ */
+async function giveBack(base: string) {
+  const s = useStudio.getState()
+  const doc = s.history?.present
+  const origin = s.projects.find((p) => p.id === s.projectId)?.origin
+  if (!doc || origin === 'example' || s.startOpen) return
+  const info = (await fetch(`${base}/api/live`).then((r) => r.json()).catch(() => ({}))) as { revision?: number }
+  if (info.revision !== 0) return
+  const path = listRecent().find((r) => r.id === doc.project.id)?.path
+  const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  const opened = path ? await post('/api/files/open', { path }).then((r) => r.ok).catch(() => false) : false
+  if (!opened) await post('/api/live/open', { document: doc }).catch(() => undefined)
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@poney/ext-ownership",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Example Poney extension: teams, ownership and on-call.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./layout": "./src/layout.ts"
+  },
+  "dependencies": {
+    "@poney/core": "0.1.0",
+    "zod": "^3.25.76",
+    "@poney/layout": "0.1.0"
+  }
+}
