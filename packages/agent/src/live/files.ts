@@ -30,8 +30,15 @@ function repositoryOf(dir: string): string | undefined {
  * project is <root>; else the git repository the file is in; else none.
  */
 export function projectOf(path: string): { root?: string; file: string } {
+  const inDocs = /^(.*)\/docs\/poney\/([^/]+\.poney)$/
+  if (!existsSync(path)) {
+    // A file not written yet: its folder is the project when that folder exists.
+    const m = inDocs.exec(path)
+    const root = m && existsSync(m[1]) ? realpathSync(m[1]) : undefined
+    return { root, file: root ? join(root, 'docs', 'poney', m![2]) : path }
+  }
   const file = realpathSync(path)
-  return { root: /^(.*)\/docs\/poney\/[^/]+\.poney$/.exec(file)?.[1] ?? repositoryOf(dirname(file)), file }
+  return { root: inDocs.exec(file)?.[1] ?? repositoryOf(dirname(file)), file }
 }
 
 /** Where a folder's Poney file goes when it has none. */
@@ -69,9 +76,18 @@ export class DocumentFiles {
     state.on('workspace', (w) => w && this.openWorkspace(w))
   }
 
-  /** Opens a .poney file and ties the document to it, and its project (see projectOf) opens. Throws with the check report when it is not a valid document. */
-  open(path: string): void {
+  /**
+   * Opens a .poney file and ties the document to it, and its project (see projectOf) opens. Throws with the check report when it is not a valid document.
+   * A file in docs/poney/ that was never written, with the document it holds (`given`, as a Studio gives it back to a hub that restarted), opens its project with that document.
+   */
+  open(path: string, given?: unknown): void {
     const { root, file } = projectOf(path)
+    if (!existsSync(file) && root && given !== undefined) {
+      // Nothing is saved over another file meanwhile; the project then ties its own file, and the document stays.
+      this.tie(undefined)
+      this.state.open(given, 'file')
+      return this.state.setWorkspace(workspaceProject(root))
+    }
     this.load(file, root)
   }
 

@@ -167,6 +167,7 @@ async function giveBack(base: string) {
   if (info.revision !== 0) return
   const path = s.liveFile ?? listRecent().find((r) => r.id === doc.project.id)?.path
   const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-  const opened = path ? await post('/api/files/open', { path }).then((r) => r.ok).catch(() => false) : false
+  // With the document: a file not written yet still brings its project back, and with it the project's agent.
+  const opened = path ? await post('/api/files/open', { path, document: doc }).then((r) => r.ok).catch(() => false) : false
   if (!opened) await post('/api/live/open', { document: doc }).catch(() => undefined)
 }

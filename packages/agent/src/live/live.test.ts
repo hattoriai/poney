@@ -142,7 +142,7 @@ describe('an agent the Studio starts over ACP', () => {
   }, 20_000)
 
   it('has no connect-here route', async () => {
-    const hub = await startHub(6000 + Math.floor(Math.random() * 100))
+    const hub = await startHub(6001 + Math.floor(Math.random() * 99))
     hubs.push(hub)
     expect((await fetch(`${hub.server.url}/api/agent/connect-here`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(404)
   })
@@ -173,7 +173,7 @@ describe('an agent the Studio starts over ACP', () => {
   }, 20_000)
 
   it('saves what a background project opens, and does not show it', async () => {
-    const hub = await startHub(5900 + Math.floor(Math.random() * 100))
+    const hub = await startHub(5900 + Math.floor(Math.random() * 80))
     hubs.push(hub)
     const a = realpathSync(mkdtempSync(join(tmpdir(), 'repo-a-')))
     const b = realpathSync(mkdtempSync(join(tmpdir(), 'repo-b-')))
@@ -329,7 +329,7 @@ describe('the project of a path', () => {
   }
   const gitInit = (dir: string) => execFileSync('git', ['init', '-q', dir])
   const hubFor = async () => {
-    const hub = await startHub(6500 + Math.floor(Math.random() * 400))
+    const hub = await startHub(7100 + Math.floor(Math.random() * 400)) // fetch refuses some ports, such as 6000 and 6665–6669
     hubs.push(hub)
     return hub
   }
@@ -402,6 +402,29 @@ describe('the project of a path', () => {
     await post(hub, '/api/project/open', { path: notes })
     expect(hub.state.file).toBe(file)
   })
+
+  it('comes back after a restart without a file, with its document and its agent\'s session', async () => {
+    const { SessionStore } = await import('../agents/sessions')
+    const { emptyDocument } = await import('./workspace-project')
+    const alpha = realpathSync(mkdtempSync(join(tmpdir(), 'alpha-')))
+    const store = new SessionStore()
+    store.setDefaultAgent({ agent: fakeAgent(), settings: {} })
+    store.setSession(alpha, { agentKey: 'custom:Fake agent', sessionId: 'fake-session-7', at: new Date().toISOString() })
+    const hub = await startHub(6900 + Math.floor(Math.random() * 100), { autoStart: true })
+    hubs.push(hub)
+    // The Studio gives back its document and the file it was tied to, which was never written.
+    const document = emptyDocument(workspaceProject(alpha))
+    await post(hub, '/api/files/open', { path: join(alpha, 'docs', 'poney', `${workspaceProject(alpha).id}.poney`), document })
+    expect(hub.state.project?.cwd).toBe(alpha)
+    expect(hub.state.shown()).toMatchObject({ revision: 1, document })
+    await until(() => !!hub.state.status().session)
+    expect(hub.state.thread().map((m) => [m.from, (m as { text?: string }).text])).toEqual([
+      ['person', 'Earlier question.'],
+      ['agent', 'Earlier answer.'],
+    ])
+    expect(store.session(alpha)?.sessionId).toBe('fake-session-7')
+    await post(hub, '/api/agent/disconnect', {})
+  }, 20_000)
 
   it('reads the only file in docs/poney/ of a project no file is tied to yet', async () => {
     const hub = await hubFor()

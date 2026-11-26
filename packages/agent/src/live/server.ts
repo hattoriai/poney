@@ -297,9 +297,9 @@ export class LiveServer {
       /* Files */
       case 'POST /api/files/open': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot open files.' })
-        const r = (await body(req)) as { path?: string }
+        const r = (await body(req)) as { path?: string; document?: unknown }
         if (!r.path) return json(res, 400, { error: 'Give a path' })
-        this.files.open(r.path)
+        this.files.open(r.path, r.document)
         return json(res, 200, { path: s.file })
       }
 
