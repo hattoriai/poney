@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@hattoriai/poney-core": "0.2.0",
-    "@hattoriai/poney-ext-ownership": "0.2.0"
+    "@hattoriai/poney-core": "0.3.0",
+    "@hattoriai/poney-ext-ownership": "0.3.0"
   }
 }
