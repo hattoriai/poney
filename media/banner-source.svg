@@ -1,25 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title description">
-<title id="title">Poney — Software explained in pictures</title>
-<desc id="description">A horseshoe in Sumi ink, its nail holes cut through, with one heel in blade orange. Cormorant Garamond wordmark and Outfit supporting text.</desc>
+<title id="title">Poney — Software, explained in diagrams</title>
+<desc id="description">A horseshoe drawn as a diagram: an arch in Sumi ink joining three nodes, one heel node in blade orange. Cormorant Garamond wordmark and Outfit supporting text.</desc>
 <rect width="1600" height="800" fill="#f5f0e8"/>
-<g transform="translate(363.9 254) scale(2.2)"><defs>
-  <mask id="poney-shoe" maskUnits="userSpaceOnUse" x="0" y="0" width="112" height="112">
-    <rect width="112" height="112" fill="white"/>
-    <rect x="26.71" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(205.0 28.81 33.32)"/>
-    <rect x="41.22" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(245.0 43.32 18.81)"/>
-    <rect x="66.58" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(295.0 68.68 18.81)"/>
-    <rect x="81.09" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(335.0 83.19 33.32)"/>
-    <rect x="25.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(-4.4 28.00 72.00)"/>
-    <rect x="81.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(4.4 84.00 72.00)"/>
-    <path d="M70 80H98" stroke="black" stroke-width="3.5"/>
-  </mask>
-</defs>
-<g mask="url(#poney-shoe)" fill="none" stroke-width="17">
-  <path d="M30 98L26 46A30 30 0 0 1 86 46L82 98" stroke="#0a0a0b"/>
-  <path d="M83.4 81L82 98" stroke="#e84a1c" stroke-width="17"/>
-</g></g>
+<g transform="translate(363.9 254) scale(2.2)"><path d="M31 84V51A25 25 0 0 1 81 51V84" fill="none" stroke="#0a0a0b" stroke-width="6"/>
+<rect x="44" y="15" width="24" height="20" rx="5" fill="#0a0a0b"/>
+<rect x="19" y="76" width="24" height="20" rx="5" fill="#0a0a0b"/>
+<rect x="69" y="76" width="24" height="20" rx="5" fill="#e84a1c"/></g>
 <path d="M128 109H160" fill="none" stroke="#e84a1c" stroke-width="2"/>
 <text x="652" y="423" font-family="Cormorant Garamond" font-weight="300" font-size="160" letter-spacing="19.2" fill="#0a0a0b">PONEY</text>
-<text x="659" y="484" font-family="Outfit" font-weight="300" font-size="28" fill="#0a0a0b">Software explained in pictures.</text>
+<text x="659" y="484" font-family="Outfit" font-weight="300" font-size="28" fill="#0a0a0b">Software, explained in diagrams.</text>
 <text x="181" y="115" font-family="Outfit" font-weight="500" font-size="16" letter-spacing="3.2" fill="#0a0a0b">HATTORI AI</text>
 </svg>

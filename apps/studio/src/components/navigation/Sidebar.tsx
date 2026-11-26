@@ -1,5 +1,5 @@
 import { plainText } from '@poney/core'
-import { useEffect, useMemo, useRef, useState, useId } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpenText, Check, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star } from 'lucide-react'
 import type { Entity, View } from '@poney/core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
@@ -149,28 +149,15 @@ function SavedTo({ fallback }: { fallback: string }) {
   )
 }
 
-/** Poney's mark: a horseshoe with its nail holes cut through and one heel in the accent colour, on an ink tile. */
+/** Poney's mark: a horseshoe drawn as a diagram, an arch joining three nodes with one heel in the accent colour, on an ink tile. */
 export function Mark() {
-  const id = `poney-shoe-${useId().replace(/:/g, '')}`
   return (
     <svg width="30" height="30" viewBox="-22 -18 156 152" aria-hidden className="shrink-0">
       <rect x="-22" y="-18" width="156" height="152" rx="36" fill="var(--ink)" />
-      <defs>
-        <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="112" height="112">
-          <rect width="112" height="112" fill="white" />
-          <rect x="26.71" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(205.0 28.81 33.32)"/>
-          <rect x="41.22" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(245.0 43.32 18.81)"/>
-          <rect x="66.58" y="13.81" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(295.0 68.68 18.81)"/>
-          <rect x="81.09" y="28.32" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(335.0 83.19 33.32)"/>
-          <rect x="25.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(-4.4 28.00 72.00)"/>
-          <rect x="81.90" y="67.00" width="4.2" height="10" rx="1.8" fill="black" transform="rotate(4.4 84.00 72.00)"/>
-          <path d="M70 80H98" stroke="black" strokeWidth="3.5" />
-        </mask>
-      </defs>
-      <g mask={`url(#${id})`} fill="none" strokeWidth="17">
-        <path d="M30 98L26 46A30 30 0 0 1 86 46L82 98" stroke="var(--paper)" />
-        <path d="M83.4 81L82 98" stroke="var(--poney)" />
-      </g>
+      <path d="M31 84V51A25 25 0 0 1 81 51V84" fill="none" stroke="var(--paper)" strokeWidth="6" />
+      <rect x="44" y="15" width="24" height="20" rx="5" fill="var(--paper)" />
+      <rect x="19" y="76" width="24" height="20" rx="5" fill="var(--paper)" />
+      <rect x="69" y="76" width="24" height="20" rx="5" fill="var(--poney)" />
     </svg>
   )
 }
