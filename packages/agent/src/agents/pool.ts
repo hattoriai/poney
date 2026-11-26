@@ -126,8 +126,14 @@ export class AgentPool {
     const agent = new ProjectAgent(this.state, project, this.mcp, this.store)
     agent.onChange = () => this.changed(agent)
     this.agents.set(project, agent)
-    const spec = providerFor(choice, this.providers)
-    const started = spec ? agent.start(spec, choice, cwd) : Promise.reject(new Error(`Poney does not know the agent "${agentKey(choice)}".`))
+    let started: Promise<void>
+    try {
+      const spec = providerFor(choice, this.providers)
+      started = spec ? agent.start(spec, choice, cwd) : Promise.reject(new Error(`Poney does not know the agent "${agentKey(choice)}".`))
+    } catch (e) {
+      // Any failure goes the same way: the agent leaves the pool, so the next activation tries again.
+      started = Promise.reject(e)
+    }
     this.ready.set(
       agent,
       started.catch((e) => {

@@ -314,6 +314,24 @@ describe('AgentPool', () => {
     expect(state.thread()).toContainEqual(expect.objectContaining({ from: 'notice', tone: 'error' }))
   })
 
+  it('tries again on the next activation after an agent failed to start', async () => {
+    const state = new LiveState()
+    const store = new SessionStore()
+    let broken = true
+    const read = store.defaultAgent.bind(store)
+    store.defaultAgent = () => (broken ? { agent: 'claude-code' as never, settings: {} } : read())
+    store.setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
+    const pool = new AgentPool(state, mcp, store, undefined, providers, true)
+    pools.push(pool)
+    const a = folder()
+    state.setWorkspace(workspaceProject(a))
+    await pool.activate()
+    expect(pool.get(a)).toBeUndefined()
+    broken = false
+    await pool.activate()
+    expect(state.status().session).toMatchObject({ providerId: 'fake', cwd: a })
+  })
+
   it('needs an open project to connect', async () => {
     const { pool } = setup()
     await expect(pool.connect({ providerId: 'fake' })).rejects.toThrow('Open a project first.')
