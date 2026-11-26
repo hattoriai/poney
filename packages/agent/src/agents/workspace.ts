@@ -3,7 +3,7 @@
  * machine, or gives a Git address and Poney clones it.
  */
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -43,7 +43,8 @@ export function listFolders(path?: string): Folder {
 export function checkFolder(path: string): string {
   const dir = resolve(path)
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error(`No folder "${dir}"`)
-  return dir
+  // The real path: a folder is one project, whatever link names it.
+  return realpathSync(dir)
 }
 
 const GIT_URL = /^(https:\/\/[\w.@:/~-]+|git@[\w.-]+:[\w./~-]+|ssh:\/\/[\w.@:/~-]+)$/

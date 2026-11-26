@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,8 +17,8 @@ type Result = { content: { type: string; text?: string }[]; isError?: boolean }
 const textOf = (r: Result) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n')
 
 const home = mkdtempSync(join(tmpdir(), 'poney-home-'))
-const a = mkdtempSync(join(tmpdir(), 'proj-a-'))
-const b = mkdtempSync(join(tmpdir(), 'proj-b-'))
+const a = realpathSync(mkdtempSync(join(tmpdir(), 'proj-a-')))
+const b = realpathSync(mkdtempSync(join(tmpdir(), 'proj-b-')))
 const client = new Client({ name: 'test', version: '0' })
 let hub: Hub
 let saved: string | undefined

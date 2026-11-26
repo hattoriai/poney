@@ -139,18 +139,9 @@ export const rememberFolder = (path: string) => {
   }
 }
 
-/**
- * The project's folder: as Poney on this computer says, else the folder an
- * agent already works in, else the repository a docs/poney/ file is saved in.
- */
+/** The project's folder, as the Poney hub on this computer says: one rule for every way a project opens. */
 export function useProjectRoot(): { root: string; name: string } | null {
   // A string, so the store returns the same value while nothing changes.
-  const root = useStudio(
-    (s) =>
-      s.project?.root ??
-      s.agent.session?.cwd ??
-      (s.liveFile ? /^(.*)\/docs\/poney\/[^/]+\.poney$/.exec(s.liveFile)?.[1] : undefined) ??
-      null,
-  )
+  const root = useStudio((s) => s.project?.root ?? null)
   return root ? { root, name: root.split('/').pop() ?? root } : null
 }

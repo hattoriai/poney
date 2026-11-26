@@ -300,7 +300,7 @@ export class LiveServer {
         const r = (await body(req)) as { path?: string }
         if (!r.path) return json(res, 400, { error: 'Give a path' })
         this.files.open(r.path)
-        return json(res, 200, { path: r.path })
+        return json(res, 200, { path: s.file })
       }
 
       /* Workspaces */

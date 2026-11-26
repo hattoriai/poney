@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { workspaceFile } from './files'
@@ -72,7 +73,7 @@ describe('an agent the Studio starts over ACP', () => {
   it('answers the person, shows its tool calls, and asks before it acts', async () => {
     const hub = await startHub(5600 + Math.floor(Math.random() * 200))
     hubs.push(hub)
-    const cwd = mkdtempSync(join(tmpdir(), 'repo-'))
+    const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'repo-')))
     await post(hub, '/api/project/open', { path: cwd })
     await post(hub, '/api/agent/connect', fakeAgent())
     expect(hub.state.status().session).toMatchObject({ providerId: 'custom:Fake agent', cwd, busy: false })
@@ -115,12 +116,12 @@ describe('an agent the Studio starts over ACP', () => {
     await post(hub, '/api/agent/connect', counted('old'))
     expect(starts()).toEqual([`old ${realpathSync(other)}`])
     // The old agent is the default: it must not start in the new folder.
-    const folder = mkdtempSync(join(tmpdir(), 'repo-'))
+    const folder = realpathSync(mkdtempSync(join(tmpdir(), 'repo-')))
     await post(hub, '/api/agent/connect', { ...counted('new'), folder })
     expect(hub.state.project?.cwd).toBe(folder)
     expect(hub.state.status().session).toMatchObject({ providerId: 'custom:new', cwd: folder })
     await new Promise((r) => setTimeout(r, 300))
-    expect(starts().filter((l) => l.endsWith(realpathSync(folder)))).toEqual([`new ${realpathSync(folder)}`])
+    expect(starts().filter((l) => l.endsWith(folder))).toEqual([`new ${folder}`])
     await post(hub, '/api/agent/disconnect', {})
   }, 20_000)
 
@@ -149,21 +150,23 @@ describe('an agent the Studio starts over ACP', () => {
   it('opens the folder’s document again when the project is opened after a loose file, and keeps the agent', async () => {
     const hub = await startHub(6100 + Math.floor(Math.random() * 100))
     hubs.push(hub)
-    const p = mkdtempSync(join(tmpdir(), 'repo-p-'))
+    const p = realpathSync(mkdtempSync(join(tmpdir(), 'repo-p-')))
     await post(hub, '/api/project/open', { path: p })
     await post(hub, '/api/agent/connect', fakeAgent())
+    const agent = hub.agents.get(p)
     const session = hub.state.status().session
     const sessionId = readFileSync(join(home, 'sessions.json'), 'utf8')
-    const loose = join(mkdtempSync(join(tmpdir(), 'loose-')), 'tour.poney')
+    const loose = join(realpathSync(mkdtempSync(join(tmpdir(), 'loose-'))), 'tour.poney')
     writeFileSync(loose, readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
     await post(hub, '/api/files/open', { path: loose })
     expect(hub.state.file).toBe(loose)
-    let threads = 0
-    hub.state.on('thread', () => threads++)
+    // A loose file is in no project: no agent answers there.
+    expect(hub.state.project).toBeUndefined()
+    expect(hub.state.status().session).toBeNull()
     await post(hub, '/api/project/open', { path: p })
     expect(hub.state.file).toBe(workspaceFile(workspaceProject(p)))
     expect(hub.state.shown()?.document).toMatchObject({ project: { id: workspaceProject(p).id } })
-    expect(threads).toBe(0)
+    expect(hub.agents.get(p)).toBe(agent)
     expect(hub.state.status().session).toEqual(session)
     expect(readFileSync(join(home, 'sessions.json'), 'utf8')).toBe(sessionId)
     await post(hub, '/api/agent/disconnect', {})
@@ -172,8 +175,8 @@ describe('an agent the Studio starts over ACP', () => {
   it('saves what a background project opens, and does not show it', async () => {
     const hub = await startHub(5900 + Math.floor(Math.random() * 100))
     hubs.push(hub)
-    const a = mkdtempSync(join(tmpdir(), 'repo-a-'))
-    const b = mkdtempSync(join(tmpdir(), 'repo-b-'))
+    const a = realpathSync(mkdtempSync(join(tmpdir(), 'repo-a-')))
+    const b = realpathSync(mkdtempSync(join(tmpdir(), 'repo-b-')))
     await post(hub, '/api/project/open', { path: a })
     await post(hub, '/api/project/open', { path: b })
     const tour = JSON.parse(readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
@@ -235,7 +238,6 @@ describe('a project whose file is not a valid document', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'broken-'))
     const w = workspaceProject(cwd)
     const path = workspaceFile(w)
-    const { mkdirSync } = await import('node:fs')
     mkdirSync(dirname(path), { recursive: true })
     const broken = '<<<<<<< HEAD\n{"poneyVersion": "0.1.0"}\n=======\n{}\n>>>>>>> theirs\n'
     writeFileSync(path, broken)
@@ -313,5 +315,99 @@ describe('an agent in another folder than the open document', () => {
     expect(state.file).toBe(join(tug, 'docs', 'poney', `${id}.poney`))
     expect(existsSync(state.file!)).toBe(true)
     files.close()
+  })
+})
+
+describe('the project of a path', () => {
+  const tourText = () => readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8')
+  /** A folder with a document in docs/poney/<name>.poney. */
+  const withFile = (dir: string, name: string) => {
+    mkdirSync(join(dir, 'docs', 'poney'), { recursive: true })
+    const file = join(dir, 'docs', 'poney', `${name}.poney`)
+    writeFileSync(file, tourText())
+    return file
+  }
+  const gitInit = (dir: string) => execFileSync('git', ['init', '-q', dir])
+  const hubFor = async () => {
+    const hub = await startHub(6500 + Math.floor(Math.random() * 400))
+    hubs.push(hub)
+    return hub
+  }
+
+  it('is the folder of docs/poney/, also outside a repository, after a restart', async () => {
+    const hub = await hubFor()
+    const q = mkdtempSync(join(tmpdir(), 'q-'))
+    await post(hub, '/api/project/open', { path: q })
+    hub.state.put({ from: 'notice', text: 'In Q.', tone: 'info' })
+    const p = mkdtempSync(join(tmpdir(), 'plain-'))
+    await post(hub, '/api/files/open', { path: withFile(p, 'notes') })
+    expect(hub.state.projectKey()).toBe(realpathSync(p))
+    expect(hub.state.thread()).toEqual([])
+  })
+
+  it('is the folder of docs/poney/ in a subfolder of a repository, not the repository', async () => {
+    const hub = await hubFor()
+    const repo = mkdtempSync(join(tmpdir(), 'mono-'))
+    gitInit(repo)
+    const app = join(repo, 'packages', 'app')
+    const file = withFile(app, 'app')
+    await post(hub, '/api/files/open', { path: file })
+    expect(hub.state.projectKey()).toBe(realpathSync(app))
+  })
+
+  it('is the repository for a file elsewhere in it, and none for a loose file', async () => {
+    const hub = await hubFor()
+    const repo = mkdtempSync(join(tmpdir(), 'repo-'))
+    gitInit(repo)
+    writeFileSync(join(repo, 'tour.poney'), tourText())
+    await post(hub, '/api/files/open', { path: join(repo, 'tour.poney') })
+    expect(hub.state.projectKey()).toBe(realpathSync(repo))
+    const loose = join(mkdtempSync(join(tmpdir(), 'loose-')), 'tour.poney')
+    writeFileSync(loose, tourText())
+    await post(hub, '/api/files/open', { path: loose })
+    expect(hub.state.project).toBeUndefined()
+  })
+
+  it('has one key for a folder, whatever path names it', async () => {
+    const hub = await hubFor()
+    const real = realpathSync(mkdtempSync(join(tmpdir(), 'real-')))
+    const file = withFile(real, 'real')
+    const link = join(mkdtempSync(join(tmpdir(), 'links-')), 'link')
+    symlinkSync(real, link)
+    await post(hub, '/api/project/open', { path: link })
+    expect(hub.state.projectKey()).toBe(real)
+    expect(hub.state.file).toBe(file)
+    let threads = 0
+    hub.state.on('thread', () => threads++)
+    // A recent file, named through the link.
+    await post(hub, '/api/files/open', { path: join(link, 'docs', 'poney', 'real.poney') })
+    await post(hub, '/api/project/open', { path: real })
+    expect(hub.state.projectKey()).toBe(real)
+    expect(hub.state.file).toBe(file)
+    expect(threads).toBe(0)
+  })
+
+  it('saves and reads a background project in the file it is tied to, whatever its name', async () => {
+    const hub = await hubFor()
+    const notes = realpathSync(mkdtempSync(join(tmpdir(), 'notes-app-')))
+    const file = withFile(notes, 'acme-notes')
+    await post(hub, '/api/files/open', { path: file })
+    await post(hub, '/api/project/open', { path: mkdtempSync(join(tmpdir(), 'b-')) })
+    const tour = JSON.parse(tourText())
+    const more = { ...tour, walkthroughs: [...tour.walkthroughs, { ...tour.walkthroughs[0], id: 'more', title: 'More' }] }
+    expect(await post(hub, '/api/live/open', { document: more, project: notes })).toMatchObject({ saved: true })
+    expect(JSON.parse(readFileSync(file, 'utf8')).walkthroughs.map((w: { id: string }) => w.id)).toContain('more')
+    expect(existsSync(workspaceFile(workspaceProject(notes)))).toBe(false)
+    // Back in the project, its own document opens.
+    await post(hub, '/api/project/open', { path: notes })
+    expect(hub.state.file).toBe(file)
+  })
+
+  it('reads the only file in docs/poney/ of a project no file is tied to yet', async () => {
+    const hub = await hubFor()
+    const notes = realpathSync(mkdtempSync(join(tmpdir(), 'notes-app-')))
+    withFile(notes, 'acme-notes')
+    const read = await (await fetch(`${hub.server.url}/api/live/read?project=${encodeURIComponent(notes)}`)).json()
+    expect(read.current?.project?.name).toBe('Acme Notes')
   })
 })
