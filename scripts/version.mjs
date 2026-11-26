@@ -2,7 +2,7 @@
 /**
  * One version for every published Poney package.
  *
- *   node scripts/version.mjs 0.2.0           sets it in each package.json, and in their dependencies on each other
+ *   node scripts/version.mjs 0.2.0           sets it in each package.json, and wherever a package or an app depends on one
  *   node scripts/version.mjs --check 0.2.0   fails unless every package has it (the release workflow runs this)
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -15,7 +15,9 @@ if (!value || !/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(value)) {
 }
 
 const root = new URL('..', import.meta.url).pathname
-const manifests = readdirSync(join(root, 'packages')).map((d) => join(root, 'packages', d, 'package.json'))
+// The packages, and the apps (private), whose dependencies on the packages follow the version too.
+const inside = (folder) => readdirSync(join(root, folder)).map((d) => join(root, folder, d, 'package.json'))
+const manifests = [...inside('packages'), ...inside('apps')]
 const packages = manifests.map((path) => ({ path, json: JSON.parse(readFileSync(path, 'utf8')) })).filter((p) => !p.json.private)
 const names = new Set(packages.map((p) => p.json.name))
 
