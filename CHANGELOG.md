@@ -20,6 +20,7 @@ Every package in this repository has the same version. The format has its own ve
 ### Studio
 
 - The sidebar ends with "Made by Hattori AI", a link to hattori.ai.
+- Each project has its own agent session and conversation. Choose the agent one time; it starts or resumes when you open a project.
 
 ## 0.2.0
 
