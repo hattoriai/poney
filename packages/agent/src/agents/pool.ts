@@ -50,6 +50,16 @@ export class AgentPool {
    * when `start` (by default: when the pool may start agents by itself and no agent listens over MCP). Never throws.
    */
   async activate(start = this.autoStart && !this.state.status().listening): Promise<void> {
+    try {
+      await this.activateNow(start)
+    } catch (e) {
+      // Activation runs on every project change, with no one to catch it: report, and no agent answers.
+      this.state.put({ from: 'notice', text: e instanceof Error ? e.message : String(e), tone: 'error' })
+      this.state.setSession(null, null)
+    }
+  }
+
+  private async activateNow(start: boolean): Promise<void> {
     const project = this.state.projectKey()
     // No project: no agent answers.
     if (!project) return this.state.setSession(null, null)

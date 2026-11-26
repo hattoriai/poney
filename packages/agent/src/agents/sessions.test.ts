@@ -47,6 +47,17 @@ describe('SessionStore', () => {
     expect(store.session('/w/a')).toBeUndefined()
   })
 
+  it('ignores a default agent it cannot read', () => {
+    const file = join(dir, 'sessions.json')
+    const store = new SessionStore()
+    for (const agent of ['claude-code', null, { providerId: 3 }, { custom: { name: 'x' } }, { custom: 'x' }]) {
+      writeFileSync(file, JSON.stringify({ version: 1, defaultAgent: { agent, settings: {} }, projects: {} }))
+      expect(store.defaultAgent()).toBeUndefined()
+    }
+    writeFileSync(file, JSON.stringify({ version: 1, defaultAgent: { agent: { providerId: 'codex' }, settings: 'x' }, projects: {} }))
+    expect(store.defaultAgent()).toEqual({ agent: { providerId: 'codex' }, settings: {} })
+  })
+
   it('names agents by key', () => {
     expect(agentKey({ providerId: 'codex' })).toBe('codex')
     expect(agentKey({ custom: { name: 'Mine', command: 'x' } })).toBe('custom:Mine')

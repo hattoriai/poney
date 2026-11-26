@@ -274,6 +274,18 @@ describe('AgentPool', () => {
     expect((await waiting).map((q) => q.text)).toEqual(['Where does it start?'])
   })
 
+  it('never rejects when a project opens, whatever the store holds', async () => {
+    const state = new LiveState()
+    const store = new SessionStore()
+    store.defaultAgent = () => ({ agent: 'claude-code' as never, settings: {} })
+    const pool = new AgentPool(state, mcp, store, undefined, providers, true)
+    pools.push(pool)
+    state.setWorkspace(workspaceProject(folder()))
+    await expect(pool.activate()).resolves.toBeUndefined()
+    expect(state.status().session).toBeNull()
+    expect(state.thread()).toContainEqual(expect.objectContaining({ from: 'notice', tone: 'error' }))
+  })
+
   it('needs an open project to connect', async () => {
     const { pool } = setup()
     await expect(pool.connect({ providerId: 'fake' })).rejects.toThrow('Open a project first.')

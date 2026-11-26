@@ -30,6 +30,18 @@ interface SessionFile {
 /** The name of an agent in the store: its provider id, or `custom:<name>`. */
 export const agentKey = (a: AgentChoice): string => ('custom' in a ? `custom:${a.custom.name}` : a.providerId)
 
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/** A default agent as the file has it, if it has the right shape: a file edited by hand must not stop the hub. */
+function readDefault(v: unknown): DefaultAgent | undefined {
+  if (!isObject(v) || !isObject(v.agent)) return undefined
+  const a = v.agent
+  const known = typeof a.providerId === 'string'
+  const custom = isObject(a.custom) && typeof a.custom.name === 'string' && typeof a.custom.command === 'string'
+  if (!known && !custom) return undefined
+  return { agent: v.agent as AgentChoice, settings: isObject(v.settings) ? (v.settings as DefaultAgent['settings']) : {} }
+}
+
 export class SessionStore {
   constructor(private file = join(poneyHome(), 'sessions.json')) {}
 
@@ -64,9 +76,10 @@ export class SessionStore {
     if (!existsSync(this.file)) return empty
     try {
       const v = JSON.parse(readFileSync(this.file, 'utf8'))
-      if (!v || typeof v !== 'object' || Array.isArray(v)) return empty
-      const projects = v.projects && typeof v.projects === 'object' && !Array.isArray(v.projects) ? v.projects : {}
-      return { version: 1, ...(v.defaultAgent ? { defaultAgent: v.defaultAgent } : {}), projects }
+      if (!isObject(v)) return empty
+      const projects = isObject(v.projects) ? (v.projects as SessionFile['projects']) : {}
+      const defaultAgent = readDefault(v.defaultAgent)
+      return { version: 1, ...(defaultAgent ? { defaultAgent } : {}), projects }
     } catch {
       return empty
     }
