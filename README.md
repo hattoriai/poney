@@ -276,7 +276,7 @@ A document declares the extensions it uses. Readers that do not know an optional
 Plugins run in the local hub, next to the code, and the Studio shows what they return.
 
 - **Importers** read a source and add what they find to a document. They only add: what the document already has keeps its words. Built in: `schema` (tables, columns and foreign keys from `db/schema.rb`, SQL DDL or `schema.prisma`) and `js-modules` (modules and who imports whom, from JavaScript and TypeScript imports, across npm workspaces and tsconfig paths). In the Studio: **Import from the code…** in the project menu.
-- **Overlays** read live facts and mark the parts they concern, through each part's `sourceRefs`, without changing the document. Built in: `coverage` (from the last lcov, Istanbul, SimpleCov or ExCoveralls report) and `churn` (commits in the last 90 days). In the Studio: **Facts** in the top bar; scenes show the facts as badges, and mark the parts that need a look.
+- **Overlays** read live facts and mark the parts they concern, through each part's `sourceRefs`, without changing the document. Built in: `coverage` (from the last lcov, Istanbul, SimpleCov or ExCoveralls report) and `churn` (commits in the last 90 days). In the Studio: **Facts** in the top bar; walkthrough scenes and explorer diagrams show the facts as badges, and mark the parts that need a look.
 
 Agents use both through `poney_import` and `poney_overlay`, and people through `poney import` and `poney overlay`.
 

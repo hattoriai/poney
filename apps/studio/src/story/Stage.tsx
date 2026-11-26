@@ -5,7 +5,8 @@ import { layoutView, type SceneBase, type ViewLayoutOptions, type Rect } from '@
 import { expandFocus, fit, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, type Mode, type ViewBox } from '@poney/react'
 import { parseRef } from '@poney/core'
 import { union } from '@poney/layout'
-import { useDoc, useIndex, useStudio } from '@/features/store'
+import { useDoc, useIndex } from '@/features/store'
+import { useOverlayFacts } from '@/features/overlays'
 import { diagramFor } from '@poney/react'
 import { focusNextElement } from '@/features/interaction'
 import { onDiagramContextMenu } from '@/features/context'
@@ -273,14 +274,7 @@ export function SceneView({ view, walkthrough, marks, mode, focus, callouts, hot
     return { x: cx - w / 2, y: cy - h / 2, w, h }
   }, [scene, whole, step, idx, walkthrough])
   // Live facts (test coverage, recent changes) join the scene's own badges and effects.
-  const overlays = useStudio((s) => s.overlays)
-  const facts = useMemo(() => {
-    const marks = Object.values(overlays).flatMap((o) => o.marks)
-    return {
-      effects: marks.flatMap((m) => (m.effect ? [{ target: m.target, as: m.effect }] : [])),
-      badges: marks.flatMap((m) => (m.badge ? [{ target: m.target, text: m.badge.text, tone: m.badge.tone }] : [])),
-    }
-  }, [overlays])
+  const facts = useOverlayFacts()
   const story = useMemo(
     () => ({
       ...storyState({
