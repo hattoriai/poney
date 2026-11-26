@@ -20,7 +20,7 @@ export function useBind() {
       const key = refKey(ref)
       return {
         'data-ref': key,
-        className: 'dg-el',
+        className: 'poney-el',
         tabIndex: 0,
         role: 'button',
         'aria-label': label,

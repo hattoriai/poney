@@ -13,7 +13,7 @@ export function ArrowHead({ at, angle, kind, color, size = 8 }: { at: Point; ang
   const p = (dx: number, dy: number) => `${at.x + dx * cos - dy * sin},${at.y + dx * sin + dy * cos}`
   if (kind === 'open-arrow')
     return <polyline points={`${p(-l, -w)} ${p(0, 0)} ${p(-l, w)}`} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-  if (kind === 'triangle') return <polygon points={`${p(0, 0)} ${p(-l, -w)} ${p(-l, w)}`} fill="var(--paper-raised)" stroke={color} strokeWidth={1.3} strokeLinejoin="round" />
+  if (kind === 'triangle') return <polygon points={`${p(0, 0)} ${p(-l, -w)} ${p(-l, w)}`} fill="var(--poney-paper-raised)" stroke={color} strokeWidth={1.3} strokeLinejoin="round" />
   return <polygon points={`${p(0, 0)} ${p(-l, -w)} ${p(-l * 0.72, 0)} ${p(-l, w)}`} fill={color} />
 }
 
@@ -37,7 +37,7 @@ export function EdgeLine({ points, style, radius = 8 }: { points: Point[]; style
       <path d={roundedPath(points, radius)} fill="none" stroke="transparent" strokeWidth={14} />
       <path
         d={d}
-        className={`dg-edge-path ${style.flowing ? 'dg-flowing' : ''}`}
+        className={`poney-edge ${style.flowing ? 'poney-flowing' : ''}`}
         fill="none"
         stroke={style.color}
         strokeWidth={style.width}
@@ -56,7 +56,7 @@ export function EdgeLabel({
   at,
   text,
   secondary,
-  tone = 'var(--ink-2)',
+  tone = 'var(--poney-ink-2)',
   strong,
   size = 11.5,
 }: {
@@ -73,12 +73,12 @@ export function EdgeLabel({
   const h = secondary ? size * 3 : size * 1.75
   return (
     <g transform={`translate(${at.x - w / 2} ${at.y - h / 2})`} pointerEvents="none">
-      <rect width={w} height={h} rx={size / 2} fill="var(--paper-raised)" stroke={strong ? tone : 'var(--rule)'} strokeWidth={strong ? 1.2 : 1} />
-      <text x={w / 2} y={size * 1.22} textAnchor="middle" fontSize={size} fontWeight={strong ? 600 : 500} fill={strong ? tone : 'var(--ink-2)'}>
+      <rect width={w} height={h} rx={size / 2} fill="var(--poney-paper-raised)" stroke={strong ? tone : 'var(--poney-rule)'} strokeWidth={strong ? 1.2 : 1} />
+      <text x={w / 2} y={size * 1.22} textAnchor="middle" fontSize={size} fontWeight={strong ? 600 : 500} fill={strong ? tone : 'var(--poney-ink-2)'}>
         {text}
       </text>
       {secondary && (
-        <text x={w / 2} y={size * 2.4} textAnchor="middle" fontSize={size - 1} fill="var(--ink-3)">
+        <text x={w / 2} y={size * 2.4} textAnchor="middle" fontSize={size - 1} fill="var(--poney-ink-3)">
           {secondary}
         </text>
       )}

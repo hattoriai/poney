@@ -217,6 +217,7 @@ Renderers draw SVG from a scene that `@poney/layout` computed. They do not compu
 | `ZoomProvider` | The zoom level, for level of detail | 1 |
 
 ```tsx
+import '@poney/react/styles.css'
 import { RenderProvider, diagramFor } from '@poney/react'
 import { indexOf } from '@poney/core'
 import { layoutView } from '@poney/layout'
@@ -228,6 +229,15 @@ const { Renderer } = diagramFor(view)!
   <svg viewBox={`0 0 ${scene.width} ${scene.height}`}><Renderer scene={scene} view={view} /></svg>
 </RenderProvider>
 ```
+
+**Styles.** Import `@poney/react/styles.css` once. It is plain CSS: no Tailwind, nothing to install, under 4 KB (1.3 KB gzipped).
+
+- **Nothing global, easy to override.** Every rule is in the cascade layer `poney` and uses `:where()`, so your own CSS always wins without `!important`. It sets only `--poney-*` tokens and `.poney-*` classes: no resets, no element styles.
+- **Theming.** Override any `--poney-*` token (colours, `--poney-font-sans`, `--poney-font-mono`). Light is the default; set `data-poney-theme="dark"` on any element (often `<html>`) to draw Poney dark inside it.
+- **With a bundler** (Vite, webpack, Next…), the file and its parts (`src/styles/`: tokens, diagrams, stories, motion, legend) are inlined, minified and fingerprinted by your build.
+- **Without one**, or from a CDN, use the prebuilt single file `@poney/react/styles.min.css` (built with `npm run build:styles -w @poney/react`, and before publishing).
+- Motion stops for readers who ask for reduced motion. The package is marked `sideEffects: ["*.css"]`, so bundlers drop the renderers an app does not use.
+- The PNG and static SVG renderer uses the same colours (`THEMES`); a test keeps the two equal.
 
 The Studio's host (`apps/studio/src/story/StudioRender.tsx`) passes its store's selection and view state, and a `bind` with its own behavior: rename on double-click, the context menu, pointing for the agent. The Studio also adds its chrome: the `Canvas` (zoom, pan, fit, the tooltip), and toolbar buttons per diagram type (`apps/studio/src/renderers/tools.tsx`).
 

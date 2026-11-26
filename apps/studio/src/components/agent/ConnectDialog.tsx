@@ -122,7 +122,7 @@ export function ConnectDialog() {
               return (
                 <li key={p.id}>
                   <label className={`flex items-start gap-3 px-3.5 py-3 ${usable ? 'cursor-pointer' : 'cursor-default'}`}>
-                    <input type="radio" name="agent" className="mt-1 accent-[var(--poney)]" checked={on} disabled={!usable} onChange={() => setChoice(c)} />
+                    <input type="radio" name="agent" className="mt-1 accent-[var(--accent)]" checked={on} disabled={!usable} onChange={() => setChoice(c)} />
                     <span className={`min-w-0 flex-1 ${p.available ? '' : 'opacity-70'}`}>
                       <span className="block text-[14px] font-medium">{p.name}</span>
                       {p.available ? <Status status={status} signIn={p.signIn} onRetry={() => void check(c, true)} /> : <span className="block text-[12.5px] text-ink-3">{p.install}</span>}
@@ -135,7 +135,7 @@ export function ConnectDialog() {
               const on = choice?.kind === 'custom' && choice.name === c.name
               return (
                 <li key={c.name} className="flex items-start gap-3 px-3.5 py-3">
-                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--poney)]" checked={on} onChange={() => setChoice({ kind: 'custom', ...c })} />
+                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--accent)]" checked={on} onChange={() => setChoice({ kind: 'custom', ...c })} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[14px] font-medium">{c.name}</span>
                     <code className="block truncate font-mono text-[11.5px] text-ink-3">{c.command}</code>

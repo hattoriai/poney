@@ -1,0 +1,83 @@
+/*
+ * Poney tokens: every colour and font the renderers use, as --poney-* custom
+ * properties. Override any of them to restyle Poney; nothing else reads them.
+ *
+ * Light is the default. Set data-poney-theme="dark" on any element (often
+ * <html>) to draw Poney inside it dark, and data-poney-theme="light" to force
+ * light. A page that follows the system can set it from prefers-color-scheme.
+ *
+ * The values equal THEMES in src/theme.ts (used where CSS cannot be read,
+ * in PNG and static SVG); a test keeps the two the same.
+ */
+@layer poney {
+  :where(:root),
+  :where([data-poney-theme='light']) {
+    --poney-plaster: #eef0ec;
+    --poney-paper: #fbfbf9;
+    --poney-paper-raised: #ffffff;
+    --poney-sunken: #e5e8e3;
+    --poney-ink: #1d2230;
+    --poney-ink-2: #4e5566;
+    --poney-ink-3: #848a97;
+    --poney-ink-4: #b3b8c1;
+    --poney-rule: #dcdfd8;
+    --poney-rule-strong: #c8ccc4;
+    --poney-accent: #b24a32;
+    --poney-accent-wash: #f7ebe7;
+    --poney-accent-ring: #b24a3240;
+    --poney-lapis: #3a5a9e;
+    --poney-malachite: #2e7656;
+    --poney-ochre: #a8761c;
+    --poney-umber: #7d5a43;
+    --poney-tyrian: #7a4a88;
+    --poney-slate: #56627a;
+    --poney-verdigris: #26807f;
+    --poney-success: #2e7656;
+    --poney-failure: #9c3554;
+    --poney-new: #1d8a4e;
+    --poney-new-wash: #ecf8f0;
+    --poney-changed: #b86e0b;
+    --poney-changed-wash: #fdf5e6;
+    --poney-removed: #c03550;
+    --poney-removed-wash: #fcf0f2;
+    --poney-story-node: #ffffff;
+    --poney-story-line: #8c939e;
+    --poney-story-rule: #d7dade;
+    --poney-font-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --poney-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  :where([data-poney-theme='dark']) {
+    --poney-plaster: #15181e;
+    --poney-paper: #1b1f27;
+    --poney-paper-raised: #212631;
+    --poney-sunken: #12151a;
+    --poney-ink: #e6e8ec;
+    --poney-ink-2: #aeb4c0;
+    --poney-ink-3: #7c8391;
+    --poney-ink-4: #535a67;
+    --poney-rule: #2a2f39;
+    --poney-rule-strong: #3a404c;
+    --poney-accent: #e2765b;
+    --poney-accent-wash: #3a2621;
+    --poney-accent-ring: #e2765b4d;
+    --poney-lapis: #7f9ce0;
+    --poney-malachite: #5fb68d;
+    --poney-ochre: #d6a64c;
+    --poney-umber: #c19a7f;
+    --poney-tyrian: #b98ac8;
+    --poney-slate: #98a3b9;
+    --poney-verdigris: #58bcba;
+    --poney-success: #5fb68d;
+    --poney-failure: #e07a98;
+    --poney-new: #4fc887;
+    --poney-new-wash: #15281f;
+    --poney-changed: #e3a54a;
+    --poney-changed-wash: #2b2416;
+    --poney-removed: #ef7f97;
+    --poney-removed-wash: #2e1a20;
+    --poney-story-node: #1f242d;
+    --poney-story-line: #7d8592;
+    --poney-story-rule: #363c48;
+  }
+}

@@ -26,7 +26,7 @@ function useHotBind(key: string, ref: Parameters<BindFn>[0], label: string, cls:
   const props = bind(ref, label)
   return {
     ...props,
-    className: `dg-el ${cls}`,
+    className: `poney-el ${cls}`,
     onMouseEnter: () => {
       props.onMouseEnter?.()
       setHot(key)
@@ -42,24 +42,24 @@ function StateBox({ s, machine }: { s: StateScene['states'][number]; machine: st
   const key = `state:${machine}:${s.id}`
   const look = useLook(key)
   const props = useHotBind(key, { kind: 'state', behavior: machine, id: s.id }, `State ${s.name}`, lookClass(look))
-  const outcome = s.outcome === 'success' ? 'var(--success)' : s.outcome === 'failure' ? 'var(--failure)' : undefined
+  const outcome = s.outcome === 'success' ? 'var(--poney-success)' : s.outcome === 'failure' ? 'var(--poney-failure)' : undefined
   if (s.kind === 'initial')
     return (
       <g transform={`translate(${s.x} ${s.y})`} {...props}>
-        <circle cx={s.w / 2} cy={s.h / 2} r={8} fill="var(--ink)" />
+        <circle cx={s.w / 2} cy={s.h / 2} r={8} fill="var(--poney-ink)" />
       </g>
     )
-  const stroke = look.hot ? 'var(--poney)' : stateStroke(look.state, look.focused ? 'var(--story-line)' : 'var(--story-rule)')
+  const stroke = look.hot ? 'var(--poney-accent)' : stateStroke(look.state, look.focused ? 'var(--poney-story-line)' : 'var(--poney-story-rule)')
   return (
     <g transform={`translate(${s.x} ${s.y})`} {...props}>
       <rect width={s.w} height={s.h} rx={s.h / 2} fill={stateFill(look.state)} stroke={stroke} strokeWidth={look.state || look.hot ? 1.8 : 1.25} />
       {s.kind === 'final' && <rect x={4} y={4} width={s.w - 8} height={s.h - 8} rx={(s.h - 8) / 2} fill="none" stroke={stroke} strokeWidth={1} />}
       {outcome && <circle cx={20} cy={s.h / 2} r={4} fill={outcome} />}
-      <text x={s.w / 2} y={s.entryActions.length ? s.h / 2 - 2 : s.h / 2 + 5} textAnchor="middle" fontSize={14.5} fontWeight={600} fill="var(--ink)">
+      <text x={s.w / 2} y={s.entryActions.length ? s.h / 2 - 2 : s.h / 2 + 5} textAnchor="middle" fontSize={14.5} fontWeight={600} fill="var(--poney-ink)">
         {s.name}
       </text>
       {s.entryActions.length > 0 && (
-        <text x={s.w / 2} y={s.h / 2 + 15} textAnchor="middle" fontSize={11.5} fill="var(--ink-3)">
+        <text x={s.w / 2} y={s.h / 2 + 15} textAnchor="middle" fontSize={11.5} fill="var(--poney-ink-3)">
           {s.entryActions[0]}
           {s.entryActions.length > 1 ? `, +${s.entryActions.length - 1}` : ''}
         </text>
@@ -74,7 +74,7 @@ function TransitionLine({ t, machine }: { t: StateScene['transitions'][number]; 
   const key = `transition:${machine}:${t.id}`
   const look = useLook(key)
   const props = useHotBind(key, { kind: 'transition', behavior: machine, id: t.id }, `Transition: ${t.event}`, lookClass(look))
-  const color = look.hot ? 'var(--poney)' : stateStroke(look.state, look.focused ? 'var(--story-line)' : 'var(--story-rule)')
+  const color = look.hot ? 'var(--poney-accent)' : stateStroke(look.state, look.focused ? 'var(--poney-story-line)' : 'var(--poney-story-rule)')
   const d = roundedPath(trimEnd(t.points, 7), 18)
   const last = t.points[t.points.length - 1]
   return (
@@ -91,15 +91,15 @@ function TransitionLabel({ t, machine }: { t: StateScene['transitions'][number];
   const look = useLook(key)
   if (!t.label) return null
   const { x, y, w, h } = t.label
-  const color = look.hot ? 'var(--poney)' : look.state ? `var(--${look.state})` : 'var(--ink)'
+  const color = look.hot ? 'var(--poney-accent)' : look.state ? `var(--poney-${look.state})` : 'var(--poney-ink)'
   return (
     <g transform={`translate(${x} ${y})`} pointerEvents="none" className={lookClass(look)}>
-      <rect width={w} height={h} rx={8} fill={look.state ? `var(--${look.state}-wash)` : 'var(--paper-raised)'} stroke={look.state ? `var(--${look.state})` : 'var(--story-rule)'} />
+      <rect width={w} height={h} rx={8} fill={look.state ? `var(--poney-${look.state}-wash)` : 'var(--poney-paper-raised)'} stroke={look.state ? `var(--poney-${look.state})` : 'var(--poney-story-rule)'} />
       <text x={w / 2} y={15} textAnchor="middle" fontSize={11.5} fontWeight={600} fill={color} textDecoration={look.state === 'removed' ? 'line-through' : undefined}>
         {t.event}
       </text>
       {t.guard && (
-        <text x={w / 2} y={28} textAnchor="middle" fontSize={10.5} fill="var(--ink-3)">
+        <text x={w / 2} y={28} textAnchor="middle" fontSize={10.5} fill="var(--poney-ink-3)">
           [{t.guard}]
         </text>
       )}

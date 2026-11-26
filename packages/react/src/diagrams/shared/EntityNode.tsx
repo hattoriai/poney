@@ -36,11 +36,11 @@ export function Rings({ w, h, rx = 12, selected }: { w: number; h: number; rx?: 
     <>
       {selected && (
         <>
-          <rect x={-5} y={-5} width={w + 10} height={h + 10} rx={rx + 5} fill="none" stroke="var(--poney-ring)" strokeWidth={6} />
-          <rect x={-2.5} y={-2.5} width={w + 5} height={h + 5} rx={rx + 2.5} fill="none" stroke="var(--poney)" strokeWidth={1.75} />
+          <rect x={-5} y={-5} width={w + 10} height={h + 10} rx={rx + 5} fill="none" stroke="var(--poney-accent-ring)" strokeWidth={6} />
+          <rect x={-2.5} y={-2.5} width={w + 5} height={h + 5} rx={rx + 2.5} fill="none" stroke="var(--poney-accent)" strokeWidth={1.75} />
         </>
       )}
-      <rect className="dg-focus" x={-5} y={-5} width={w + 10} height={h + 10} rx={rx + 5} fill="none" stroke="var(--poney)" strokeWidth={2} strokeDasharray="4 3" />
+      <rect className="poney-focus" x={-5} y={-5} width={w + 10} height={h + 10} rx={rx + 5} fill="none" stroke="var(--poney-accent)" strokeWidth={2} strokeDasharray="4 3" />
     </>
   )
 }
@@ -62,7 +62,7 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
   const nameSize = useReadableSize(14, 10.5)
   const compact = nameSize > 14 && style.shape !== 'person'
   const bigLines = useMemo(() => (compact ? wrap(entity.name, w - 28, nameSize, 650, 2) : []), [compact, entity.name, w, nameSize])
-  const stroke = style.emphasis ? `color-mix(in srgb, ${tone} 55%, var(--rule-strong))` : 'var(--rule-strong)'
+  const stroke = style.emphasis ? `color-mix(in srgb, ${tone} 55%, var(--poney-rule-strong))` : 'var(--poney-rule-strong)'
 
   if (style.shape === 'person') {
     const cx = w / 2
@@ -71,14 +71,14 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
         <rect width={w} height={h} rx={14} fill="transparent" />
         <circle cx={cx} cy={22} r={15} fill={toneWash(style.tone, 16)} stroke={tone} strokeWidth={1.4} />
         <path d={`M ${cx - 27} 64 Q ${cx - 27} 42 ${cx} 42 Q ${cx + 27} 42 ${cx + 27} 64 Z`} fill={toneWash(style.tone, 16)} stroke={tone} strokeWidth={1.4} strokeLinejoin="round" />
-        <text x={cx} y={70 + Math.min(nameSize, 20)} textAnchor="middle" fontSize={Math.min(nameSize, 20)} fontWeight={650} fill="var(--ink)">
+        <text x={cx} y={70 + Math.min(nameSize, 20)} textAnchor="middle" fontSize={Math.min(nameSize, 20)} fontWeight={650} fill="var(--poney-ink)">
           {clip(entity.name, w + 40, Math.min(nameSize, 20), 650)}
         </text>
         {detail &&
           !compact &&
           nameSize === 14 &&
           summary.map((line, i) => (
-            <text key={i} x={cx} y={101 + i * 14} textAnchor="middle" fontSize={11.5} fill="var(--ink-3)">
+            <text key={i} x={cx} y={101 + i * 14} textAnchor="middle" fontSize={11.5} fill="var(--poney-ink-3)">
               {line}
             </text>
           ))}
@@ -89,7 +89,7 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
 
   const bigName = (dy = 0) =>
     bigLines.map((line, i) => (
-      <text key={i} x={w / 2} y={dy + h / 2 + nameSize * 0.36 + (i - (bigLines.length - 1) / 2) * nameSize * 1.1} textAnchor="middle" fontSize={nameSize} fontWeight={650} fill="var(--ink)">
+      <text key={i} x={w / 2} y={dy + h / 2 + nameSize * 0.36 + (i - (bigLines.length - 1) / 2) * nameSize * 1.1} textAnchor="middle" fontSize={nameSize} fontWeight={650} fill="var(--poney-ink)">
         {line}
       </text>
     ))
@@ -98,17 +98,17 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
     const dashed = entity.kind === 'interface'
     return (
       <g>
-        <rect className="dg-body" width={w} height={h} rx={10} fill={entity.kind === 'library' ? 'var(--paper)' : 'var(--paper-raised)'} stroke={dashed ? tone : stroke} strokeDasharray={dashed ? '5 3' : undefined} strokeWidth={1.1} />
+        <rect className="poney-body" width={w} height={h} rx={10} fill={entity.kind === 'library' ? 'var(--poney-paper)' : 'var(--poney-paper-raised)'} stroke={dashed ? tone : stroke} strokeDasharray={dashed ? '5 3' : undefined} strokeWidth={1.1} />
         {compact ? (
           bigName()
         ) : (
           <>
         <rect x={11} y={(h - 30) / 2} width={30} height={30} rx={8} fill={toneWash(style.tone, 13)} />
         <Glyph name={style.icon} x={18} y={(h - 30) / 2 + 7} size={16} color={tone} />
-        <text x={52} y={h / 2 - 3} fontSize={13.5} fontWeight={600} fill="var(--ink)" fontFamily={entity.kind === 'interface' ? 'var(--font-mono)' : undefined}>
+        <text x={52} y={h / 2 - 3} fontSize={13.5} fontWeight={600} fill="var(--poney-ink)" fontFamily={entity.kind === 'interface' ? 'var(--poney-font-mono)' : undefined}>
           {clip(entity.name, w - 62, 13.5, 600, entity.kind === 'interface' ? 'mono' : 'sans')}
         </text>
-        <text x={52} y={h / 2 + 13} fontSize={11.5} fill="var(--ink-3)">
+        <text x={52} y={h / 2 + 13} fontSize={11.5} fill="var(--poney-ink-3)">
           {clip(meta, w - 62, 11.5)}
         </text>
           </>
@@ -123,9 +123,9 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
     style.shape === 'cylinder' ? (
       <>
         <path
-          className="dg-body"
+          className="poney-body"
           d={`M 0 10 A ${w / 2} 10 0 0 1 ${w} 10 V ${h - 10} A ${w / 2} 10 0 0 1 0 ${h - 10} Z`}
-          fill="var(--paper-raised)"
+          fill="var(--poney-paper-raised)"
           stroke={stroke}
           strokeWidth={1.1}
         />
@@ -135,16 +135,16 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
       <>
         {style.shape === 'stack' && (
           <>
-            <rect x={8} y={-8} width={w} height={h} rx={12} fill="var(--paper)" stroke="var(--rule-strong)" strokeWidth={1} />
-            <rect x={4} y={-4} width={w} height={h} rx={12} fill="var(--paper)" stroke="var(--rule-strong)" strokeWidth={1} />
+            <rect x={8} y={-8} width={w} height={h} rx={12} fill="var(--poney-paper)" stroke="var(--poney-rule-strong)" strokeWidth={1} />
+            <rect x={4} y={-4} width={w} height={h} rx={12} fill="var(--poney-paper)" stroke="var(--poney-rule-strong)" strokeWidth={1} />
           </>
         )}
         <rect
-          className="dg-body"
+          className="poney-body"
           width={w}
           height={h}
           rx={style.shape === 'frame' ? 16 : 12}
-          fill={style.shape === 'frame' ? toneWash(style.tone, 6) : 'var(--paper-raised)'}
+          fill={style.shape === 'frame' ? toneWash(style.tone, 6) : 'var(--poney-paper-raised)'}
           stroke={external ? tone : stroke}
           strokeDasharray={external ? '6 4' : undefined}
           strokeWidth={style.shape === 'frame' ? 1.5 : 1.1}
@@ -160,15 +160,15 @@ export function EntityNode({ entity, style, w, h, emphasis, detail, footer }: Pr
       <g transform={`translate(0 ${top})`} display={compact ? 'none' : undefined}>
         <rect x={14} y={14} width={big ? 38 : 32} height={big ? 38 : 32} rx={9} fill={toneWash(style.tone, 14)} />
         <Glyph name={style.icon} x={big ? 23 : 21.5} y={big ? 23 : 21.5} size={big ? 20 : 17} color={tone} />
-        <text x={big ? 64 : 56} y={big ? 31 : 29} fontSize={big ? 16 : 14} fontWeight={650} fill="var(--ink)">
+        <text x={big ? 64 : 56} y={big ? 31 : 29} fontSize={big ? 16 : 14} fontWeight={650} fill="var(--poney-ink)">
           {clip(entity.name, w - (big ? 76 : 68), big ? 16 : 14, 650)}
         </text>
-        <text x={big ? 64 : 56} y={big ? 48 : 45.5} fontSize={11.5} fill="var(--ink-3)">
+        <text x={big ? 64 : 56} y={big ? 48 : 45.5} fontSize={11.5} fill="var(--poney-ink-3)">
           {clip(meta, w - (big ? 76 : 68), 11.5)}
         </text>
         {detail &&
           summary.map((line, i) => (
-            <text key={i} x={14} y={(big ? 76 : 70) + i * 15} fontSize={12} fill="var(--ink-2)">
+            <text key={i} x={14} y={(big ? 76 : 70) + i * 15} fontSize={12} fill="var(--poney-ink-2)">
               {line}
             </text>
           ))}

@@ -4,9 +4,18 @@
   "type": "module",
   "description": "React/SVG story renderers for Poney scenes, in the browser and headless (SVG and PNG in Node).",
   "license": "MIT",
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
-    "./static": "./src/static.tsx"
+    "./static": "./src/static.tsx",
+    "./styles.css": "./src/styles/index.css",
+    "./styles.min.css": "./dist/poney.min.css"
+  },
+  "scripts": {
+    "build:styles": "node scripts/build-styles.mjs",
+    "prepack": "node scripts/build-styles.mjs"
   },
   "dependencies": {
     "@fontsource/hanken-grotesk": "^5.3.0",
@@ -19,5 +28,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "wawoff2": "^2.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

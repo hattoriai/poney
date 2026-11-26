@@ -43,18 +43,18 @@ function Renderer({ scene }: { scene: StateScene; view: View }) {
     <g>
       {scene.transitions.map((t) => {
         const hot = focus?.trans.has(t.id) || isSel('transition', t.id)
-        const color = hot ? 'var(--poney)' : 'var(--ink-3)'
+        const color = hot ? 'var(--poney-accent)' : 'var(--poney-ink-3)'
         return (
-          <g key={t.id} {...bind({ kind: 'transition', behavior, id: t.id }, `Transition: ${t.event}${t.guard ? `, when ${t.guard}` : ''}`)} className={`dg-el ${focus && !hot ? 'dg-dim' : ''}`}>
+          <g key={t.id} {...bind({ kind: 'transition', behavior, id: t.id }, `Transition: ${t.event}${t.guard ? `, when ${t.guard}` : ''}`)} className={`poney-el ${focus && !hot ? 'poney-dim' : ''}`}>
             <EdgeLine points={t.points} style={{ color, width: hot ? 1.9 : 1.3, head: 'arrow' }} />
             {t.label && (
               <g transform={`translate(${t.label.x} ${t.label.y})`}>
-                <rect width={t.label.w} height={t.label.h} rx={7} fill="var(--paper-raised)" stroke={hot ? 'var(--poney)' : 'var(--rule-strong)'} />
-                <text x={t.label.w / 2} y={15} textAnchor="middle" fontSize={11.5} fontWeight={650} fill={hot ? 'var(--poney)' : 'var(--ink)'}>
+                <rect width={t.label.w} height={t.label.h} rx={7} fill="var(--poney-paper-raised)" stroke={hot ? 'var(--poney-accent)' : 'var(--poney-rule-strong)'} />
+                <text x={t.label.w / 2} y={15} textAnchor="middle" fontSize={11.5} fontWeight={650} fill={hot ? 'var(--poney-accent)' : 'var(--poney-ink)'}>
                   {t.event}
                 </text>
                 {t.guard && (
-                  <text x={t.label.w / 2} y={28} textAnchor="middle" fontSize={10.5} fill="var(--ink-3)">
+                  <text x={t.label.w / 2} y={28} textAnchor="middle" fontSize={10.5} fill="var(--poney-ink-3)">
                     [{t.guard}]
                   </text>
                 )}
@@ -67,24 +67,24 @@ function Renderer({ scene }: { scene: StateScene; view: View }) {
         const dim = focus && !focus.states.has(s.id)
         const selected = isSel('state', s.id)
         const ref = { kind: 'state', behavior, id: s.id } as const
-        const stroke = s.outcome === 'success' ? 'var(--success)' : s.outcome === 'failure' ? 'var(--failure)' : 'var(--rule-strong)'
+        const stroke = s.outcome === 'success' ? 'var(--poney-success)' : s.outcome === 'failure' ? 'var(--poney-failure)' : 'var(--poney-rule-strong)'
         if (s.kind === 'initial')
           return (
-            <g key={s.id} transform={`translate(${s.x} ${s.y})`} {...bind(ref, 'Start')} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
-              <circle cx={s.w / 2} cy={s.h / 2} r={s.w / 2} fill="var(--ink)" />
+            <g key={s.id} transform={`translate(${s.x} ${s.y})`} {...bind(ref, 'Start')} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
+              <circle cx={s.w / 2} cy={s.h / 2} r={s.w / 2} fill="var(--poney-ink)" />
               <Rings w={s.w} h={s.h} rx={s.w / 2} selected={selected} />
             </g>
           )
         return (
-          <g key={s.id} transform={`translate(${s.x} ${s.y})`} {...bind(ref, `State ${s.name}${s.kind === 'final' ? ', final' : ''}`)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
-            <rect className="dg-body" width={s.w} height={s.h} rx={16} fill="var(--paper-raised)" stroke={stroke} strokeWidth={s.outcome === 'neutral' ? 1.1 : 1.5} />
+          <g key={s.id} transform={`translate(${s.x} ${s.y})`} {...bind(ref, `State ${s.name}${s.kind === 'final' ? ', final' : ''}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
+            <rect className="poney-body" width={s.w} height={s.h} rx={16} fill="var(--poney-paper-raised)" stroke={stroke} strokeWidth={s.outcome === 'neutral' ? 1.1 : 1.5} />
             {s.kind === 'final' && <rect x={4} y={4} width={s.w - 8} height={s.h - 8} rx={12} fill="none" stroke={stroke} strokeWidth={1.1} />}
             {s.outcome !== 'neutral' && <circle cx={18} cy={s.entryActions.length ? 22 : s.h / 2} r={4} fill={stroke} />}
-            <text x={s.w / 2} y={s.entryActions.length ? 27 : s.h / 2 + 5} textAnchor="middle" fontSize={14} fontWeight={650} fill="var(--ink)">
+            <text x={s.w / 2} y={s.entryActions.length ? 27 : s.h / 2 + 5} textAnchor="middle" fontSize={14} fontWeight={650} fill="var(--poney-ink)">
               {s.name}
             </text>
             {s.entryActions.length > 0 && (
-              <text x={s.w / 2} y={46} textAnchor="middle" fontSize={11} fill="var(--ink-3)">
+              <text x={s.w / 2} y={46} textAnchor="middle" fontSize={11} fill="var(--poney-ink-3)">
                 On entry: {s.entryActions[0]}
                 {s.entryActions.length > 1 ? ` +${s.entryActions.length - 1}` : ''}
               </text>
@@ -99,19 +99,19 @@ function Renderer({ scene }: { scene: StateScene; view: View }) {
 
 function Legend() {
   return (
-    <div className="space-y-1.5">
+    <div className="poney-legend">
       <LegendShape shape="dot" tone="ink" label="Where it starts" />
       <LegendShape shape="pill" tone="slate" label="A state it can be in" />
       <LegendShape shape="pill" tone="success" label="A good outcome" />
       <LegendShape shape="pill" tone="failure" label="A failed or stopped outcome" />
-      <div className="flex items-center gap-2.5 text-[12px] text-ink-2">
+      <div className="poney-legend-row">
         <svg width="22" height="16" aria-hidden>
-          <rect x="1" y="2" width="20" height="12" rx="5" fill="none" stroke="var(--ink-3)" />
-          <rect x="3.5" y="4.5" width="15" height="7" rx="3" fill="none" stroke="var(--ink-3)" />
+          <rect x="1" y="2" width="20" height="12" rx="5" fill="none" stroke="var(--poney-ink-3)" />
+          <rect x="3.5" y="4.5" width="15" height="7" rx="3" fill="none" stroke="var(--poney-ink-3)" />
         </svg>
         Final: nothing happens after it
       </div>
-      <p className="pt-1 text-[12px] text-ink-3">Labels on arrows are events. Text in brackets is the condition that must be true.</p>
+      <p className="poney-legend-note">Labels on arrows are events. Text in brackets is the condition that must be true.</p>
     </div>
   )
 }

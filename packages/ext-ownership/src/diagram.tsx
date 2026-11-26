@@ -35,20 +35,20 @@ function TeamMap({ scene }: { scene: TeamMapScene; view: TeamMapView }) {
         const dim = focusTeam && focusTeam !== t.entityId
         const selected = selection?.kind === 'entity' && selection.id === t.entityId
         return (
-          <g key={t.entityId} className={`transition-opacity ${dim ? 'dg-dim' : ''}`}>
-            <rect x={t.x} y={t.y} width={t.w} height={t.h} rx={16} fill="var(--paper)" fillOpacity={0.6} stroke="var(--rule-strong)" />
+          <g key={t.entityId} className={`poney-fade ${dim ? 'poney-dim' : ''}`}>
+            <rect x={t.x} y={t.y} width={t.w} height={t.h} rx={16} fill="var(--poney-paper)" fillOpacity={0.6} stroke="var(--poney-rule-strong)" />
             <g transform={`translate(${t.x} ${t.y})`} {...bind({ kind: 'entity', id: team.id }, `${team.name}. ${team.summary}`)}>
               <path d={`M 0 16 Q 0 0 16 0 H ${t.w - 16} Q ${t.w} 0 ${t.w} 16 V ${t.header} H 0 Z`} fill={toneWash(s.tone, 12)} />
               <Glyph name={s.icon} x={16} y={16} size={16} color={tone} />
-              <text x={40} y={29} fontSize={14} fontWeight={650} fill="var(--ink)">
+              <text x={40} y={29} fontSize={14} fontWeight={650} fill="var(--poney-ink)">
                 {team.name}
               </text>
               {t.mission.map((line, i) => (
-                <text key={i} x={16} y={52 + i * 15} fontSize={12} fill="var(--ink-2)">
+                <text key={i} x={16} y={52 + i * 15} fontSize={12} fill="var(--poney-ink-2)">
                   {line}
                 </text>
               ))}
-              <text x={16} y={t.header - 12} fontSize={11} fill="var(--ink-3)">
+              <text x={16} y={t.header - 12} fontSize={11} fill="var(--poney-ink-3)">
                 On call: {t.oncall ?? 'none'}
               </text>
               <Rings w={t.w} h={t.header} rx={16} selected={selected} />
@@ -61,7 +61,7 @@ function TeamMap({ scene }: { scene: TeamMapScene; view: TeamMapView }) {
         const dim = focusTeam && focusTeam !== o.team
         const selected = selection?.kind === 'entity' && selection.id === e.id
         return (
-          <g key={o.entityId} transform={`translate(${o.x} ${o.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, owned by ${idx.entities.get(o.team)?.name}`)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
+          <g key={o.entityId} transform={`translate(${o.x} ${o.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, owned by ${idx.entities.get(o.team)?.name}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             <EntityNode entity={e} style={{ ...idx.style(e), shape: 'chip' }} w={o.w} h={o.h} emphasis={selected ? 'selected' : 'normal'} detail={false} />
           </g>
         )

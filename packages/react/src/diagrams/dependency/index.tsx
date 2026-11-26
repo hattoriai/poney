@@ -11,8 +11,8 @@ import { useRenderBind, useRenderIndex, useRenderSubject, useViewState } from '.
 
 type View = ViewOf<'dependency'>
 
-const DOWN = 'var(--lapis)' // what the subject depends on
-const UP = 'var(--ochre)' // what depends on the subject
+const DOWN = 'var(--poney-lapis)' // what the subject depends on
+const UP = 'var(--poney-ochre)' // what depends on the subject
 
 function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
   const idx = useRenderIndex()
@@ -69,15 +69,15 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
         const selected = selection?.kind === 'group' && selection.id === b.id
         return (
           <g key={b.id}>
-            <rect x={b.x} y={b.y} width={b.w} height={b.h} fill={i % 2 ? 'var(--paper)' : 'transparent'} fillOpacity={0.55} />
-            {i > 0 && <line x1={b.x} x2={b.x + b.w} y1={b.y} y2={b.y} stroke="var(--rule)" />}
+            <rect x={b.x} y={b.y} width={b.w} height={b.h} fill={i % 2 ? 'var(--poney-paper)' : 'transparent'} fillOpacity={0.55} />
+            {i > 0 && <line x1={b.x} x2={b.x + b.w} y1={b.y} y2={b.y} stroke="var(--poney-rule)" />}
             <g {...bind({ kind: 'group', view: view.id, id: b.id }, `Layer ${b.label}`)}>
-              <rect x={12} y={b.y + 12} width={148} height={b.h - 24} rx={10} fill={selected ? 'var(--poney-wash)' : 'transparent'} />
-              <text x={24} y={b.y + b.h / 2 - (b.description && bandSize === 13 ? 4 : -4)} fontSize={bandSize} fontWeight={650} fill={selected ? 'var(--poney)' : 'var(--ink-2)'}>
+              <rect x={12} y={b.y + 12} width={148} height={b.h - 24} rx={10} fill={selected ? 'var(--poney-accent-wash)' : 'transparent'} />
+              <text x={24} y={b.y + b.h / 2 - (b.description && bandSize === 13 ? 4 : -4)} fontSize={bandSize} fontWeight={650} fill={selected ? 'var(--poney-accent)' : 'var(--poney-ink-2)'}>
                 {b.label}
               </text>
               {b.description && bandSize === 13 && (
-                <text x={24} y={b.y + b.h / 2 + 13} fontSize={11} fill="var(--ink-3)">
+                <text x={24} y={b.y + b.h / 2 + 13} fontSize={11} fill="var(--poney-ink-3)">
                   {clip(b.description, 136, 11)}
                 </text>
               )}
@@ -91,7 +91,7 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
         const down = focus?.depEdges.has(e.id)
         const up = focus?.userEdges.has(e.id)
         const groupHot = focus?.group && (focus.deps.has(e.source) || focus.deps.has(e.target))
-        const color = down ? DOWN : up ? UP : groupHot ? 'var(--ink-2)' : 'var(--ink-4)'
+        const color = down ? DOWN : up ? UP : groupHot ? 'var(--poney-ink-2)' : 'var(--poney-ink-4)'
         const [p0, c1, c2, p3] = e.d
         const angle = Math.atan2(p3.y - c2.y, p3.x - c2.x)
         const back = ls.head === 'triangle' ? 10 : 6
@@ -99,7 +99,7 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
         const dim = focus && !down && !up && !groupHot
         const rel = idx.relationships.get(e.id)
         return (
-          <g key={e.id} {...bind({ kind: 'relationship', id: e.id }, `${idx.entities.get(e.source)?.name} ${rel?.kind === 'implements' ? 'implements' : 'depends on'} ${idx.entities.get(e.target)?.name}`)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
+          <g key={e.id} {...bind({ kind: 'relationship', id: e.id }, `${idx.entities.get(e.source)?.name} ${rel?.kind === 'implements' ? 'implements' : 'depends on'} ${idx.entities.get(e.target)?.name}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             <path d={`M ${p0.x} ${p0.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p3.x} ${p3.y}`} fill="none" stroke="transparent" strokeWidth={12} />
             <path
               d={`M ${p0.x} ${p0.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`}
@@ -107,7 +107,7 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
               stroke={color}
               strokeWidth={down || up ? 1.9 : 1.2}
               strokeDasharray={ls.pattern === 'dashed' ? '5 4' : undefined}
-              className="dg-edge-path"
+              className="poney-edge"
             />
             <ArrowHead at={p3} angle={angle} kind={ls.head as 'arrow'} color={color} />
           </g>
@@ -122,7 +122,7 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
         const dim = focus && !isSubject && !tint
         const selected = selection?.kind === 'entity' && selection.id === e.id
         return (
-          <g key={n.entityId} transform={`translate(${n.x} ${n.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, ${s.label}`)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
+          <g key={n.entityId} transform={`translate(${n.x} ${n.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, ${s.label}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             <EntityNode entity={e} style={{ ...s, shape: 'chip' }} w={n.w} h={n.h} emphasis={selected ? 'selected' : 'normal'} detail={false} />
             {tint && !selected && <rect x={-2} y={-2} width={n.w + 4} height={n.h + 4} rx={12} fill="none" stroke={tint} strokeWidth={1.6} />}
             <Rings w={n.w} h={n.h} rx={10} selected={false} />
@@ -135,12 +135,12 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
 
 function Legend() {
   return (
-    <div className="space-y-1.5">
-      <LegendRow line="solid" label="Depends on" color="var(--ink-3)" />
-      <LegendRow line="dashed" label="Implements, or sends events to" color="var(--ink-3)" />
+    <div className="poney-legend">
+      <LegendRow line="solid" label="Depends on" color="var(--poney-ink-3)" />
+      <LegendRow line="dashed" label="Implements, or sends events to" color="var(--poney-ink-3)" />
       <LegendRow line="solid" label="When selected: what it needs" color={DOWN} />
       <LegendRow line="solid" label="When selected: what needs it" color={UP} />
-      <p className="pt-1 text-[12px] text-ink-3">Arrows should point down. An arrow that points up is a dependency turned around on purpose, such as an adapter that implements a domain interface.</p>
+      <p className="poney-legend-note">Arrows should point down. An arrow that points up is a dependency turned around on purpose, such as an adapter that implements a domain interface.</p>
     </div>
   )
 }

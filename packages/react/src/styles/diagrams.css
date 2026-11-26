@@ -1,0 +1,51 @@
+/*
+ * Diagrams: what every renderer shares. Elements a reader can select, what
+ * dims when another element has the reader's attention, focus rings, lines.
+ */
+@layer poney {
+  :where(.poney-el) {
+    cursor: pointer;
+    transition: opacity 180ms ease;
+  }
+  :where(.poney-fade) {
+    transition: opacity 180ms ease;
+  }
+  :where(.poney-dim) {
+    opacity: 0.3;
+  }
+  :where(.poney-control) {
+    cursor: pointer;
+  }
+  :where(.poney-row:hover) {
+    fill: var(--poney-sunken);
+  }
+  :where(.poney-numbers) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Keyboard focus: a drawn ring (.poney-focus) where an element has one, else a glow. */
+  :where(svg [data-ref]:focus-visible) {
+    outline: none;
+  }
+  :where(.poney-focus) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  :where(svg [data-ref]:focus-visible .poney-focus) {
+    opacity: 1;
+  }
+  :where(svg [data-ref]:focus-visible:not(:has(.poney-focus))) {
+    filter: drop-shadow(0 0 0.6px var(--poney-accent)) drop-shadow(0 0 3px var(--poney-accent));
+  }
+
+  :where(.poney-edge) {
+    transition:
+      stroke 160ms ease,
+      stroke-width 160ms ease,
+      opacity 180ms ease;
+  }
+  /* A line that carries data: dashed (and moving, see motion.css). */
+  :where(.poney-flowing) {
+    stroke-dasharray: 6 4;
+  }
+}

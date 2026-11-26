@@ -1,0 +1,44 @@
+/*
+ * Motion: data moving along a line, and a slow pulse that asks for
+ * attention. Everything stays still for readers who ask for less motion.
+ */
+@layer poney {
+  :where(.poney-flowing) {
+    animation: poney-dash 0.9s linear infinite;
+  }
+  :where(.poney-flow) {
+    animation: poney-flow 1.1s linear infinite;
+  }
+  :where(.poney-pulse) {
+    animation: poney-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes poney-dash {
+    to {
+      stroke-dashoffset: -20;
+    }
+  }
+  @keyframes poney-flow {
+    to {
+      stroke-dashoffset: -11.1;
+    }
+  }
+  @keyframes poney-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(.poney-flowing, .poney-flow, .poney-pulse) {
+      animation: none;
+    }
+    :where(.poney-el, .poney-fade, .poney-edge, .poney-story-el, .poney-story-el *) {
+      transition: none;
+    }
+  }
+}
