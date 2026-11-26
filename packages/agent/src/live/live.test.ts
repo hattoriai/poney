@@ -174,3 +174,50 @@ describe('an agent folder for a document with its own file', () => {
     files.close()
   })
 })
+
+describe('an agent in another folder than the open document', () => {
+  it('opens its document as that folder’s project, saved there, never over the open file', async () => {
+    const { mkdtempSync, readFileSync, writeFileSync, existsSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { LiveState } = await import('./state')
+    const { DocumentFiles } = await import('./files')
+    const { workspaceProject } = await import('./workspace-project')
+    const elsewhere = join(mkdtempSync(join(tmpdir(), 'superwave-')), 'superwave.poney')
+    const original = readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8')
+    writeFileSync(elsewhere, original)
+    const tug = mkdtempSync(join(tmpdir(), 'tug-'))
+    const state = new LiveState()
+    const files = new DocumentFiles(state)
+    files.open(elsewhere)
+    state.setWorkspace(workspaceProject(tug), true) // the agent's folder; the open document stays
+    const tour = JSON.parse(original)
+    state.open({ ...tour, project: { id: 'tug', name: 'Tug', description: '' } }) // the agent's tour, opened with replace
+    const id = workspaceProject(tug).id
+    expect((state.shown()!.document as { project: { id: string } }).project.id).toBe(id)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(readFileSync(elsewhere, 'utf8')).toBe(original)
+    expect(state.file).toBe(join(tug, 'docs', 'poney', `${id}.poney`))
+    expect(existsSync(state.file!)).toBe(true)
+    files.close()
+  })
+
+  it('opens the folder as the project when asked, even when it is already the agent’s folder', async () => {
+    const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { LiveState } = await import('./state')
+    const { DocumentFiles } = await import('./files')
+    const { workspaceProject } = await import('./workspace-project')
+    const elsewhere = join(mkdtempSync(join(tmpdir(), 'superwave-')), 'superwave.poney')
+    writeFileSync(elsewhere, readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
+    const tug = mkdtempSync(join(tmpdir(), 'tug-'))
+    const state = new LiveState()
+    const files = new DocumentFiles(state)
+    files.open(elsewhere)
+    state.setWorkspace(workspaceProject(tug), true)
+    expect(state.file).toBe(elsewhere)
+    state.setWorkspace(workspaceProject(tug)) // Open a project → tug
+    expect((state.shown()!.document as { project: { id: string } }).project.id).toBe(workspaceProject(tug).id)
+    expect(state.file).toBe(join(tug, 'docs', 'poney', `${workspaceProject(tug).id}.poney`))
+    files.close()
+  })
+})
