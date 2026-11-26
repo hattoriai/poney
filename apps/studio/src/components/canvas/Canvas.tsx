@@ -20,7 +20,7 @@ const MAX_ZOOM = 3
 const PADDING = 56
 const remembered = new Map<string, Transform>()
 
-/** The current zoom level, for level-of-detail rendering (the renderers read it from @hattoriai/poney-react). */
+/** The current zoom level, for level-of-detail rendering (the renderers read it through @hattoriai/poney-react). */
 export const useZoom = useRenderZoom
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))

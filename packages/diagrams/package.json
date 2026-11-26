@@ -1,0 +1,60 @@
+{
+  "name": "@hattoriai/poney-diagrams",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Draws Poney views and walkthrough scenes as SVG with no framework: to markup, to the DOM, or through an adapter such as @hattoriai/poney-react.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hattoriai/poney.git",
+    "directory": "packages/diagrams"
+  },
+  "homepage": "https://github.com/hattoriai/poney#readme",
+  "bugs": "https://github.com/hattoriai/poney/issues",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "poney-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./jsx-runtime": {
+      "poney-source": "./src/runtime/jsx-runtime.ts",
+      "types": "./dist/runtime/jsx-runtime.d.ts",
+      "default": "./dist/runtime/jsx-runtime.js"
+    },
+    "./jsx-dev-runtime": {
+      "poney-source": "./src/runtime/jsx-dev-runtime.ts",
+      "types": "./dist/runtime/jsx-dev-runtime.d.ts",
+      "default": "./dist/runtime/jsx-dev-runtime.js"
+    },
+    "./styles.css": {
+      "poney-source": "./src/styles/index.css",
+      "default": "./dist/poney.css"
+    },
+    "./styles.min.css": "./dist/poney.min.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build:styles": "node scripts/build-styles.mjs",
+    "build": "tsup && tsc -p tsconfig.build.json && node scripts/build-styles.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@hattoriai/poney-core": "0.2.0",
+    "@hattoriai/poney-layout": "0.2.0",
+    "lucide": "1.75.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "happy-dom": "^21.0.4",
+    "tsup": "8.5.1"
+  }
+}

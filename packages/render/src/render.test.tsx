@@ -1,4 +1,5 @@
-/** @jsxRuntime automatic @jsxImportSource react */
+/** @jsxRuntime automatic */
+/** @jsxImportSource @hattoriai/poney-diagrams */
 import { describe, expect, it } from 'vitest'
 import { parseDocument } from '@hattoriai/poney-core'
 import { commerce } from '@hattoriai/poney-examples'
@@ -6,7 +7,7 @@ import { ownership } from '@hattoriai/poney-ext-ownership'
 import { teamMap } from '@hattoriai/poney-ext-ownership/diagram'
 import { layoutTeamMap } from '@hattoriai/poney-ext-ownership/layout'
 import { registerExtensionLayout } from '@hattoriai/poney-layout'
-import { registerDiagram } from '@hattoriai/poney-react'
+import { registerDiagram } from '@hattoriai/poney-diagrams'
 import { renderScene, renderScenePng } from './index'
 
 const doc = parseDocument(commerce, { extensions: [ownership] })

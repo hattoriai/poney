@@ -40,16 +40,11 @@
   },
   "dependencies": {
     "@hattoriai/poney-core": "0.2.0",
+    "@hattoriai/poney-diagrams": "0.2.0",
     "@hattoriai/poney-layout": "0.2.0",
-    "@hattoriai/poney-react": "0.2.0",
-    "lucide-react": "^1.75.0",
     "zod": "^3.25.76"
   },
-  "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0"
-  },
   "devDependencies": {
-    "react": "^18.3.1",
     "tsup": "8.5.1"
   }
 }

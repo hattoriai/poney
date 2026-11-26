@@ -32,7 +32,7 @@ For a map of the repository and an explanation of how a document becomes a diagr
 ## Rules of the codebase
 
 - **Package dependencies** run from core through layout, react, render and agent. Each package may depend only on those earlier in the list. A test keeps `@hattoriai/poney-core` free of UI dependencies.
-- **Package styles** belong in `packages/react/src/styles`. Use plain CSS in `@layer poney`, with `--poney-*` variables and `.poney-*` classes. Keep styles scoped. Only Studio uses Tailwind.
+- **Package styles** belong in `packages/diagrams/src/styles`. Use plain CSS in `@layer poney`, with `--poney-*` variables and `.poney-*` classes. Keep styles scoped. Only Studio uses Tailwind.
 - **React is a peer dependency** of every package that uses it.
 - **Format changes** belong in `packages/core/src/schema`, `validation/validate.ts` and `spec/SPEC.md`. Run `npm run spec` afterwards. If the change breaks an older document, bump `PONEY_VERSION`, add and test an upgrade step in `packages/core/src/upgrade.ts`, and record it in section 11 of the specification.
 - **Conformance tests** use example documents in `spec/conformance`. Add a valid or invalid example for each new validation rule.

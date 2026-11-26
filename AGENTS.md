@@ -23,9 +23,9 @@ Do not build to test a change: the packages resolve to their source through the 
 
 ## Rules
 
-- Packages depend only on packages below them: core → layout → react → render → agent. `@hattoriai/poney-core` imports no UI library.
+- Packages depend only on packages below them: core → layout → diagrams → react and render → agent. `@hattoriai/poney-core` imports no UI library, and `@hattoriai/poney-diagrams` imports no UI framework: its renderers are JSX for its own small runtime, and `@hattoriai/poney-react` adapts them to React.
 - No Tailwind and no global CSS in `packages/`. The stylesheet is plain CSS in `@layer poney`, with `--poney-*` tokens and `.poney-*` classes. Only `apps/studio` uses Tailwind.
-- `THEMES` in `packages/react/src/theme.ts` must stay equal to the tokens in the stylesheet; a test checks it.
+- `THEMES` in `packages/diagrams/src/theme.ts` must stay equal to the tokens in the stylesheet; a test checks it.
 - Format changes: change `packages/core/src/schema`, `validation/validate.ts` and `spec/SPEC.md`, then `npm run spec`. A breaking change raises `PONEY_VERSION` and adds an upgrade step in `packages/core/src/upgrade.ts`, with a test and a row in section 11 of the specification. Never break existing `.poney` files without an upgrade.
 - Use the industry's names for diagram concepts (C4, UML, crow's foot). Do not invent new terms.
 - Add a conformance document in `spec/conformance` for each new validation rule.
