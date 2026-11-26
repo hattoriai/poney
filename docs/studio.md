@@ -55,6 +55,7 @@ With a repository connected, choose **Facts** to see test coverage or recent cha
 ## Working with agents
 
 - **Start an agent in Studio.** Choose **Connect an agent** and pick a local folder or a Git URL to clone into `~/.poney/workspaces`. Select Claude Code, OpenAI Codex, OpenCode or GitHub Copilot, or enter the command for another agent that uses the [Agent Client Protocol](https://agentclientprotocol.com). The agent uses your existing sign-in. Follow its work and respond to permission requests in the agent panel.
+- **Choose the agent one time.** Each project has its own agent session and its own conversation. When you open a project, the agent starts there, or continues the project's earlier session. An agent can finish its answer while you look at another project. Poney keeps the agent you chose and each project's session in `~/.poney/sessions.json`.
 - **Use an existing session.** Add the Poney MCP server to your agent. It connects to a running Studio server or starts one for you. To use a specific server, set `PONEY_HUB_URL`. See [Agents, the CLI and MCP](agents.md).
 
 In either setup, **Ask the agent** includes the scene you’re reading with your question. Use the target button to point to a particular part of the diagram, or choose **Add a note for the agent** to leave a comment.

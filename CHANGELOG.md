@@ -21,6 +21,8 @@ Every package in this repository has the same version. The format has its own ve
 
 - The sidebar ends with "Made by Hattori AI", a link to hattori.ai.
 - Each project has its own agent session and conversation. Choose the agent one time; it starts or resumes when you open a project.
+- A file in `docs/poney/` opens its folder as the project, also in a subfolder of a repository or outside one. A path through a link opens the same project.
+- Poney does not save over a project's file that is not a valid document, such as one with merge conflicts. It says so.
 
 ## 0.2.0
 
