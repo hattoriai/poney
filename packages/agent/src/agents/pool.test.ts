@@ -43,9 +43,9 @@ const until = async (ok: () => boolean, ms = 8000) => {
     await new Promise((r) => setTimeout(r, 25))
   }
 }
-const setup = (max?: number) => {
+const setup = (max?: number, autoStart = true) => {
   const state = new LiveState()
-  const pool = new AgentPool(state, mcp, new SessionStore(), max, providers)
+  const pool = new AgentPool(state, mcp, new SessionStore(), max, providers, autoStart)
   pools.push(pool)
   const open = async (cwd: string) => {
     state.setWorkspace(workspaceProject(cwd))
@@ -249,6 +249,29 @@ describe('AgentPool', () => {
     state.setWorkspace(undefined)
     await pool.activate()
     expect(state.status().session).toBeNull()
+  })
+
+  it('starts no agent by itself when it may not, only when the person connects one', async () => {
+    const { state, pool, open } = setup(undefined, false)
+    const a = folder()
+    new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
+    await open(a)
+    expect(pool.get(a)).toBeUndefined()
+    expect(state.status().session).toBeNull()
+    await pool.connect({ providerId: 'fake' })
+    expect(state.status().session).toMatchObject({ providerId: 'fake', cwd: a })
+  })
+
+  it('starts no agent by itself while an agent listens over MCP', async () => {
+    const { state, pool, open } = setup()
+    const a = folder()
+    await open(a)
+    new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
+    const waiting = state.waitForQuestions(5000)
+    await pool.activate()
+    expect(pool.get(a)).toBeUndefined()
+    state.ask('Where does it start?')
+    expect((await waiting).map((q) => q.text)).toEqual(['Where does it start?'])
   })
 
   it('needs an open project to connect', async () => {

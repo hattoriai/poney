@@ -29,6 +29,8 @@ export class AgentPool {
     private readonly store = new SessionStore(),
     private readonly max = 2,
     private readonly providers: () => ProviderSpec[] = builtInProviders,
+    /** Start the default agent by itself when a project opens. Only a hub the person started for the Studio does; one an MCP server started leaves the questions to that agent. */
+    private readonly autoStart = false,
   ) {
     state.on('workspace', () => void this.activate())
   }
@@ -43,8 +45,11 @@ export class AgentPool {
     return this.agents.get(this.state.projectKey())
   }
 
-  /** Gives the person the open project's agent: the one that runs, or the default agent, started now. Never throws. */
-  async activate(): Promise<void> {
+  /**
+   * Gives the person the open project's agent: the one that runs, or the default agent, started now
+   * when `start` (by default: when the pool may start agents by itself and no agent listens over MCP). Never throws.
+   */
+  async activate(start = this.autoStart && !this.state.status().listening): Promise<void> {
     const project = this.state.projectKey()
     // No project: no agent answers.
     if (!project) return this.state.setSession(null, null)
@@ -52,7 +57,7 @@ export class AgentPool {
     if (agent) {
       this.agents.delete(project)
       this.agents.set(project, agent)
-    } else {
+    } else if (start) {
       const d = this.store.defaultAgent()
       if (d) agent = this.start(project, d.agent, this.state.project!.cwd)
     }
@@ -74,7 +79,7 @@ export class AgentPool {
       this.agents.delete(project)
       running.stop()
     }
-    await this.activate()
+    await this.activate(true)
   }
 
   /** Makes an agent the default, without starting it. Returns its key. */

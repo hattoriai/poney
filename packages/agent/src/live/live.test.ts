@@ -124,6 +124,22 @@ describe('an agent the Studio starts over ACP', () => {
     await post(hub, '/api/agent/disconnect', {})
   }, 20_000)
 
+  it('starts the default agent by itself only in a hub started for the Studio', async () => {
+    const { SessionStore } = await import('../agents/sessions')
+    new SessionStore().setDefaultAgent({ agent: fakeAgent(), settings: {} })
+    // A hub an MCP server starts: the questions stay with that agent.
+    const quiet = await startHub(6300 + Math.floor(Math.random() * 100))
+    hubs.push(quiet)
+    await post(quiet, '/api/project/open', { path: mkdtempSync(join(tmpdir(), 'repo-')) })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(quiet.state.status().session).toBeNull()
+    const studio = await startHub(6400 + Math.floor(Math.random() * 100), { autoStart: true })
+    hubs.push(studio)
+    await post(studio, '/api/project/open', { path: mkdtempSync(join(tmpdir(), 'repo-')) })
+    await until(() => !!studio.state.status().session)
+    await post(studio, '/api/agent/disconnect', {})
+  }, 20_000)
+
   it('has no connect-here route', async () => {
     const hub = await startHub(6000 + Math.floor(Math.random() * 100))
     hubs.push(hub)

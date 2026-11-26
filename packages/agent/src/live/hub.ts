@@ -20,11 +20,12 @@ export interface Hub {
   agents: AgentPool
 }
 
-export async function startHub(port?: number): Promise<Hub> {
+/** `autoStart`: start the default agent by itself when a project opens (`poney studio`; not a hub an MCP server starts). */
+export async function startHub(port?: number, options: { autoStart?: boolean } = {}): Promise<Hub> {
   const state = new LiveState()
   let server: LiveServer | undefined
   // The MCP server an agent started by the Studio runs to reach this hub.
-  const agents = new AgentPool(state, () => ({ ...mcpCommand(), command: process.execPath, hubUrl: server!.url }))
+  const agents = new AgentPool(state, () => ({ ...mcpCommand(), command: process.execPath, hubUrl: server!.url }), undefined, undefined, undefined, options.autoStart)
   const files = new DocumentFiles(state)
   server = new LiveServer(state, agents, files)
   await server.start(port)
