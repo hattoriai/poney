@@ -23,6 +23,7 @@ import type { AgentBridge } from '../agents/bridge'
 import { builtInProviders, customProvider, describeProvider, type ProviderSpec } from '../agents/providers'
 import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agents/workspace'
 import { checkProvider } from '../agents/check'
+import type { AgentChoice } from '../agents/sessions'
 import { check } from '../ops'
 import type { DocumentFiles } from './files'
 
@@ -335,9 +336,8 @@ export class LiveServer {
   }
 }
 
-/** An agent as the Studio names it: a known one by id, or one the person added by command. */
-type AgentChoice = { providerId?: string; custom?: { name: string; command: string } }
-const providerFor = (r: AgentChoice): ProviderSpec | undefined => (r.custom ? customProvider(r.custom.name, r.custom.command) : builtInProviders().find((p) => p.id === r.providerId))
+const providerFor = (r: AgentChoice): ProviderSpec | undefined =>
+  'custom' in r && r.custom ? customProvider(r.custom.name, r.custom.command) : builtInProviders().find((p) => p.id === ('providerId' in r ? r.providerId : undefined))
 
 function json(res: ServerResponse, status: number, value: unknown) {
   res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(value))
