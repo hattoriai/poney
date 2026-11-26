@@ -17,8 +17,9 @@ Seven packages are published to npm, with one version:
 ## A release
 
 1. Set the version: `node scripts/version.mjs 0.2.0`, then `npm install` (the lock file follows).
-2. Open a pull request with it; merge it when CI passes.
-3. On GitHub, publish a release with the tag `v0.2.0`.
+2. Add the version to `CHANGELOG.md`: what changed since the last release, for the people who use the packages.
+3. Open a pull request with it; merge it when CI passes.
+4. On GitHub, publish a release with the tag `v0.2.0`, and use the version's changelog section as the release notes.
 
 The `release` workflow checks that the tag and every package name one version, runs the type checks, the tests and the build, and publishes each package that npm does not have yet, in dependency order. It publishes by npm's trusted publishing: no token, and each package records which run built it (provenance). Approve the run in the `npm` environment.
 
