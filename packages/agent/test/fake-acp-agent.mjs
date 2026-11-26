@@ -2,6 +2,7 @@
 /**
  * A tiny ACP agent for tests. It answers each prompt with words, one tool
  * call and one permission request, and echoes the MCP servers it was given.
+ * --no-resume: it cannot continue a session. --load-only: it can load one, not resume it.
  */
 import { Readable, Writable } from 'node:stream'
 import { agent, methods, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
@@ -13,7 +14,10 @@ const settings = {
   effort: { id: 'effort', name: 'Effort', category: 'thought_level', type: 'select', currentValue: 'low', options: [{ value: 'low', name: 'Low' }, { value: 'high', name: 'High' }] },
 }
 const app = agent({ name: 'fake' })
-  .onRequest(methods.agent.initialize, () => ({ protocolVersion: PROTOCOL_VERSION, agentCapabilities: process.argv.includes('--no-resume') ? {} : { loadSession: true, sessionCapabilities: { resume: {} } } }))
+  .onRequest(methods.agent.initialize, () => ({
+    protocolVersion: PROTOCOL_VERSION,
+    agentCapabilities: process.argv.includes('--no-resume') ? {} : process.argv.includes('--load-only') ? { loadSession: true } : { loadSession: true, sessionCapabilities: { resume: {} } },
+  }))
   .onRequest(methods.agent.session.new, ({ params }) => {
     mcpServers = params.mcpServers
     return { sessionId: `fake-session-${++sessions}`, configOptions: Object.values(settings) }

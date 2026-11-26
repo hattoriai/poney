@@ -60,7 +60,7 @@ export interface StartOptions {
   mcpServers?: McpServer[]
   /** Instructions added to the agent's own system prompt, when it supports that (ACP `systemPrompt`, append mode). */
   systemPrompt?: string
-  /** An earlier session to continue. If the agent cannot, or fails, a new session starts. */
+  /** An earlier session to continue. An agent that cannot resume it loads it; if it cannot, or fails, a new session starts. */
   resume?: { sessionId: string; how: 'resume' | 'load' }
   onUpdate?(n: SessionNotification): void
   onPermission?(p: RequestPermissionRequest): Promise<RequestPermissionResponse>
@@ -102,11 +102,12 @@ export async function startAgent(spec: ProviderSpec, cwd: string, options: Start
     const can = { load: init.agentCapabilities?.loadSession === true, resume: init.agentCapabilities?.sessionCapabilities?.resume != null }
     const base = { cwd, mcpServers: options.mcpServers ?? [], ...(systemPrompt ? { systemPrompt } : {}) }
     const old = options.resume
-    if (old && can[old.how]) {
+    const how = old && (can[old.how] ? old.how : can.load ? ('load' as const) : undefined)
+    if (old && how) {
       const request: LoadSessionRequest = { ...base, sessionId: old.sessionId }
       try {
-        const session = old.how === 'load' ? await connection.agent.request(methods.agent.session.load, request) : await connection.agent.request(methods.agent.session.resume, request)
-        return { sessionId: old.sessionId, how: old.how, can, session: { sessionId: old.sessionId, ...session }, systemPromptApplied: !!systemPrompt }
+        const session = how === 'load' ? await connection.agent.request(methods.agent.session.load, request) : await connection.agent.request(methods.agent.session.resume, request)
+        return { sessionId: old.sessionId, how, can, session: { sessionId: old.sessionId, ...session }, systemPromptApplied: !!systemPrompt }
       } catch (e) {
         // A sign-in error is not a lost session: let the caller see it. Any other failure starts a new session.
         if (isSignInError(e)) throw e

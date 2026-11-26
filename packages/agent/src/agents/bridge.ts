@@ -48,6 +48,8 @@ export class ProjectAgent {
   private asking?: Question
   /** True while the agent replays a loaded session. */
   private replaying = false
+  /** The thread already has the session's history: a replay of it is not shown again. */
+  private keepThread = false
   /** The messages the agent replayed from its earlier session: they are not new questions. */
   readonly history = new Set<number>()
   private tools = new Map<string, Extract<Message, { from: 'tool' }>>()
@@ -95,6 +97,7 @@ export class ProjectAgent {
     const resume = saved?.agentKey === this.key ? { sessionId: saved.sessionId, how: this.state.thread(this.project).length ? ('resume' as const) : ('load' as const) } : undefined
     // A loaded session replays its history before the agent answers.
     this.sessionId = resume?.sessionId
+    this.keepThread = resume?.how === 'resume'
     const mcp = this.mcp()
     let agent: RunningAgent
     this.replaying = true
@@ -264,6 +267,8 @@ export class ProjectAgent {
   private onUpdate(n: SessionNotification) {
     if (n.sessionId !== this.sessionId) return
     const u = n.update
+    // An agent that loads a session it could not resume replays what the thread already shows.
+    if (this.replaying && this.keepThread && ['user_message_chunk', 'agent_message_chunk', 'tool_call', 'tool_call_update'].includes(u.sessionUpdate)) return
     switch (u.sessionUpdate) {
       case 'user_message_chunk': {
         // Only a replayed history has the person's words: each turn starts a new answer.

@@ -12,7 +12,7 @@ import type { ProviderSpec } from './providers'
 
 const fake = fileURLToPath(new URL('../../test/fake-acp-agent.mjs', import.meta.url))
 const spec = (id: string, args: string[] = [], available = true): ProviderSpec => ({ id, name: 'Fake agent', command: process.execPath, args: [fake, ...args], install: 'Install it.', available, signIn: '' })
-const providers = () => [spec('fake'), spec('stubborn', ['--no-resume']), spec('missing', [], false)]
+const providers = () => [spec('fake'), spec('stubborn', ['--no-resume']), spec('loader', ['--load-only']), spec('missing', [], false)]
 const mcp = () => ({ command: process.execPath, args: [], hubUrl: 'http://127.0.0.1:1' })
 
 let home: string
@@ -92,6 +92,19 @@ describe('AgentPool', () => {
     expect(pool.get(a)).not.toBe(first)
     expect(sessionOf(await askAndAnswer(state, pool, 'And then?'))).toBe(id)
     expect(texts(state.thread(), 'person')).toEqual(['Where does it start?', 'And then?'])
+  })
+
+  it('loads the session when the agent cannot resume it, and keeps the thread as it was', async () => {
+    const { state, pool, open } = setup(1)
+    const [a, b] = [folder(), folder()]
+    await open(a)
+    await pool.connect({ providerId: 'loader' })
+    const id = sessionOf(await askAndAnswer(state, pool, 'Where does it start?'))
+    await open(b)
+    await open(a)
+    expect(texts(state.thread(a), 'notice')).toEqual([])
+    expect(sessionOf(await askAndAnswer(state, pool, 'And then?'))).toBe(id)
+    expect(texts(state.thread(a), 'person')).toEqual(['Where does it start?', 'And then?'])
   })
 
   it('loads the session after a restart', async () => {
