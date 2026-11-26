@@ -4,7 +4,7 @@
  *
  * It knows no transport. The HTTP server shows it to the Studio; an MCP
  * server reads and writes it (in this process, or over HTTP from another);
- * the ACP bridge answers the person's questions through it.
+ * the project agents (ACP) answer the person's questions through it.
  */
 import { EventEmitter } from 'node:events'
 import type { OverlayResult } from '../plugins/types'
@@ -125,6 +125,12 @@ export class LiveState extends EventEmitter<Events> {
     else messages.push(message)
     if (project === this.projectKey()) this.emit('message', message)
     return message
+  }
+
+  /** Empties a project's thread. */
+  clearThread(project: string) {
+    this.threads.delete(project)
+    if (project === this.projectKey()) this.emit('thread', [])
   }
 
   /**

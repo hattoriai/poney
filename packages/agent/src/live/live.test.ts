@@ -1,6 +1,8 @@
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { request } from 'node:http'
 import { startHub, type Hub } from './hub'
 import { RemoteLive, isPoneyHub } from './api'
@@ -8,7 +10,20 @@ import type { Message } from './types'
 
 const fake = fileURLToPath(new URL('../../test/fake-acp-agent.mjs', import.meta.url))
 const hubs: Hub[] = []
-afterAll(() => hubs.forEach((h) => h.server.stop()))
+// Hubs remember the default agent and sessions in the Poney home.
+let home: string
+let saved: string | undefined
+beforeAll(() => {
+  saved = process.env.PONEY_HOME
+  home = mkdtempSync(join(tmpdir(), 'poney-home-'))
+  process.env.PONEY_HOME = home
+})
+afterAll(() => {
+  hubs.forEach((h) => h.server.stop())
+  if (saved === undefined) delete process.env.PONEY_HOME
+  else process.env.PONEY_HOME = saved
+  rmSync(home, { recursive: true, force: true })
+})
 const until = async (ok: () => boolean, ms = 8000) => {
   const end = Date.now() + ms
   while (!ok()) {
@@ -49,16 +64,18 @@ describe('an agent the Studio starts over ACP', () => {
   it('answers the person, shows its tool calls, and asks before it acts', async () => {
     const hub = await startHub(5600 + Math.floor(Math.random() * 200))
     hubs.push(hub)
-    const spec = { id: 'fake', name: 'Fake agent', command: process.execPath, args: [fake], install: '', available: true }
-    await hub.bridge.connect(spec, tmpdir())
-    expect(hub.state.status().session).toMatchObject({ providerId: 'fake', busy: false })
+    const { workspaceProject } = await import('./workspace-project')
+    const cwd = mkdtempSync(join(tmpdir(), 'repo-'))
+    hub.state.setWorkspace(workspaceProject(cwd))
+    await hub.agents.connect({ custom: { name: 'Fake agent', command: `"${process.execPath}" "${fake}"` } })
+    expect(hub.state.status().session).toMatchObject({ providerId: 'custom:Fake agent', cwd, busy: false })
 
     hub.state.ask('Give me a tour.')
     const msgs = () => hub.state.thread()
     await until(() => msgs().some((m) => m.from === 'permission'))
     const permission = msgs().find((m): m is Extract<Message, { from: 'permission' }> => m.from === 'permission')!
     expect(permission.options.map((o) => o.id)).toEqual(['yes', 'no'])
-    hub.bridge.choose(permission.id, 'yes')
+    hub.agents.active()!.choose(permission.id, 'yes')
     await until(() => msgs().some((m) => m.from === 'agent' && m.text.startsWith('Done')) && !hub.state.status().session?.busy)
 
     const agentText = msgs().filter((m) => m.from === 'agent').map((m) => (m as { text: string }).text)
@@ -70,10 +87,10 @@ describe('an agent the Studio starts over ACP', () => {
       ['model', 'model', 'small'],
       ['effort', 'effort', 'low'],
     ])
-    await hub.bridge.setSetting('model', 'large')
+    await hub.agents.active()!.setSetting('model', 'large')
     expect(hub.state.status().session?.settings.find((s) => s.id === 'model')?.current).toBe('large')
 
-    await hub.bridge.disconnect()
+    await hub.agents.disconnect()
     expect(hub.state.status().session).toBeNull()
   }, 20_000)
 })

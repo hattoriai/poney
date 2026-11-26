@@ -19,8 +19,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join, normalize } from 'node:path'
 import type { LiveState } from './state'
-import type { AgentBridge } from '../agents/bridge'
-import { builtInProviders, customProvider, describeProvider, type ProviderSpec } from '../agents/providers'
+import { providerFor, type AgentPool } from '../agents/pool'
+import { builtInProviders, describeProvider } from '../agents/providers'
 import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agents/workspace'
 import { checkProvider } from '../agents/check'
 import type { AgentChoice } from '../agents/sessions'
@@ -59,7 +59,7 @@ export class LiveServer {
 
   constructor(
     private readonly state: LiveState,
-    private readonly bridge?: AgentBridge,
+    private readonly agents?: AgentPool,
     private readonly files?: DocumentFiles,
   ) {
     const send = (event: string, data: unknown) => {
@@ -116,7 +116,7 @@ export class LiveServer {
   stop() {
     this.state.close()
     this.files?.close()
-    void this.bridge?.disconnect()
+    this.agents?.stopAll()
     for (const c of this.clients) c.end()
     this.server?.close()
   }
@@ -195,7 +195,7 @@ export class LiveServer {
 
       /* Agents the Studio starts */
       case 'GET /api/agent':
-        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.bridge, mcpServer: mcpCommand() })
+        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.agents, mcpServer: mcpCommand() })
       case 'POST /api/agent/check': {
         const r = (await body(req)) as AgentChoice & { fresh?: boolean }
         const spec = providerFor(r)
@@ -203,29 +203,31 @@ export class LiveServer {
         return json(res, 200, await checkProvider(spec, r.fresh))
       }
       case 'POST /api/agent/connect': {
-        if (!this.bridge) return json(res, 400, { error: 'This hub cannot start agents.' })
+        if (!this.agents) return json(res, 400, { error: 'This hub cannot start agents.' })
         const r = (await body(req)) as AgentChoice & { cwd?: string }
-        const spec = providerFor(r)
-        if (!spec) return json(res, 400, { error: 'Unknown agent' })
-        await this.bridge.connect(spec, checkFolder(r.cwd ?? ''))
+        if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
+        // The agent's folder; the document open in the Studio stays.
+        s.setWorkspace(workspaceProject(checkFolder(r.cwd ?? '')), true)
+        await this.agents.connect(r)
         return json(res, 200, s.status())
       }
       case 'POST /api/agent/disconnect':
-        await this.bridge?.disconnect()
+        await this.agents?.disconnect()
         return json(res, 200, s.status())
       case 'POST /api/agent/cancel':
-        await this.bridge?.cancel()
+        await this.agents?.active()?.cancel()
         return json(res, 200, s.status())
       case 'POST /api/agent/setting': {
         const r = (await body(req)) as { id?: string; value?: string | boolean }
-        if (!this.bridge || !r.id || r.value === undefined) return json(res, 400, { error: 'Give id and value' })
-        await this.bridge.setSetting(r.id, r.value)
+        const agent = this.agents?.active()
+        if (!agent || !r.id || r.value === undefined) return json(res, 400, { error: 'Give id and value' })
+        await agent.setSetting(r.id, r.value)
         return json(res, 200, s.status())
       }
       case 'POST /api/agent/permission': {
         const r = (await body(req)) as { messageId?: number; optionId?: string }
         if (typeof r.messageId !== 'number' || !r.optionId) return json(res, 400, { error: 'Give messageId and optionId' })
-        this.bridge?.choose(r.messageId, r.optionId)
+        this.agents?.active()?.choose(r.messageId, r.optionId)
         return json(res, 200, { ok: true })
       }
 
@@ -267,14 +269,13 @@ export class LiveServer {
       }
       case 'POST /api/agent/connect-here': {
         // An agent in the open project's folder.
-        if (!this.bridge) return json(res, 400, { error: 'This hub cannot start agents.' })
+        if (!this.agents) return json(res, 400, { error: 'This hub cannot start agents.' })
         const r = (await body(req)) as AgentChoice & { folder?: string }
         // The folder the agent works in; the open document stays.
         if (r.folder) s.setWorkspace(workspaceProject(checkFolder(r.folder)), true)
         if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        const spec = providerFor(r)
-        if (!spec) return json(res, 400, { error: 'Unknown agent' })
-        await this.bridge.connect(spec, s.project.cwd)
+        if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
+        await this.agents.connect(r)
         return json(res, 200, s.status())
       }
 
@@ -336,9 +337,6 @@ export class LiveServer {
     res.end(readFileSync(file))
   }
 }
-
-const providerFor = (r: AgentChoice): ProviderSpec | undefined =>
-  'custom' in r && r.custom ? customProvider(r.custom.name, r.custom.command) : builtInProviders().find((p) => p.id === ('providerId' in r ? r.providerId : undefined))
 
 function json(res: ServerResponse, status: number, value: unknown) {
   res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(value))

@@ -1,5 +1,5 @@
 /**
- * Starting an ACP agent: spawn it, initialize, open a session. The bridge
+ * Starting an ACP agent: spawn it, initialize, open a session. A project agent
  * uses it for real work; the sign-in check uses it to see whether an agent
  * can start at all.
  */

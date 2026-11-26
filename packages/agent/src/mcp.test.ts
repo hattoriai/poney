@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
@@ -9,15 +11,20 @@ const mcpSource = fileURLToPath(new URL('./mcp.ts', import.meta.url))
 const examplePath = fileURLToPath(new URL('../examples/walkthrough.poney', import.meta.url))
 const port = 5339 + Math.floor(Math.random() * 50)
 const client = new Client({ name: 'test', version: '0' })
+// The hub of the MCP server remembers agents in its own Poney home, never the person's.
+const home = mkdtempSync(join(tmpdir(), 'poney-home-'))
 
 type Result = { content: { type: string; text?: string; data?: string }[]; isError?: boolean }
 const call = async (name: string, args: Record<string, unknown> = {}) => (await client.callTool({ name, arguments: args })) as Result
 const textOf = (r: Result) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n')
 
 beforeAll(async () => {
-  await client.connect(new StdioClientTransport({ command: 'node', args: ['--conditions=poney-source', '--import', 'tsx', mcpSource], env: { ...process.env, PONEY_PORT: String(port) } as Record<string, string>, stderr: 'ignore' }))
+  await client.connect(new StdioClientTransport({ command: 'node', args: ['--conditions=poney-source', '--import', 'tsx', mcpSource], env: { ...process.env, PONEY_PORT: String(port), PONEY_HOME: home } as Record<string, string>, stderr: 'ignore' }))
 }, 30_000)
-afterAll(async () => client.close())
+afterAll(async () => {
+  await client.close()
+  rmSync(home, { recursive: true, force: true })
+})
 
 describe('poney MCP server', () => {
   it('lists its tools', async () => {

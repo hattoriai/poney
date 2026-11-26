@@ -1,10 +1,10 @@
 /**
- * Starts a live hub: the state, the HTTP server, and (when asked) the bridge
- * that lets the Studio start agents. `poney studio` and the MCP server both
+ * Starts a live hub: the state, the HTTP server, and the agent pool that
+ * lets the Studio start agents. `poney studio` and the MCP server both
  * start hubs this way; an MCP server that finds a hub already running attaches
  * to it instead (see attachOrStart).
  */
-import { AgentBridge } from '../agents/bridge'
+import { AgentPool } from '../agents/pool'
 import { isPoneyHub, LocalLive, RemoteLive, type LiveApi } from './api'
 import { LiveServer } from './server'
 import { LiveState } from './state'
@@ -17,18 +17,18 @@ export interface Hub {
   files: DocumentFiles
   server: LiveServer
   live: LiveApi
-  bridge: AgentBridge
+  agents: AgentPool
 }
 
 export async function startHub(port?: number): Promise<Hub> {
   const state = new LiveState()
   let server: LiveServer | undefined
   // The MCP server an agent started by the Studio runs to reach this hub.
-  const bridge = new AgentBridge(state, () => ({ ...mcpCommand(), command: process.execPath, hubUrl: server!.url }))
+  const agents = new AgentPool(state, () => ({ ...mcpCommand(), command: process.execPath, hubUrl: server!.url }))
   const files = new DocumentFiles(state)
-  server = new LiveServer(state, bridge, files)
+  server = new LiveServer(state, agents, files)
   await server.start(port)
-  return { state, files, server, live: new LocalLive(state, server), bridge }
+  return { state, files, server, live: new LocalLive(state, server), agents }
 }
 
 /**
