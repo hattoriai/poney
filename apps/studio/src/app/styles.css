@@ -108,23 +108,29 @@ body {
   font-feature-settings: 'ss01', 'cv11';
 }
 
-/* One focus treatment everywhere: a poney ring. */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+/*
+ * One focus treatment everywhere: a poney ring. In the base layer, so a
+ * component that shows focus its own way (a text box with its border, the
+ * search box) turns the ring off with a utility class such as outline-none.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 
-/* Text editors (the message box, text being edited) show focus with their own border or ring. */
-.ProseMirror:focus,
-.ProseMirror:focus-visible {
-  outline: none;
-}
+  /* Text editors (the message box, text being edited) show focus with their own border or ring. */
+  .ProseMirror:focus,
+  .ProseMirror:focus-visible {
+    outline: none;
+  }
 
-/* SVG elements show focus with a drawn ring instead (see .poney-focus). */
-svg :focus,
-svg :focus-visible {
-  outline: none;
+  /* SVG elements show focus with a drawn ring instead (see .poney-focus). */
+  svg :focus,
+  svg :focus-visible {
+    outline: none;
+  }
 }
 
 @keyframes fade-in {
