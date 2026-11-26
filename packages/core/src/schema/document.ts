@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { object } from './strict'
 import { Id, SemanticModel } from './model'
 import { View } from './views'
 import { Presentation } from './presentation'
@@ -8,7 +9,7 @@ import { DEFAULT_PRESENTATION } from '../defaults'
 
 export const PONEY_VERSION = '0.2.0'
 
-export const Project = z.object({
+export const Project = object({
   id: Id,
   name: z.string(),
   description: z.string().default(''),
@@ -18,7 +19,7 @@ export const Project = z.object({
 })
 
 /** An extension this document uses. */
-export const ExtensionUse = z.object({
+export const ExtensionUse = object({
   name: z.string().regex(/^[a-z][a-z0-9-]*$/),
   version: z.string(),
   /**
@@ -37,7 +38,7 @@ export type ExtensionUse = z.infer<typeof ExtensionUse>
  * inside walkthrough scenes moved into `views` with ids of their own, so
  * every reader sees one shape.
  */
-const DocumentShape = z.object({
+const DocumentShape = object({
   poneyVersion: z.literal(PONEY_VERSION),
   project: Project,
   extensions: z.array(ExtensionUse).default([]),

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { object } from './strict'
 
 /**
  * Layer 1 — the semantic model.
@@ -14,7 +15,7 @@ export const Id = z
   .regex(/^[a-z0-9][a-z0-9-_.]*$/, 'Identifiers use lowercase letters, digits, "-", "_" and "."')
 export type Id = z.infer<typeof Id>
 
-export const SourceRef = z.object({
+export const SourceRef = object({
   /** Repository-relative path. */
   path: z.string(),
   line: z.number().int().positive().optional(),
@@ -54,7 +55,7 @@ export type CoreEntityKind = z.infer<typeof CoreEntityKind>
 export const EntityKind = z.union([CoreEntityKind, ExtensionKind])
 export type EntityKind = CoreEntityKind | (string & {})
 
-export const Entity = z.object({
+export const Entity = object({
   id: Id,
   kind: EntityKind,
   name: z.string().min(1),
@@ -86,7 +87,7 @@ export type CoreRelationshipKind = z.infer<typeof CoreRelationshipKind>
 export const RelationshipKind = z.union([CoreRelationshipKind, ExtensionKind])
 export type RelationshipKind = CoreRelationshipKind | (string & {})
 
-export const Relationship = z.object({
+export const Relationship = object({
   id: Id,
   kind: RelationshipKind,
   source: Id,
@@ -102,7 +103,7 @@ export const Relationship = z.object({
 })
 export type Relationship = z.infer<typeof Relationship>
 
-export const Field = z.object({
+export const Field = object({
   name: z.string(),
   type: z.string(),
   description: z.string().optional(),
@@ -110,13 +111,13 @@ export const Field = z.object({
   nullable: z.boolean().default(false),
   unique: z.boolean().default(false),
   /** A foreign key to another data type (table) and field. */
-  references: z.object({ dataType: Id, field: z.string() }).optional(),
+  references: object({ dataType: Id, field: z.string() }).optional(),
 })
 export type Field = z.infer<typeof Field>
 
 export const DataTypeKind = z.enum(['table', 'record', 'event', 'document'])
 
-export const DataType = z.object({
+export const DataType = object({
   id: Id,
   kind: DataTypeKind,
   name: z.string(),
@@ -136,7 +137,7 @@ export type DataType = z.infer<typeof DataType>
 export const Cardinality = z.enum(['exactly-one', 'zero-or-one', 'one-or-many', 'zero-or-many'])
 export type Cardinality = z.infer<typeof Cardinality>
 
-export const DataRelation = z.object({
+export const DataRelation = object({
   id: Id,
   from: Id,
   to: Id,
@@ -151,7 +152,7 @@ export const DataRelation = z.object({
 export type DataRelation = z.infer<typeof DataRelation>
 
 /** A movement of data between two entities. Direction is the data's direction. */
-export const DataFlow = z.object({
+export const DataFlow = object({
   id: Id,
   source: Id,
   target: Id,
@@ -167,7 +168,7 @@ export type DataFlow = z.infer<typeof DataFlow>
 
 export const MessageKind = z.enum(['call', 'return', 'async', 'self'])
 
-export const Message = z.object({
+export const Message = object({
   type: z.literal('message'),
   id: Id,
   kind: MessageKind,
@@ -190,19 +191,19 @@ export type Fragment = {
 export type Step = Message | Fragment
 
 export const Fragment: z.ZodType<Fragment, z.ZodTypeDef, unknown> = z.lazy(() =>
-  z.object({
+  object({
     type: z.literal('fragment'),
     id: Id,
     kind: z.enum(['alt', 'opt', 'loop', 'par']),
     label: z.string(),
-    branches: z.array(z.object({ guard: z.string(), steps: z.array(Step) })).min(1),
+    branches: z.array(object({ guard: z.string(), steps: z.array(Step) })).min(1),
   }),
 )
 export const Step: z.ZodType<Step, z.ZodTypeDef, unknown> = z.lazy(() =>
   z.union([Message, Fragment]),
 )
 
-export const Interaction = z.object({
+export const Interaction = object({
   kind: z.literal('interaction'),
   id: Id,
   name: z.string(),
@@ -214,7 +215,7 @@ export const Interaction = z.object({
 })
 export type Interaction = z.infer<typeof Interaction>
 
-export const ActivityNode = z.object({
+export const ActivityNode = object({
   id: Id,
   kind: z.enum(['initial', 'final', 'action', 'decision', 'merge', 'fork', 'join']),
   label: z.string(),
@@ -226,7 +227,7 @@ export const ActivityNode = z.object({
 })
 export type ActivityNode = z.infer<typeof ActivityNode>
 
-export const ActivityFlow = z.object({
+export const ActivityFlow = object({
   id: Id,
   from: Id,
   to: Id,
@@ -235,7 +236,7 @@ export const ActivityFlow = z.object({
 export type ActivityFlow = z.infer<typeof ActivityFlow>
 
 /** A UML activity: actions, decisions and the flows between them. */
-export const Activity = z.object({
+export const Activity = object({
   kind: z.literal('activity'),
   id: Id,
   name: z.string(),
@@ -246,7 +247,7 @@ export const Activity = z.object({
 })
 export type Activity = z.infer<typeof Activity>
 
-export const State = z.object({
+export const State = object({
   id: Id,
   kind: z.enum(['initial', 'state', 'final']),
   name: z.string(),
@@ -256,7 +257,7 @@ export const State = z.object({
 })
 export type State = z.infer<typeof State>
 
-export const Transition = z.object({
+export const Transition = object({
   id: Id,
   from: Id,
   to: Id,
@@ -269,7 +270,7 @@ export const Transition = z.object({
 })
 export type Transition = z.infer<typeof Transition>
 
-export const StateMachine = z.object({
+export const StateMachine = object({
   kind: z.literal('state-machine'),
   id: Id,
   name: z.string(),
@@ -288,7 +289,7 @@ export const Behavior = z.discriminatedUnion('kind', [Interaction, Activity, Sta
 export type Behavior = z.infer<typeof Behavior>
 
 /** A use case (UML): something an actor does with the system. */
-export const UseCase = z.object({
+export const UseCase = object({
   id: Id,
   name: z.string(),
   summary: z.string(),
@@ -303,7 +304,7 @@ export const UseCase = z.object({
 })
 export type UseCase = z.infer<typeof UseCase>
 
-export const SemanticModel = z.object({
+export const SemanticModel = object({
   entities: z.array(Entity).default([]),
   relationships: z.array(Relationship).default([]),
   dataTypes: z.array(DataType).default([]),

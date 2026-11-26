@@ -72,12 +72,28 @@ export function validateDocument(input: unknown, options: ValidateOptions = {}):
   if (!parsed.success) {
     return {
       ok: false,
-      issues: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message, severity: 'error' as const, hint: shapeHint(i) })),
+      issues: parsed.error.issues.flatMap(shapeIssues),
     }
   }
   const issues = [...checkReferences(parsed.data), ...checkExtensions(parsed.data, options.extensions ?? [])]
   if (issues.some((i) => i.severity === 'error')) return { ok: false, document: parsed.data, issues }
   return { ok: true, document: parsed.data, issues }
+}
+
+/**
+ * The issues of one shape error. A member the format does not define gets
+ * an issue at its own path (section 9.1), as the specification's paths name
+ * values: "project.colour", not "project".
+ */
+function shapeIssues(issue: z.ZodIssue): ValidationIssue[] {
+  if (issue.code === 'unrecognized_keys')
+    return issue.keys.map((key) => ({
+      path: [...issue.path, key].join('.'),
+      message: `Unknown member "${key}"`,
+      severity: 'error' as const,
+      hint: `Remove "${key}": this place has no such member.`,
+    }))
+  return [{ path: issue.path.join('.'), message: issue.message, severity: 'error' as const, hint: shapeHint(issue) }]
 }
 
 /** A hint for a shape error, from what Zod knows. */
@@ -86,7 +102,6 @@ function shapeHint(issue: z.ZodIssue): string | undefined {
   if (i.code === 'invalid_union_discriminator' && Array.isArray(i.options)) return `Use one of: ${(i.options as string[]).join(', ')}.`
   if (i.code === 'invalid_enum_value' && Array.isArray(i.options)) return `Use one of: ${(i.options as string[]).join(', ')}.`
   if (i.code === 'invalid_type' && i.received === 'undefined') return `Add "${i.path[i.path.length - 1]}".`
-  if (i.code === 'unrecognized_keys' && Array.isArray(i.keys)) return `Remove ${(i.keys as string[]).map((k) => `"${k}"`).join(', ')}: this place has no such field.`
   if (i.code === 'invalid_string' && /lowercase|ref/.test(i.message)) return 'Ids are lowercase letters, digits, "-", "_" and ".", e.g. "order-service".'
   return undefined
 }

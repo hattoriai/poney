@@ -4,6 +4,11 @@ Every package in this repository has the same version. The format has its own ve
 
 ## Unreleased
 
+### Reading documents
+
+- A member the format does not define is now an error, as the specification says (section 9.1). Before, `@hattoriai/poney-core` dropped it silently, so a typo such as `"summmary"` lost its value without a word. The issue names the member's own path, such as `project.colour`, with a hint to remove it. Extension data belongs under `ext`, and free key-value data under `metadata`.
+- A new conformance case, `invalid/unknown-member.poney`.
+
 ### Diagrams without a framework
 
 - New package `@hattoriai/poney-diagrams`: every renderer, the walkthrough stories and the stylesheet, with no UI framework. The renderers are JSX for a small runtime of their own; `toMarkup` writes them as SVG text, and `drawInto` draws them into a page and changes only what changed on the next drawing.
