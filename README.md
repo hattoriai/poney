@@ -15,7 +15,7 @@ Poney has three parts:
 ## Install
 
 ```sh
-npm install -g @hattoriai/poney                      # the commands poney and poney-mcp
+npm install -g @hattoriai/poney                      # the commands poney and poney-mcp (Node 22+)
 poney studio                                         # Poney Studio, in your browser
 poney render shop.poney --view architecture --format svg
 claude mcp add poney -- poney-mcp                    # the MCP server, for your agent
@@ -46,7 +46,7 @@ npm run spec       # regenerate spec/poney.schema.json and the example document
 npm run poney -- check spec/examples/walkthrough.poney
 ```
 
-Node 20 or later. Nothing needs building to develop: the packages resolve to their source here (the `poney-source` export condition); `npm run build:packages` builds what is published (see [RELEASING.md](RELEASING.md)). The Studio works on its own in the browser. With `npm run studio`, a small local hub also lets it start agents and talk to agents in their own sessions; it listens on 127.0.0.1 only.
+Node 22 or later (the CLI's agent adapters need it; `@hattoriai/poney-render` and the libraries work on Node 20). Nothing needs building to develop: the packages resolve to their source here (the `poney-source` export condition); `npm run build:packages` builds what is published (see [RELEASING.md](RELEASING.md)). The Studio works on its own in the browser. With `npm run studio`, a small local hub also lets it start agents and talk to agents in their own sessions; it listens on 127.0.0.1 only.
 
 ## Working with agents
 
