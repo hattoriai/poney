@@ -62,7 +62,7 @@ describe('an agent the Studio starts over ACP', () => {
     await until(() => msgs().some((m) => m.from === 'agent' && m.text.startsWith('Done')) && !hub.state.status().session?.busy)
 
     const agentText = msgs().filter((m) => m.from === 'agent').map((m) => (m as { text: string }).text)
-    expect(agentText).toEqual(['Reading the code.', 'Done (yes). MCP: poney. Briefed: true'])
+    expect(agentText).toEqual(['Reading the code.', 'Done (yes). MCP: poney. Briefed: true. Session: fake-session-1.'])
     expect(msgs().find((m) => m.from === 'tool')).toMatchObject({ title: 'Read src/app.ts', status: 'completed' })
 
     // The agent's settings show, and change through ACP.
