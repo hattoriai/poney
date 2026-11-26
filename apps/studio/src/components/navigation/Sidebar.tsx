@@ -149,15 +149,15 @@ function SavedTo({ fallback }: { fallback: string }) {
   )
 }
 
-/** Poney's mark: a horseshoe drawn as a diagram, an arch joining three nodes with one heel in the accent colour, on an ink tile. */
+/** Poney's mark: a P drawn as a diagram, a stem and a bowl joining three nodes with the foot in the accent colour, on an ink tile. */
 export function Mark() {
   return (
     <svg width="30" height="30" viewBox="-22 -18 156 152" aria-hidden className="shrink-0">
       <rect x="-22" y="-18" width="156" height="152" rx="36" fill="var(--ink)" />
-      <path d="M31 84V51A25 25 0 0 1 81 51V84" fill="none" stroke="var(--paper)" strokeWidth="6" />
-      <rect x="44" y="15" width="24" height="20" rx="5" fill="var(--paper)" />
-      <rect x="19" y="76" width="24" height="20" rx="5" fill="var(--paper)" />
-      <rect x="69" y="76" width="24" height="20" rx="5" fill="var(--poney)" />
+      <path d="M40 26V86M40 26H62A17 17 0 0 1 62 60H40" fill="none" stroke="var(--paper)" strokeWidth="6" strokeLinejoin="round" />
+      <rect x="28" y="16" width="24" height="20" rx="5" fill="var(--paper)" />
+      <rect x="28" y="50" width="24" height="20" rx="5" fill="var(--paper)" />
+      <rect x="28" y="76" width="24" height="20" rx="5" fill="var(--poney)" />
     </svg>
   )
 }

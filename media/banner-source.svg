@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title description">
 <title id="title">Poney — Software, explained in diagrams</title>
-<desc id="description">A horseshoe drawn as a diagram: an arch in Sumi ink joining three nodes, one heel node in blade orange. Cormorant Garamond wordmark and Outfit supporting text.</desc>
+<desc id="description">A P drawn as a diagram: a stem and a bowl in Sumi ink joining three nodes, the foot node in blade orange. Cormorant Garamond wordmark and Outfit supporting text.</desc>
 <rect width="1600" height="800" fill="#f5f0e8"/>
-<g transform="translate(363.9 254) scale(2.2)"><path d="M31 84V51A25 25 0 0 1 81 51V84" fill="none" stroke="#0a0a0b" stroke-width="6"/>
-<rect x="44" y="15" width="24" height="20" rx="5" fill="#0a0a0b"/>
-<rect x="19" y="76" width="24" height="20" rx="5" fill="#0a0a0b"/>
-<rect x="69" y="76" width="24" height="20" rx="5" fill="#e84a1c"/></g>
+<g transform="translate(363.9 254) scale(2.2)"><path d="M40 26V86M40 26H62A17 17 0 0 1 62 60H40" fill="none" stroke="#0a0a0b" stroke-width="6" stroke-linejoin="round"/>
+<rect x="28" y="16" width="24" height="20" rx="5" fill="#0a0a0b"/>
+<rect x="28" y="50" width="24" height="20" rx="5" fill="#0a0a0b"/>
+<rect x="28" y="76" width="24" height="20" rx="5" fill="#e84a1c"/></g>
 <path d="M128 109H160" fill="none" stroke="#e84a1c" stroke-width="2"/>
 <text x="652" y="423" font-family="Cormorant Garamond" font-weight="300" font-size="160" letter-spacing="19.2" fill="#0a0a0b">PONEY</text>
 <text x="659" y="484" font-family="Outfit" font-weight="300" font-size="28" fill="#0a0a0b">Software, explained in diagrams.</text>
