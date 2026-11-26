@@ -170,17 +170,23 @@ export class LiveServer {
         const { document, project } = (await body(req)) as { document?: unknown; project?: string }
         if (document === undefined) return json(res, 400, { error: 'Give a document' })
         // An agent of a project that is not open: its document is saved in that project, not shown.
-        if (project && project !== s.projectKey() && this.files) {
+        if (project && project !== s.projectKey()) {
+          if (!this.files) return json(res, 400, { error: 'This hub cannot save documents.' })
           const w = workspaceProject(checkFolder(project))
-          this.files.saveFor(w, document)
-          const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
-          s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
+          if (this.files.saveFor(w, document)) {
+            const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
+            s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
+          }
           return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, saved: true })
         }
         return json(res, 200, { revision: s.open(document), viewers: this.viewers })
       }
-      case 'GET /api/live/read':
+      case 'GET /api/live/read': {
+        // An agent of a project that is not open reads its own project: the saved document and its thread.
+        const project = url.searchParams.get('project')
+        if (project && project !== s.projectKey() && this.files) return json(res, 200, { viewers: this.viewers, current: this.files.savedFor(workspaceProject(checkFolder(project))), thread: s.thread(project) })
         return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread() })
+      }
       case 'GET /api/live/wait': {
         const ms = Math.min(900_000, Math.max(0, Number(url.searchParams.get('timeout') ?? 300_000)))
         const questions = await s.waitForQuestions(ms)

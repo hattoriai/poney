@@ -199,8 +199,11 @@ export class LiveState extends EventEmitter<Events> {
    * open, or an empty project) is decided where files are known.
    */
   setWorkspace(w: WorkspaceProject | undefined) {
-    // The same folder again: nothing to do.
-    if (w?.cwd === this.workspace?.cwd) return
+    if (w?.cwd === this.workspace?.cwd) {
+      // The same folder again. Nothing to do, unless the shown document is not the folder's: then it opens again. The thread and the agent stay.
+      if (!w || (this.file?.startsWith(`${w.cwd}/`) && this.openProjectId === w.id)) return
+      return void this.emit('workspace', w)
+    }
     this.workspace = w
     this.emit('workspace', w)
     this.emit('thread', this.thread())

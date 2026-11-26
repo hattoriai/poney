@@ -33,7 +33,7 @@ export class LocalLive implements LiveApi {
   get studioUrl() {
     return this.server.studioUrl
   }
-  async open(document: unknown) {
+  async open(document: unknown): Promise<{ revision: number; viewers: number; saved?: boolean }> {
     return { revision: this.state.open(document), viewers: this.server.viewers }
   }
   async read(): Promise<LiveRead> {
@@ -70,7 +70,8 @@ export class RemoteLive implements LiveApi {
     return this.call<{ revision: number; viewers: number; saved?: boolean }>('/api/live/open', { body: { document, ...(project ? { project } : {}) } })
   }
   read() {
-    return this.call<LiveRead>('/api/live/read')
+    const project = process.env.PONEY_PROJECT
+    return this.call<LiveRead>(`/api/live/read${project ? `?project=${encodeURIComponent(project)}` : ''}`)
   }
   waitForQuestions(timeoutMs: number) {
     return this.call<{ questions: Extract<Message, { from: 'person' }>[]; viewers: number; place?: Place; answeredInStudio?: boolean }>(`/api/live/wait?timeout=${timeoutMs}`, { timeoutMs: timeoutMs + 10_000 })

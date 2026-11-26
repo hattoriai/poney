@@ -97,15 +97,25 @@ export class DocumentFiles {
     if (existsSync(path)) this.watch(path)
   }
 
-  /** Saves a document into another project's file, whether or not that project is open. The same rules as `save`: nothing for an empty document, nothing when unchanged. */
-  saveFor(w: WorkspaceProject, doc: unknown): void {
+  /** Saves a document into another project's file, whether or not that project is open. Nothing for an empty document, nothing when unchanged; true when it wrote. */
+  saveFor(w: WorkspaceProject, doc: unknown): boolean {
     const into = intoWorkspace(doc, w)
-    if (isEmpty(into)) return
+    if (isEmpty(into)) return false
     const path = workspaceFile(w)
     const text = `${JSON.stringify(into, null, 2)}\n`
-    if (existsSync(path) && readFileSync(path, 'utf8') === text) return
+    if (existsSync(path) && readFileSync(path, 'utf8') === text) return false
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, text)
+    return true
+  }
+
+  /** The document saved in a project's file, if there is one. */
+  savedFor(w: WorkspaceProject): unknown {
+    try {
+      return JSON.parse(readFileSync(workspaceFile(w), 'utf8'))
+    } catch {
+      return null
+    }
   }
 
   /** Writes the document to its file, unless it is empty or unchanged. */

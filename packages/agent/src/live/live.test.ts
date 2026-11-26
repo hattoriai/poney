@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { workspaceFile } from './files'
@@ -101,32 +101,57 @@ describe('an agent the Studio starts over ACP', () => {
     expect(hub.state.status().session).toBeNull()
   }, 20_000)
 
-  it('opens the project folder when the agent connects with a folder, and starts one agent', async () => {
+  it('opens the project folder when the agent connects with a folder, and starts one agent there', async () => {
     const hub = await startHub(5800 + Math.floor(Math.random() * 100))
     hubs.push(hub)
     const log = join(mkdtempSync(join(tmpdir(), 'starts-')), 'starts.log')
     const wrapper = join(dirname(log), 'wrapper.mjs')
-    writeFileSync(wrapper, `import { appendFileSync } from 'node:fs'\nappendFileSync(${JSON.stringify(log)}, 'start\\n')\nawait import(${JSON.stringify(fake)})\n`)
-    const counted = { custom: { name: 'Counted agent', command: `"${process.execPath}" "${wrapper}"` } }
-    const starts = () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean).length : 0)
-    // Another agent is the default already: it must not start in the new folder.
+    // Each start writes its agent's name and its folder.
+    writeFileSync(wrapper, `import { appendFileSync } from 'node:fs'\nappendFileSync(${JSON.stringify(log)}, process.argv[2] + ' ' + process.cwd() + '\\n')\nawait import(${JSON.stringify(fake)})\n`)
+    const counted = (name: string) => ({ custom: { name, command: `"${process.execPath}" "${wrapper}" ${name}` } })
+    const starts = () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean) : [])
     const other = mkdtempSync(join(tmpdir(), 'other-'))
     await post(hub, '/api/project/open', { path: other })
-    await post(hub, '/api/agent/connect', fakeAgent())
-    expect(starts()).toBe(0)
+    await post(hub, '/api/agent/connect', counted('old'))
+    expect(starts()).toEqual([`old ${realpathSync(other)}`])
+    // The old agent is the default: it must not start in the new folder.
     const folder = mkdtempSync(join(tmpdir(), 'repo-'))
-    await post(hub, '/api/agent/connect', { ...counted, folder })
+    await post(hub, '/api/agent/connect', { ...counted('new'), folder })
     expect(hub.state.project?.cwd).toBe(folder)
-    expect(hub.state.status().session).toMatchObject({ providerId: 'custom:Counted agent', cwd: folder })
+    expect(hub.state.status().session).toMatchObject({ providerId: 'custom:new', cwd: folder })
     await new Promise((r) => setTimeout(r, 300))
-    expect(starts()).toBe(1)
+    expect(starts().filter((l) => l.endsWith(realpathSync(folder)))).toEqual([`new ${realpathSync(folder)}`])
     await post(hub, '/api/agent/disconnect', {})
   }, 20_000)
 
   it('has no connect-here route', async () => {
-    const hub = hubs[0]
+    const hub = await startHub(6000 + Math.floor(Math.random() * 100))
+    hubs.push(hub)
     expect((await fetch(`${hub.server.url}/api/agent/connect-here`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(404)
   })
+
+  it('opens the folder’s document again when the project is opened after a loose file, and keeps the agent', async () => {
+    const hub = await startHub(6100 + Math.floor(Math.random() * 100))
+    hubs.push(hub)
+    const p = mkdtempSync(join(tmpdir(), 'repo-p-'))
+    await post(hub, '/api/project/open', { path: p })
+    await post(hub, '/api/agent/connect', fakeAgent())
+    const session = hub.state.status().session
+    const sessionId = readFileSync(join(home, 'sessions.json'), 'utf8')
+    const loose = join(mkdtempSync(join(tmpdir(), 'loose-')), 'tour.poney')
+    writeFileSync(loose, readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
+    await post(hub, '/api/files/open', { path: loose })
+    expect(hub.state.file).toBe(loose)
+    let threads = 0
+    hub.state.on('thread', () => threads++)
+    await post(hub, '/api/project/open', { path: p })
+    expect(hub.state.file).toBe(workspaceFile(workspaceProject(p)))
+    expect(hub.state.shown()?.document).toMatchObject({ project: { id: workspaceProject(p).id } })
+    expect(threads).toBe(0)
+    expect(hub.state.status().session).toEqual(session)
+    expect(readFileSync(join(home, 'sessions.json'), 'utf8')).toBe(sessionId)
+    await post(hub, '/api/agent/disconnect', {})
+  }, 20_000)
 
   it('saves what a background project opens, and does not show it', async () => {
     const hub = await startHub(5900 + Math.floor(Math.random() * 100))
