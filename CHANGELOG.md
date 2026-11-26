@@ -2,6 +2,12 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
+## Unreleased
+
+### Studio
+
+- The sidebar ends with "Made by Hattori AI", a link to hattori.ai.
+
 ## 0.2.0
 
 ### Format 0.2.0

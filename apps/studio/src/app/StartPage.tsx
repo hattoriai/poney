@@ -8,6 +8,7 @@ import { ToolbarButton } from '@/components/shared/Toolbar'
 import { McpSetup } from '@/components/agent/McpSetup'
 import { Mark } from '@/components/navigation/Sidebar'
 import { ImportDialog } from '@/components/dialogs/ImportDialog'
+import { MadeBy } from '@/components/shared/MadeBy'
 
 /**
  * The start page: what shows when nothing is open. It keeps the Studio's
@@ -158,6 +159,7 @@ export function StartPage() {
               ))}
             </nav>
           )}
+          <MadeBy />
         </aside>
     <div
       className="scrollbar-quiet relative min-w-0 flex-1 overflow-y-auto bg-paper text-ink"
