@@ -1,7 +1,7 @@
 name: release
 
 # Publishes the Poney packages to npm when a GitHub release is published:
-# the libraries (@hattoriai/poney-*) and the CLI (poney), in dependency
+# the libraries (@hattoriai/poney-*) and the CLI (@hattoriai/poney), in dependency
 # order. By npm's trusted publishing: no token, npm trusts this workflow of
 # this repository (each package's Settings → Trusted Publisher on
 # npmjs.com, with the environment below), and each package says which run
@@ -46,7 +46,7 @@ jobs:
       # A version on npm already (published by hand, or a rerun) is left as it is.
       - name: publish
         run: |
-          for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security poney; do
+          for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
             version="$(npm pkg get version -w "$name" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(Object.values(j)[0])')"
             if npm view "$name@$version" version > /dev/null 2>&1; then
               echo "$name@$version is on npm already"

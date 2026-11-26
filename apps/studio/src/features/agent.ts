@@ -1,5 +1,5 @@
 import { indexOf, refKey } from '@hattoriai/poney-core'
-import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from 'poney/live'
+import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@hattoriai/poney/live'
 import { useStudio, walkId, type ContextItem } from './store'
 
 /**

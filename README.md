@@ -15,15 +15,18 @@ Poney has three parts:
 ## Install
 
 ```sh
-npx poney studio                                      # Poney Studio, in your browser
-npx poney render shop.poney --view architecture --format svg
-claude mcp add poney -- npx -y --package=poney poney-mcp   # the MCP server, for your agent
-npm install @hattoriai/poney-react                    # the renderers, for your own app
+npm install -g @hattoriai/poney                      # the commands poney and poney-mcp
+poney studio                                         # Poney Studio, in your browser
+poney render shop.poney --view architecture --format svg
+claude mcp add poney -- poney-mcp                    # the MCP server, for your agent
+npm install @hattoriai/poney-react                   # the renderers, for your own app
 ```
+
+Without installing: `npx @hattoriai/poney render …`, and for agents `npx -y --package=@hattoriai/poney poney-mcp`.
 
 | Package | What it is |
 |---|---|
-| [`poney`](packages/agent) | The CLI (`poney`), the MCP server (`poney-mcp`) and Poney Studio |
+| [`@hattoriai/poney`](packages/agent) | The CLI (`poney`), the MCP server (`poney-mcp`) and Poney Studio |
 | [`@hattoriai/poney-core`](packages/core) | The format: schema, validation, commands, Mermaid import |
 | [`@hattoriai/poney-layout`](packages/layout) | Lays views out into scenes |
 | [`@hattoriai/poney-react`](packages/react) | Renderers for every diagram type, and a plain stylesheet |
@@ -60,7 +63,7 @@ Both kinds of agent share one document and one conversation, so the Studio is th
 
 An agent learns the format from the guide, writes a `.poney` file, checks it, looks at each scene, and shows it to a person.
 
-**CLI** (`npx poney`, or `npm run poney --` in this repository):
+**CLI** (`poney`, from `npm install -g @hattoriai/poney`; or `npm run poney --` in this repository):
 
 ```sh
 poney brief                                   # the guide and a complete example
@@ -77,7 +80,7 @@ poney overlay coverage app.poney .            # live facts on the parts: test co
 **MCP server** (`poney-mcp`, stdio). This repository's `.mcp.json` registers it for Claude Code, from source. In another project:
 
 ```sh
-claude mcp add poney -- npx -y --package=poney poney-mcp
+claude mcp add poney -- npx -y --package=@hattoriai/poney poney-mcp
 ```
 
 | Tool | What it does |
@@ -311,7 +314,7 @@ Agents use both through `poney_import` and `poney_overlay`, and people through `
 **Your own plugins.** A plugin is a module whose default export comes from `definePlugin` (`poney/plugins`), with `importers`, `overlays` and format `extensions`:
 
 ```js
-import { definePlugin } from 'poney/plugins'
+import { definePlugin } from '@hattoriai/poney/plugins'
 
 export default definePlugin({
   name: 'sentry',
