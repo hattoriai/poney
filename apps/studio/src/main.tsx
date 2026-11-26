@@ -12,6 +12,7 @@ import { AgentPanel } from './components/agent/AgentPanel'
 import { ConnectDialog } from './components/agent/ConnectDialog'
 import { OpenFileDialog } from './components/dialogs/OpenFileDialog'
 import { OpenProjectDialog } from './components/dialogs/OpenProjectDialog'
+import { ImportCodeDialog } from './components/dialogs/ImportCodeDialog'
 import { RenameField } from './components/canvas/RenameField'
 import { ContextMenu } from './components/canvas/ContextMenu'
 import { PointingHint } from './components/agent/PointingHint'
@@ -52,6 +53,7 @@ function Root() {
       <ConnectDialog />
       <OpenFileDialog />
       <OpenProjectDialog />
+      <ImportCodeDialog />
       <RenameField />
       <ContextMenu />
       <PointingHint />

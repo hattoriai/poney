@@ -190,6 +190,65 @@ server.registerTool(
 )
 
 server.registerTool(
+  'poney_import',
+  {
+    title: 'Import from the code',
+    description:
+      'Reads a source in a repository and adds what it finds to the document open in the Studio (or to a new one): "schema" reads the database schema (db/schema.rb, a .sql schema, schema.prisma) into tables, columns and foreign keys; "js-modules" reads JavaScript and TypeScript imports into modules and who imports whom. It only adds: what the document already has stays. Without an importer, lists the importers and what each would read in the repository. Use it to start from facts, then write the words and the walkthrough yourself.',
+    inputSchema: {
+      repo: z.string().describe('The repository folder.'),
+      importer: z.string().optional().describe('"schema", "js-modules", or another installed importer. Leave out to list them.'),
+      path: z.string().optional().describe('A file to read instead of the one the importer finds, relative to the repository.'),
+      store: z.string().optional().describe('For "schema": the id of the database entity the tables are stored in.'),
+    },
+  },
+  async ({ repo, importer, path, store }) => {
+    const p = await import('./plugins')
+    if (!importer) {
+      const { importers, problems } = await p.available(repo)
+      return text([...importers.map((i) => `- ${i.id}: ${i.description} ${i.files.length ? `Would read ${i.files.join(', ')}.` : 'Nothing to read in this repository.'}`), ...problems].join('\n'))
+    }
+    try {
+      const { current } = await live.read()
+      const { document, summary } = await p.runImport(importer, repo, { into: current, path, store })
+      const { result, report } = check({ document })
+      if (!result?.ok) return text(`Not opened: the document has errors after the import.\n\n${report}`, true)
+      const { revision, viewers } = await live.open(document)
+      return text(`${summary}\nOpened revision ${revision}${viewers ? '' : `. ${noWindow()}`}. Give the new parts and tables plain summaries, then group them into views that explain something.`)
+    } catch (e) {
+      return text(e instanceof Error ? e.message : String(e), true)
+    }
+  },
+)
+
+server.registerTool(
+  'poney_overlay',
+  {
+    title: 'Live facts about the parts',
+    description:
+      'Reads live facts about the parts of the open document, through their source paths: "coverage" (the share of lines the tests run, from the last coverage report) or "churn" (commits in the last 90 days, from git). Without an overlay, lists them. Use the facts in your answers and as badges, e.g. a scene badge "34% tested", only as the overlay reports them.',
+    inputSchema: {
+      repo: z.string().describe('The repository folder.'),
+      overlay: z.string().optional().describe('"coverage", "churn", or another installed overlay. Leave out to list them.'),
+    },
+  },
+  async ({ repo, overlay }) => {
+    const p = await import('./plugins')
+    if (!overlay) {
+      const { overlays } = await p.available(repo)
+      return text(overlays.map((o) => `- ${o.id}: ${o.description} ${o.files.length ? `Would read ${o.files.join(', ')}.` : 'Nothing to read in this repository.'}`).join('\n'))
+    }
+    try {
+      const { current } = await live.read()
+      if (current === undefined) return text('No document is open in the Studio.', true)
+      return text(p.describeOverlay(await p.runOverlay(overlay, repo, current)))
+    } catch (e) {
+      return text(e instanceof Error ? e.message : String(e), true)
+    }
+  },
+)
+
+server.registerTool(
   'poney_wait',
   {
     title: 'Wait for a question from the person',

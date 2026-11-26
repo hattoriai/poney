@@ -5,7 +5,7 @@ import { layoutView, type SceneBase, type ViewLayoutOptions, type Rect } from '@
 import { expandFocus, fit, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, type Mode, type ViewBox } from '@poney/react'
 import { parseRef } from '@poney/core'
 import { union } from '@poney/layout'
-import { useDoc, useIndex } from '@/features/store'
+import { useDoc, useIndex, useStudio } from '@/features/store'
 import { diagramFor } from '@/renderers/registry'
 import { StudioRender } from './StudioRender'
 import { focusNextElement } from '@/renderers/shared/interaction'
@@ -273,6 +273,15 @@ export function SceneView({ view, walkthrough, marks, mode, focus, callouts, hot
     const cy = Math.max(whole.y + h / 2, Math.min(whole.y + whole.h - h / 2, u.y + u.h / 2))
     return { x: cx - w / 2, y: cy - h / 2, w, h }
   }, [scene, whole, step, idx, walkthrough])
+  // Live facts (test coverage, recent changes) join the scene's own badges and effects.
+  const overlays = useStudio((s) => s.overlays)
+  const facts = useMemo(() => {
+    const marks = Object.values(overlays).flatMap((o) => o.marks)
+    return {
+      effects: marks.flatMap((m) => (m.effect ? [{ target: m.target, as: m.effect }] : [])),
+      badges: marks.flatMap((m) => (m.badge ? [{ target: m.target, text: m.badge.text, tone: m.badge.tone }] : [])),
+    }
+  }, [overlays])
   const story = useMemo(
     () => ({
       ...storyState({
@@ -285,15 +294,15 @@ export function SceneView({ view, walkthrough, marks, mode, focus, callouts, hot
         setHot,
         idx,
         walkthrough,
-        effects: sceneData?.effects,
-        badges: sceneData?.badges,
+        effects: [...(sceneData?.effects ?? []), ...facts.effects],
+        badges: [...(sceneData?.badges ?? []), ...facts.badges],
         trace: sceneData?.trace,
         traceStep,
         animate: !reduced(),
       }),
       ...(view.type === 'map' ? { toggleGroup } : {}),
     }),
-    [marks, mode, view, focus, callouts, hot, setHot, idx, walkthrough, toggleGroup, sceneData, traceStep],
+    [marks, mode, view, focus, callouts, hot, setHot, idx, walkthrough, toggleGroup, sceneData, traceStep, facts],
   )
 
   if (!scene || !frame) return <div className="grid h-full place-items-center text-ink-3">Drawing…</div>

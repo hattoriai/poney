@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AgentStatus, ContextItem, Message } from '@poney/agent/live'
+import type { AgentStatus, ContextItem, Message, OverlayResult } from '@poney/agent/live'
 import { createHistory, execute, indexOf, redo, refKey, undo, type Command, type History, type Ref, type PoneyDocument } from '@poney/core'
 
 /**
@@ -105,6 +105,8 @@ interface State {
   fileOpen: boolean
   /** The project's folder (a repository), where agents work. */
   project: { root: string; name: string } | null
+  /** Live facts on the parts (test coverage, recent changes), by overlay id. Scenes show them as badges and effects. */
+  overlays: Record<string, OverlayResult>
   /** The dialog that opens a folder as the project. */
   projectOpen: boolean
   /** What the next question is about: chips in the message box. */
@@ -135,6 +137,9 @@ interface Actions {
   setLiveFile(path: string | null): void
   setFileOpen(open: boolean): void
   setProject(project: State['project']): void
+  setOverlays(overlays: State['overlays']): void
+  importCodeOpen: boolean
+  setImportCodeOpen(open: boolean): void
   setProjectOpen(open: boolean): void
   setRenaming(renaming: State['renaming']): void
   addChip(chip: ContextItem): void
@@ -240,8 +245,12 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   setLiveFile: (liveFile) => set({ liveFile }),
   setFileOpen: (fileOpen) => set({ fileOpen }),
   project: null,
+  overlays: {},
+  importCodeOpen: false,
   projectOpen: false,
   setProject: (project) => set({ project }),
+  setOverlays: (overlays) => set({ overlays }),
+  setImportCodeOpen: (importCodeOpen) => set({ importCodeOpen }),
   setProjectOpen: (projectOpen) => set({ projectOpen }),
   renaming: null,
   setRenaming: (renaming) => set({ renaming }),

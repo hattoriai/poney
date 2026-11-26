@@ -149,7 +149,11 @@ export function EmphasisUnder({ scene, view }: { scene: SceneBase; view: View })
 export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) {
   const s = useStory()
   const lines = sceneLines(scene, view)
-  const box = (key: string): Rect | undefined => (isBox(key) ? scene.anchors[key] : undefined)
+  // A part inside a closed group borrows the group's box; its marks are not the group's, so they are not drawn.
+  const box = (key: string): Rect | undefined => {
+    const rect = isBox(key) ? (scene.anchors[key] as (Rect & { entityId?: string }) | undefined) : undefined
+    return rect?.entityId && key.startsWith('entity:') && rect.entityId !== key.slice('entity:'.length) ? undefined : rect
+  }
   const out: JSX.Element[] = []
 
   s.effects?.forEach((effects, key) => {

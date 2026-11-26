@@ -1,5 +1,5 @@
 import { indexOf, refKey } from '@poney/core'
-import type { Provider, SessionSetting, SignInStatus } from '@poney/agent/live'
+import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@poney/agent/live'
 import { useStudio, walkId, type ContextItem } from './store'
 
 /**
@@ -102,6 +102,15 @@ export const rememberAgentFor = (docId: string, value: DocumentAgent) => {
 /** Opens a .poney file on this computer; the Studio keeps it saved. */
 export const openFile = (path: string) => call<{ path: string }>('/api/files/open', { path })
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
+
+/** Importers and overlays, with what each would read in the project's folder. */
+export const listPlugins = () => call<{ root: string | null; importers: PluginItem[]; overlays: PluginItem[]; problems: string[] }>('/api/plugins')
+/** Adds what an importer reads to the open document. */
+export const runImporter = (importer: string) => call<{ summary: string }>('/api/import', { importer })
+/** Reads an overlay's facts and shows them in scenes; `clearOverlay` stops showing them. */
+export const showOverlay = (id: string) => call<OverlayResult>('/api/overlays/run', { id })
+export const clearOverlay = (id: string) => call('/api/overlays/clear', { id })
+export type { OverlayResult, PluginItem }
 
 /** Requests the Studio offers once an agent works in a folder. */
 export const STARTERS = [

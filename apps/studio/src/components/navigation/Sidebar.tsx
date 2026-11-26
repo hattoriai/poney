@@ -1,6 +1,6 @@
 import { plainText } from '@poney/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpenText, Check, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star } from 'lucide-react'
+import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star } from 'lucide-react'
 import type { Entity, View } from '@poney/core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
@@ -117,6 +117,19 @@ function ProjectSwitcher() {
             >
               <FolderGit2 size={14} />
               Open a project…
+            </button>
+          )}
+          {useStudio.getState().live.state === 'on' && useStudio.getState().project && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-ink-2 hover:bg-sunken"
+              onClick={() => {
+                setOpen(false)
+                useStudio.getState().setImportCodeOpen(true)
+              }}
+            >
+              <DatabaseZap size={14} />
+              Import from the code…
             </button>
           )}
           <button

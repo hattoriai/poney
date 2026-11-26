@@ -114,3 +114,14 @@ export interface AgentStatus {
   /** An agent in its own session waits for questions over MCP (poney_wait). */
   listening: boolean
 }
+
+export type { OverlayMark, OverlayResult } from '../plugins/types'
+
+/** An importer or an overlay, as the Studio lists them. */
+export interface PluginItem {
+  id: string
+  name: string
+  description: string
+  /** What it would read in the project's folder; empty when there is nothing. */
+  files: string[]
+}

@@ -284,6 +284,8 @@ An extension MAY define view types, used as `{ "type": "extension", "extension":
 
 An extension definition states: its name and version; its kinds; the shape of each facet and view `data`; and any extra referential rules (for example, "`ext.ownership.team` names an entity of kind `ownership/team`"). The reference implementation expresses this with `defineExtension` in `@poney/core`; see `packages/ext-ownership` for a complete example. Other languages SHOULD publish extension rules as JSON Schema for the facet and view shapes plus prose for the referential rules.
 
+An extension MAY also define lints: warnings about a valid document in the extension's own terms, for example "personal data crosses a trust zone without encryption" (see `packages/ext-security`). Like core lints, they never make a document invalid; each has a stable code that starts with the extension's name.
+
 ## 9. Validation
 
 ### 9.1 Shape
