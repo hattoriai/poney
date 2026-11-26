@@ -1,4 +1,4 @@
-import { indexOf, marksOf, parseRef, refKey, type Badge, type ChangeState, type Effect, type ModelIndex, type PoneyDocument, type TraceStep, type View, type Walkthrough } from '@hattoriai/poney-core'
+import { indexOf, marksOf, parseRef, refKey, type Badge, type ChangeState, type Effect, type ModelIndex, type PoneyDocument, type Scene, type TraceStep, type View, type Walkthrough } from '@hattoriai/poney-core'
 import { union, type Rect, type SceneBase, type ViewLayoutOptions } from '@hattoriai/poney-layout'
 import type { Mode, StoryState } from './context'
 
@@ -143,6 +143,69 @@ export function findScene(doc: PoneyDocument, walkthroughId?: string, sceneId?: 
   const s = sceneId ? w.scenes.find((x) => x.id === sceneId) : w.scenes.find((x) => x.view)
   if (!s?.view) return undefined
   return { walkthrough: w, viewId: s.view, focus: s.focus, callouts: s.callouts.map((c) => c.target), notes: s.callouts.map((c) => c.text), title: s.title, scene: s }
+}
+
+/**
+ * While a trace plays, the frame that follows its step: the line and the two
+ * things it joins, never closer than a comfortable reading size and never
+ * larger than the whole scene.
+ */
+export function followFrame(scene: SceneBase, whole: Rect, step: string | undefined, idx: ModelIndex, walkthrough?: Walkthrough): Rect {
+  if (!step) return whole
+  const r = parseRef(step)
+  const keys = expandFocus([step], idx, walkthrough)
+  if (r?.kind === 'message') {
+    const m = idx.messages(r.behavior).find((x) => x.message.id === r.id)?.message
+    if (m) keys.push(`entity:${m.from}`, `entity:${m.to}`)
+  }
+  const rects = keys.map((k) => scene.anchors[k]).filter((x): x is Rect => !!x)
+  if (!rects.length) return whole
+  const u = union(rects)
+  const w = Math.min(whole.w, Math.max(u.w, 620))
+  const h = Math.min(whole.h, Math.max(u.h, 340))
+  const cx = Math.max(whole.x + w / 2, Math.min(whole.x + whole.w - w / 2, u.x + u.w / 2))
+  const cy = Math.max(whole.y + h / 2, Math.min(whole.y + whole.h - h / 2, u.y + u.h / 2))
+  return { x: cx - w / 2, y: cy - h / 2, w, h }
+}
+
+/** View types that draw as walkthrough stories (marks, focus, callouts); the others draw with their diagram renderer. */
+export const STORY_TYPES: readonly string[] = ['map', 'sequence', 'state']
+
+/** What to draw: a view on its own, or a walkthrough scene. */
+export interface DrawingTarget {
+  view?: string
+  walkthrough?: string
+  /** A scene id, or "overview". Default: the overview, else the first scene with a view. */
+  scene?: string
+}
+
+/** A target found in a document: the view, and for a scene its walkthrough, focus and callouts. */
+export interface FoundTarget {
+  view: View
+  walkthrough?: Walkthrough
+  focus: string[]
+  callouts: string[]
+  notes: string[]
+  title: string
+  scene?: Scene
+}
+
+/** Finds what a target names, or throws with the ids that exist. */
+export function findTarget(doc: PoneyDocument, target: DrawingTarget): FoundTarget {
+  const idx = indexOf(doc)
+  if (target.view) {
+    const view = idx.views.get(target.view)
+    if (!view) throw new Error(`No view "${target.view}". Views: ${doc.views.map((v) => v.id).join(', ')}`)
+    const walkthrough = target.walkthrough ? doc.walkthroughs.find((w) => w.id === target.walkthrough) : undefined
+    return { view, walkthrough, focus: [], callouts: [], notes: [], title: view.title }
+  }
+  const found = findScene(doc, target.walkthrough, target.scene)
+  if (!found) {
+    const w = target.walkthrough ? doc.walkthroughs.find((x) => x.id === target.walkthrough) : doc.walkthroughs[0]
+    const ids = w ? ['overview', ...w.scenes.filter((s) => s.view).map((s) => s.id)].join(', ') : 'none'
+    throw new Error(`No scene "${target.scene ?? '(default)'}" with a view. Scenes: ${ids}`)
+  }
+  return { view: idx.views.get(found.viewId)!, walkthrough: found.walkthrough, focus: found.focus, callouts: found.callouts, notes: found.notes, title: found.title, scene: found.scene }
 }
 
 export { marksOf, indexOf }

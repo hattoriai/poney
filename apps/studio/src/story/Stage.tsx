@@ -2,9 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { Minus, Plus } from 'lucide-react'
 import type { ChangeState, Scene, View, Walkthrough } from '@hattoriai/poney-core'
 import { layoutView, type SceneBase, type ViewLayoutOptions, type Rect } from '@hattoriai/poney-layout'
-import { expandFocus, fit, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, type Mode, type ViewBox } from '@hattoriai/poney-react'
-import { parseRef } from '@hattoriai/poney-core'
-import { union } from '@hattoriai/poney-layout'
+import { fit, followFrame, SceneStory, StoryProvider, sceneFrame, sceneLayoutOptions, storyState, type Mode, type ViewBox } from '@hattoriai/poney-react'
 import { useDoc, useIndex } from '@/features/store'
 import { useOverlayFacts } from '@/features/overlays'
 import { diagramFor } from '@hattoriai/poney-react'
@@ -255,24 +253,7 @@ export function SceneView({ view, walkthrough, marks, mode, focus, callouts, hot
   const whole = useMemo<Rect | null>(() => (scene ? sceneFrame(scene, view, focus, idx, walkthrough) : null), [scene, view, focus, idx, walkthrough])
   // While a trace plays, the camera follows the step: the line and the two things it joins.
   const step = traceStep !== null ? sceneData?.trace[traceStep]?.ref : undefined
-  const frame = useMemo<Rect | null>(() => {
-    if (!scene || !whole || !step) return whole
-    const r = parseRef(step)
-    const keys = expandFocus([step], idx, walkthrough)
-    if (r?.kind === 'message') {
-      const m = idx.messages(r.behavior).find((x) => x.message.id === r.id)?.message
-      if (m) keys.push(`entity:${m.from}`, `entity:${m.to}`)
-    }
-    const rects = keys.map((k) => scene.anchors[k]).filter((x): x is Rect => !!x)
-    if (!rects.length) return whole
-    const u = union(rects)
-    // Never closer than a comfortable reading size, never larger than the whole scene.
-    const w = Math.min(whole.w, Math.max(u.w, 620))
-    const h = Math.min(whole.h, Math.max(u.h, 340))
-    const cx = Math.max(whole.x + w / 2, Math.min(whole.x + whole.w - w / 2, u.x + u.w / 2))
-    const cy = Math.max(whole.y + h / 2, Math.min(whole.y + whole.h - h / 2, u.y + u.h / 2))
-    return { x: cx - w / 2, y: cy - h / 2, w, h }
-  }, [scene, whole, step, idx, walkthrough])
+  const frame = useMemo<Rect | null>(() => (scene && whole ? followFrame(scene, whole, step, idx, walkthrough) : whole), [scene, whole, step, idx, walkthrough])
   // Live facts (test coverage, recent changes) join the scene's own badges and effects.
   const facts = useOverlayFacts()
   const story = useMemo(

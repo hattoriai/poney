@@ -16,9 +16,9 @@ export interface Host {
   zoom?: number
 }
 
-export interface Drawing {
-  /** Draws again, with new host values when given. */
-  update(next?: Partial<Host>): void
+export interface Drawing<P> {
+  /** Draws again, with new host values and new props when given. */
+  update(next?: Partial<Host>, props?: P): void
 }
 
 /**
@@ -26,10 +26,11 @@ export interface Drawing {
  * diagrams, any element for a legend). Elements keep their identity between
  * drawings, so focus, hover and CSS transitions survive.
  */
-export function drawInto<P extends object>(container: Element, component: Component<P>, props: P, host: Host): Drawing {
+export function drawInto<P extends object>(container: Element, component: Component<P>, props: P, host: Host): Drawing<P> {
   let current = host
+  let currentProps = props
   const draw = () => {
-    let tree: Child = createElement(component as Component<never>, props as Props)
+    let tree: Child = createElement(component as Component<never>, currentProps as Props)
     tree = createElement(LocalContext.Provider, { value: store, children: tree })
     tree = createElement(ZoomProvider, { value: current.zoom ?? 1, children: tree })
     if (current.story) tree = createElement(StoryProvider, { value: current.story, children: tree })
@@ -39,8 +40,9 @@ export function drawInto<P extends object>(container: Element, component: Compon
   const store = localStore(draw)
   draw()
   return {
-    update(next) {
+    update(next, nextProps) {
       if (next) current = { ...current, ...next }
+      if (nextProps) currentProps = nextProps
       draw()
     },
   }
