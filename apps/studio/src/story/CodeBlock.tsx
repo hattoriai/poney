@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { FileCode2, MessageCirclePlus, MessageSquareText } from 'lucide-react'
-import type { CodeBlock as Block } from '@poney/core'
+import type { CodeBlock as Block } from '@hattoriai/poney-core'
 import { agentReady, useStudio, type ContextItem } from '@/features/store'
 import { useTokens } from '@/features/highlight'
 import { askAbout, codeChip, onCodeContextMenu } from '@/features/context'

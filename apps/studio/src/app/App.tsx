@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import * as RT from '@radix-ui/react-tooltip'
-import { refKey, plainText } from '@poney/core'
+import { refKey, plainText } from '@hattoriai/poney-core'
 import { OVERVIEW, useIndex, useStudio, walkId } from '@/features/store'
 import { installPasteHandler, isTyping, copyDocument } from '@/features/io'
 import { startRename } from '@/features/rename'
@@ -26,7 +26,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    // The diagrams (@poney/react) follow the same theme.
+    // The diagrams (@hattoriai/poney-react) follow the same theme.
     document.documentElement.dataset.poneyTheme = theme
   }, [theme])
 

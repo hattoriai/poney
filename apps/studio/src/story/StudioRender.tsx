@@ -1,10 +1,10 @@
 import { useMemo, type ReactNode } from 'react'
-import { RenderProvider, type RenderValue } from '@poney/react'
+import { RenderProvider, type RenderValue } from '@hattoriai/poney-react'
 import { useIndex, useStudio } from '@/features/store'
 import { useBind } from '@/features/interaction'
 
 /**
- * The Studio as the host of @poney/react renderers: its model, its selection
+ * The Studio as the host of @hattoriai/poney-react renderers: its model, its selection
  * and hover, its element binding (click, rename, context menu, pointing for
  * the agent), and the view state it keeps (open groups, expanded tables).
  */

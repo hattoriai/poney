@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, Network } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import { clip, labelPoint, type ArchitectureScene, type ArchitectureSceneNode } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import { clip, labelPoint, type ArchitectureScene, type ArchitectureSceneNode } from '@hattoriai/poney-layout'
 import { EdgeLabel, EdgeLine, type Head } from '../shared/Edge'
 import { EntityNode, Rings, useReadableSize } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'

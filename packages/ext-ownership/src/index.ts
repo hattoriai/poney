@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Id, defineExtension, readFacet, type Entity, type PoneyDocument } from '@poney/core'
+import { Id, defineExtension, readFacet, type Entity, type PoneyDocument } from '@hattoriai/poney-core'
 
 /**
  * The ownership extension — an example of extending Poney.

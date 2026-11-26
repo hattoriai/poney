@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { parseDocument, type ViewOf } from '@poney/core'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
+import { parseDocument, type ViewOf } from '@hattoriai/poney-core'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
 import { layoutMap } from './map'
 import { layoutSequence } from './sequence'
 

@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { AlertTriangle, ArrowUpRight, BookOpenText, CheckCircle2, ClipboardPaste, LayoutGrid, Loader2, Plug } from 'lucide-react'
-import { validateDocument, type View, plainText } from '@poney/core'
+import { validateDocument, type View, plainText } from '@hattoriai/poney-core'
 import { useIndex, useStudio } from '@/features/store'
 import { Prose } from '@/components/text/Prose'
 import { ask, STARTERS } from '@/features/agent'
 import { knownExtensions } from '@/features/extensions'
-import { diagramFor } from '@poney/react'
+import { diagramFor } from '@hattoriai/poney-react'
 import { categoryLabel, orderCategories } from '../navigation/categories'
 
 /** The first page of a project: what the software is and where to start. */

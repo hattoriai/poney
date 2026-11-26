@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { KeyRound, Link2, Table2 } from 'lucide-react'
-import type { Cardinality, ViewOf } from '@poney/core'
-import { clip, ERD, measure, roundedPath, type ErdScene, type Point } from '@poney/layout'
+import type { Cardinality, ViewOf } from '@hattoriai/poney-core'
+import { clip, ERD, measure, roundedPath, type ErdScene, type Point } from '@hattoriai/poney-layout'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor, toneWash } from '../shared/tone'

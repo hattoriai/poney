@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo, useState } from 'react'
 import { Map as MapIcon } from 'lucide-react'
-import { marksOf, walkthroughsShowing, type ViewOf } from '@poney/core'
-import type { MapScene } from '@poney/layout'
+import { marksOf, walkthroughsShowing, type ViewOf } from '@hattoriai/poney-core'
+import type { MapScene } from '@hattoriai/poney-layout'
 import { MapStory } from '../../MapStory'
 import { StoryProvider } from '../../context'
 import { useRenderIndex, useViewState } from '../../render'

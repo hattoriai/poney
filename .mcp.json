@@ -2,7 +2,12 @@
   "mcpServers": {
     "poney": {
       "command": "node",
-      "args": ["packages/agent/bin/poney-mcp.mjs"]
+      "args": [
+        "--conditions=poney-source",
+        "--import",
+        "tsx",
+        "packages/agent/src/mcp.ts"
+      ]
     }
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDocument } from '@poney/core'
+import { parseDocument } from '@hattoriai/poney-core'
 import { verifyCode, verifyExcerpts, verifySources, type FileSource } from './verify'
 
 const diff = `diff --git a/src/a.ts b/src/a.ts

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Compass, Copy, FileCode2, Lightbulb, MessageCircle, Pencil } from 'lucide-react'
-import { refKey } from '@poney/core'
+import { refKey } from '@hattoriai/poney-core'
 import { agentReady, useStudio, type ContextMenu as Menu } from '@/features/store'
 import { askAbout, codeChip, diagramChip, elementChip, textChip } from '@/features/context'
 import { ask } from '@/features/agent'

@@ -1,14 +1,38 @@
 {
-  "name": "@poney/ext-security",
+  "name": "@hattoriai/poney-ext-security",
   "version": "0.1.0",
   "type": "module",
-  "description": "Poney extension: trust zones, sensitive data, and how connections are protected.",
+  "description": "Poney extension: trust zones, sensitive data, and how connections are protected; with lints.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hattoriai/poney.git",
+    "directory": "packages/ext-security"
+  },
+  "homepage": "https://github.com/hattoriai/poney#readme",
+  "bugs": "https://github.com/hattoriai/poney/issues",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "poney-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
-    "@poney/core": "0.1.0",
+    "@hattoriai/poney-core": "0.1.0",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1"
   }
 }

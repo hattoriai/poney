@@ -1,4 +1,4 @@
-import { CORE_CATEGORIES } from '@poney/core'
+import { CORE_CATEGORIES } from '@hattoriai/poney-core'
 
 const LABELS: Record<string, string> = {
   overview: 'Overview',

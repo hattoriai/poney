@@ -1,4 +1,4 @@
-import { plainText } from '@poney/core'
+import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import {
 import { OVERVIEW, useIndex, useStudio, walkId } from '@/features/store'
 import { copyDocument, downloadDocument } from '@/features/io'
 import { ToolbarButton } from '@/components/shared/Toolbar'
-import { diagramFor } from '@poney/react'
+import { diagramFor } from '@hattoriai/poney-react'
 import { categoryLabel } from './categories'
 import { FactsMenu } from './FactsMenu'
 

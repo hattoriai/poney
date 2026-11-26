@@ -1,4 +1,4 @@
-import type { View } from '@poney/core'
+import type { View } from '@hattoriai/poney-core'
 import { viewKey, type AnyDiagramModule } from './types'
 import { architecture } from './architecture'
 import { sequence } from './sequence'

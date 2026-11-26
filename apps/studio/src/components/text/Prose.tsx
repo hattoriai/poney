@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react'
-import { paragraphsOf, parseInline, type InlineSpan } from '@poney/core'
+import { paragraphsOf, parseInline, type InlineSpan } from '@hattoriai/poney-core'
 
 /**
  * Text from a Poney document, with its inline Markdown shown as formatting:

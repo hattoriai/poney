@@ -1,5 +1,5 @@
-import type { Command, ModelIndex, Ref } from '@poney/core'
-import { indexOf } from '@poney/core'
+import type { Command, ModelIndex, Ref } from '@hattoriai/poney-core'
+import { indexOf } from '@hattoriai/poney-core'
 import { useStudio } from './store'
 
 /**

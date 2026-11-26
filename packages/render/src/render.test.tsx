@@ -1,13 +1,13 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { describe, expect, it } from 'vitest'
-import { parseDocument } from '@poney/core'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
-import { teamMap } from '@poney/ext-ownership/diagram'
-import { layoutTeamMap } from '@poney/ext-ownership/layout'
-import { registerExtensionLayout } from '@poney/layout'
-import { renderScene, renderScenePng } from './static'
-import { registerDiagram } from './diagrams'
+import { parseDocument } from '@hattoriai/poney-core'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
+import { teamMap } from '@hattoriai/poney-ext-ownership/diagram'
+import { layoutTeamMap } from '@hattoriai/poney-ext-ownership/layout'
+import { registerExtensionLayout } from '@hattoriai/poney-layout'
+import { registerDiagram } from '@hattoriai/poney-react'
+import { renderScene, renderScenePng } from './index'
 
 const doc = parseDocument(commerce, { extensions: [ownership] })
 
@@ -47,7 +47,7 @@ describe('headless rendering', () => {
 
 describe('emphasis in a still picture', () => {
   it('numbers the trace, draws effects and badges, and lists the steps', async () => {
-    const { parseDocument } = await import('@poney/core')
+    const { parseDocument } = await import('@hattoriai/poney-core')
     const { readFileSync } = await import('node:fs')
     const doc = parseDocument(JSON.parse(readFileSync(new URL('../../agent/examples/tour.poney', import.meta.url), 'utf8')))
     const { svg } = await renderScene(doc, { scene: 's-save' })

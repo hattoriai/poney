@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { AgentStatus, ContextItem, Message, OverlayResult } from '@poney/agent/live'
-import { createHistory, execute, indexOf, redo, refKey, undo, type Command, type History, type Ref, type PoneyDocument } from '@poney/core'
+import type { AgentStatus, ContextItem, Message, OverlayResult } from 'poney/live'
+import { createHistory, execute, indexOf, redo, refKey, undo, type Command, type History, type Ref, type PoneyDocument } from '@hattoriai/poney-core'
 
 /**
  * Application state. This is interaction state only — what is open, what is

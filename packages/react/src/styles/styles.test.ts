@@ -15,7 +15,7 @@ const code = [...sources(here('..')), ...sources(here('../../../ext-ownership/sr
 /** The --poney-* tokens a CSS block declares. */
 const tokensIn = (block: string) => Object.fromEntries([...block.matchAll(/--poney-([a-z0-9-]+):\s*(#[0-9a-fA-F]+);/g)].map((m) => [m[1], m[2]]))
 
-describe('@poney/react styles', () => {
+describe('@hattoriai/poney-react styles', () => {
   it('declare the same colours as THEMES, for light and dark', () => {
     const [light, dark] = css('tokens.css').split("[data-poney-theme='dark']")
     expect(tokensIn(light)).toEqual(THEMES.light)

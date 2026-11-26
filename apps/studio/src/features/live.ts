@@ -1,4 +1,4 @@
-import { indexOf, refKey, validateDocument, plainText } from '@poney/core'
+import { indexOf, refKey, validateDocument, plainText } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
 import { useStudio, walkId, type AgentStatus, type Message } from './store'
 import { listRecent } from './recent'
@@ -11,7 +11,7 @@ const REQUESTED = new URLSearchParams(window.location.search).get('doc')
 const REQUESTED_VIEW = window.location.hash
 
 /**
- * The live link to an agent session (see @poney/agent).
+ * The live link to an agent session (see poney).
  *
  * The Studio connects when it is served by the agent's hub, or when the
  * address has ?live=<hub address>. It receives documents as the agent opens

@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import { parseDocument, type PoneyDocument } from '@poney/core'
+import { parseDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { describeMerge, mergeImport } from './merge'
 import { plugins } from './registry'
 import { slug, type ImportOptions, type OverlayResult } from './types'

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Maximize, Minus, Plus, Scan } from 'lucide-react'
 import { useStudio } from '@/features/store'
-import { parseRef, refKey, type Ref } from '@poney/core'
+import { parseRef, refKey, type Ref } from '@hattoriai/poney-core'
 import { focusNextElement } from '@/features/interaction'
-import type { Rect, SceneBase } from '@poney/layout'
+import type { Rect, SceneBase } from '@hattoriai/poney-layout'
 import { Tooltip } from './Tooltip'
-import { useRenderZoom, ZoomProvider } from '@poney/react'
+import { useRenderZoom, ZoomProvider } from '@hattoriai/poney-react'
 import { PointButton } from '@/components/agent/PointButton'
 import { ToolbarButton, ToolbarDivider } from '@/components/shared/Toolbar'
 
@@ -20,7 +20,7 @@ const MAX_ZOOM = 3
 const PADDING = 56
 const remembered = new Map<string, Transform>()
 
-/** The current zoom level, for level-of-detail rendering (the renderers read it from @poney/react). */
+/** The current zoom level, for level-of-detail rendering (the renderers read it from @hattoriai/poney-react). */
 export const useZoom = useRenderZoom
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))

@@ -1,12 +1,12 @@
 import type { FC } from 'react'
 import { ArrowRightLeft, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Share2 } from 'lucide-react'
-import type { View, ViewOf } from '@poney/core'
+import type { View, ViewOf } from '@hattoriai/poney-core'
 import { useIndex, useStudio } from '@/features/store'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 
 /**
  * The Studio's controls for each diagram type, in the canvas toolbar. The
- * diagrams themselves come from @poney/react; these buttons change what the
+ * diagrams themselves come from @hattoriai/poney-react; these buttons change what the
  * Studio keeps for a view (open groups, expanded tables) or move the
  * selection.
  */

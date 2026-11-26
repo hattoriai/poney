@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { refKey, parseRef, type EffectKind, type View } from '@poney/core'
-import { bezier, measure, roundedPath, type MapScene, type Point, type Rect, type SceneBase, type SequenceScene, type StateScene } from '@poney/layout'
+import { refKey, parseRef, type EffectKind, type View } from '@hattoriai/poney-core'
+import { bezier, measure, roundedPath, type MapScene, type Point, type Rect, type SceneBase, type SequenceScene, type StateScene } from '@hattoriai/poney-layout'
 import { useStory } from './context'
 import { Glyph } from './icons'
 import { toneColor } from './tone'

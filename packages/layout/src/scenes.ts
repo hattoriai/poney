@@ -8,7 +8,7 @@ export * from './usecase'
 export * from './dependency'
 export * from './map'
 
-import type { Entity, Relationship, PoneyDocument, Transition, View } from '@poney/core'
+import type { Entity, Relationship, PoneyDocument, Transition, View } from '@hattoriai/poney-core'
 import type { SceneBase } from './types'
 import { layoutArchitecture } from './architecture'
 import { layoutSequence } from './sequence'

@@ -1,6 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
+/// <reference path="./shims.d.ts" />
 /**
- * Headless rendering: a walkthrough scene to SVG or PNG, in Node.
+ * @hattoriai/poney-render — any view or walkthrough scene of a Poney
+ * document to SVG or PNG, in Node, drawn by @hattoriai/poney-react.
  *
  * Text is measured with the same font files the PNG is drawn with, so labels
  * fit their boxes. The SVG is self-contained: colours are resolved (no CSS
@@ -10,15 +12,24 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { renderToStaticMarkup } from 'react-dom/server'
 import * as fontkit from 'fontkit'
-import { indexOf, marksOf, parseRef, plainText, type PoneyDocument, type Scene, type View } from '@poney/core'
-import { layoutView, setTextMeasurer, wrap, type FontFamily } from '@poney/layout'
-import { StoryProvider, type Mode } from './context'
-import { RenderProvider } from './render'
-import { findScene, fit, sceneFrame, sceneLayoutOptions, storyState } from './scene'
-import { FONTS, THEMES, type ThemeName } from './theme'
-import { SceneStory } from './SceneStory'
-import { stepLetter } from './emphasis'
-import { diagramFor } from './diagrams/registry'
+import { indexOf, marksOf, parseRef, plainText, type PoneyDocument, type Scene, type View } from '@hattoriai/poney-core'
+import { layoutView, setTextMeasurer, wrap, type FontFamily } from '@hattoriai/poney-layout'
+import {
+  diagramFor,
+  findScene,
+  fit,
+  FONTS,
+  RenderProvider,
+  SceneStory,
+  sceneFrame,
+  sceneLayoutOptions,
+  stepLetter,
+  StoryProvider,
+  storyState,
+  THEMES,
+  type Mode,
+  type ThemeName,
+} from '@hattoriai/poney-react'
 
 /** View types drawn as walkthrough stories; the others draw with their diagram renderer. */
 const STORY_TYPES: string[] = ['map', 'sequence', 'state']

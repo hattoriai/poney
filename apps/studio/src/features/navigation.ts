@@ -1,4 +1,4 @@
-import { indexOf, type Ref } from '@poney/core'
+import { indexOf, type Ref } from '@hattoriai/poney-core'
 import { OVERVIEW, useStudio } from './store'
 
 /**

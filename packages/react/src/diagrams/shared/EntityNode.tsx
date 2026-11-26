@@ -1,7 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
-import { clip, wrap } from '@poney/layout'
-import type { Entity, ResolvedStyle } from '@poney/core'
+import { clip, wrap } from '@hattoriai/poney-layout'
+import type { Entity, ResolvedStyle } from '@hattoriai/poney-core'
 import { Glyph } from './icons'
 import { toneColor, toneWash } from './tone'
 import { useRenderZoom } from '../../render'

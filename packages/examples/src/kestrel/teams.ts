@@ -1,4 +1,4 @@
-import type { PoneyDocumentInput } from '@poney/core'
+import type { PoneyDocumentInput } from '@hattoriai/poney-core'
 
 type EntityInput = NonNullable<NonNullable<PoneyDocumentInput['model']>['entities']>[number]
 

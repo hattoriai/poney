@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkDocument, validateDocument } from '@poney/core'
+import { checkDocument, validateDocument } from '@hattoriai/poney-core'
 import { crossings, inZone, security, zoneOf } from './index'
 
 const doc = (patch: (d: any) => void = () => {}) => {

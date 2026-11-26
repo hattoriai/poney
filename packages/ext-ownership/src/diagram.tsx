@@ -1,13 +1,13 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { Users } from 'lucide-react'
-import type { View } from '@poney/core'
-import { EntityNode, Glyph, Rings, toneColor, toneWash, useRenderBind, useRenderIndex, useRenderSubject, type DiagramModule } from '@poney/react'
+import type { View } from '@hattoriai/poney-core'
+import { EntityNode, Glyph, Rings, toneColor, toneWash, useRenderBind, useRenderIndex, useRenderSubject, type DiagramModule } from '@hattoriai/poney-react'
 import { ownershipOf, TEAM_KIND } from './index'
 import type { TeamMapScene } from './layout'
 
 /**
- * The team map, drawn with @poney/react: one column per team, with what it
+ * The team map, drawn with @hattoriai/poney-react: one column per team, with what it
  * owns. Register it (registerDiagram(teamMap)) and its layout
  * (registerExtensionLayout('ownership/team-map', layoutTeamMap)) to draw
  * "ownership/team-map" views.

@@ -1,4 +1,4 @@
-import { indexOf, projectDataFlow, refKey, type DataFlowRole, type PoneyDocument, type ViewOf } from '@poney/core'
+import { indexOf, projectDataFlow, refKey, type DataFlowRole, type PoneyDocument, type ViewOf } from '@hattoriai/poney-core'
 import { BASE_OPTIONS, runElk } from './elk'
 import { union } from './geometry'
 import { measure } from './text'

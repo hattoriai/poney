@@ -8,7 +8,7 @@ import Italic from '@tiptap/extension-italic'
 import Code from '@tiptap/extension-code'
 import Link from '@tiptap/extension-link'
 import { Bold as BoldIcon, Code as CodeIcon, Italic as ItalicIcon, Link as LinkIcon } from 'lucide-react'
-import { paragraphsOf, parseInline, toInlineMarkdown, type InlineMark, type InlineSpan } from '@poney/core'
+import { paragraphsOf, parseInline, toInlineMarkdown, type InlineMark, type InlineSpan } from '@hattoriai/poney-core'
 import { Prose } from './Prose'
 
 interface Props {

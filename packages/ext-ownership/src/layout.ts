@@ -1,5 +1,5 @@
-import { refKey, type PoneyDocument, type View } from '@poney/core'
-import { wrap, type Rect, type SceneBase } from '@poney/layout'
+import { refKey, type PoneyDocument, type View } from '@hattoriai/poney-core'
+import { wrap, type Rect, type SceneBase } from '@hattoriai/poney-layout'
 import { ownedBy, ownershipOf, ownership, TeamMapData } from './index'
 
 /**

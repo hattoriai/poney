@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Id, defineExtension, readFacet, type DataType, type Entity, type PoneyDocument, type Relationship } from '@poney/core'
+import { Id, defineExtension, readFacet, type DataType, type Entity, type PoneyDocument, type Relationship } from '@hattoriai/poney-core'
 
 /**
  * The security extension: where trust ends, which data is sensitive, and how

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useIndex, useStudio } from '@/features/store'
-import { refKey, type Ref } from '@poney/core'
+import { refKey, type Ref } from '@hattoriai/poney-core'
 
 /** One tooltip for the whole canvas. It follows the pointer and shows what is hovered. */
 export function Tooltip({ pointer }: { pointer: MutableRefObject<{ x: number; y: number }> }) {

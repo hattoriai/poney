@@ -1,12 +1,12 @@
-import { plainText } from '@poney/core'
+import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star } from 'lucide-react'
-import type { Entity, View } from '@poney/core'
+import type { Entity, View } from '@hattoriai/poney-core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
-import { diagramFor } from '@poney/react'
-import { iconFor } from '@poney/react'
-import { toneColor } from '@poney/react'
+import { diagramFor } from '@hattoriai/poney-react'
+import { iconFor } from '@hattoriai/poney-react'
+import { toneColor } from '@hattoriai/poney-react'
 import { categoryLabel, orderCategories } from './categories'
 
 export function Sidebar() {

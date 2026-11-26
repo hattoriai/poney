@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Badge, Effect } from '@poney/core'
+import type { Badge, Effect } from '@hattoriai/poney-core'
 import { useStudio } from './store'
 
 /**

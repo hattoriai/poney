@@ -1,4 +1,4 @@
-import { indexOf, refKey, type Message, type PoneyDocument, type Step, type ViewOf } from '@poney/core'
+import { indexOf, refKey, type Message, type PoneyDocument, type Step, type ViewOf } from '@hattoriai/poney-core'
 import { measure } from './text'
 import type { Rect, SceneBase } from './types'
 

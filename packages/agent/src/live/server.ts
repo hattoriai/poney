@@ -18,7 +18,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join, normalize } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { LiveState } from './state'
 import type { AgentBridge } from '../agents/bridge'
 import { builtInProviders, customProvider, describeProvider, type ProviderSpec } from '../agents/providers'
@@ -27,13 +26,13 @@ import { checkProvider } from '../agents/check'
 import { check } from '../ops'
 import type { DocumentFiles } from './files'
 
-/** The Poney MCP server of this install, for the Studio to show how to add it to an agent. */
-const MCP_SERVER = fileURLToPath(new URL('../../bin/poney-mcp.mjs', import.meta.url))
+
 import type { Place } from './types'
 import { workspaceProject } from './workspace-project'
 import { buildStamp } from './stamp'
+import { mcpCommand, studioDist } from '../paths'
 
-const DIST = fileURLToPath(new URL('../../../../apps/studio/dist', import.meta.url))
+const DIST = studioDist()
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
@@ -194,7 +193,7 @@ export class LiveServer {
 
       /* Agents the Studio starts */
       case 'GET /api/agent':
-        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.bridge, mcpServer: MCP_SERVER })
+        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.bridge, mcpServer: mcpCommand() })
       case 'POST /api/agent/check': {
         const r = (await body(req)) as AgentChoice & { fresh?: boolean }
         const spec = providerFor(r)

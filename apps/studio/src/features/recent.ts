@@ -1,4 +1,4 @@
-import { toJSON, validateDocument, type PoneyDocument } from '@poney/core'
+import { toJSON, validateDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
 import { useStudio, type Project } from './store'
 import { openFile } from './agent'
@@ -122,7 +122,7 @@ function writeDocParam(id: string | null) {
 
 /** The sample project, loaded only when asked for. */
 export async function openExample() {
-  const { commerce } = await import('@poney/examples')
+  const { commerce } = await import('@hattoriai/poney-examples')
   const result = validateDocument(commerce, { extensions: knownExtensions() })
   if (!result.ok || !result.document) throw new Error(`The example is invalid: ${result.issues[0]?.path} ${result.issues[0]?.message}`)
   useStudio.getState().loadDocument(result.document, 'example')

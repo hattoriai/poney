@@ -1,4 +1,4 @@
-import { PONEY_VERSION, type PoneyDocumentInput } from '@poney/core'
+import { PONEY_VERSION, type PoneyDocumentInput } from '@hattoriai/poney-core'
 import { entities } from './entities'
 import { relationships } from './relationships'
 import { dataTypes, dataRelations, dataFlows } from './data'

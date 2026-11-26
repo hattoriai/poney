@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
 import { validateDocument } from '../validation/validate'
 import { applyCommand, CommandError, scopeOf } from './commands'
 import { createHistory, execute, redo, undo } from './history'
@@ -65,10 +65,10 @@ describe('commands', () => {
 
 describe('walkthrough.setText', () => {
   it('changes one text field and keeps the rest', async () => {
-    const { commerce } = await import('@poney/examples')
+    const { commerce } = await import('@hattoriai/poney-examples')
     const { parseDocument } = await import('../validation/validate')
     const { applyCommand } = await import('./commands')
-    const { ownership } = await import('@poney/ext-ownership')
+    const { ownership } = await import('@hattoriai/poney-ext-ownership')
     const doc = parseDocument(commerce, { extensions: [ownership] })
     const w = doc.walkthroughs[0]
     const next = applyCommand(doc, { type: 'walkthrough.setText', walkthroughId: w.id, path: ['scenes', 1, 'text'], value: 'New **text**.' })
@@ -81,7 +81,7 @@ describe('walkthrough.setText', () => {
 
 describe('behavior.rename', () => {
   it('renames a message inside a fragment, a state and a transition', async () => {
-    const { commerce } = await import('@poney/examples')
+    const { commerce } = await import('@hattoriai/poney-examples')
     const { parseDocument } = await import('../validation/validate')
     const { indexOf } = await import('../model/query')
     const doc = parseDocument(commerce, { extensions: [ownership] })

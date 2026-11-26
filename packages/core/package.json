@@ -1,9 +1,37 @@
 {
-  "name": "@poney/core",
+  "name": "@hattoriai/poney-core",
   "version": "0.1.0",
   "type": "module",
-  "description": "The Poney format: schema, validation, model queries, commands, extensions and adapters. No UI.",
+  "description": "The Poney format: schema, validation and lints, model queries, commands, extensions, JSON and Mermaid adapters.",
   "license": "MIT",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "zod": "^3.25.76" }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hattoriai/poney.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/hattoriai/poney#readme",
+  "bugs": "https://github.com/hattoriai/poney/issues",
+  "exports": {
+    ".": {
+      "poney-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1"
+  }
 }

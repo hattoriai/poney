@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CodeBlock } from '@poney/core'
+import type { CodeBlock } from '@hattoriai/poney-core'
 
 /**
  * Syntax colours for code excerpts, by the file's language. Shiki and each

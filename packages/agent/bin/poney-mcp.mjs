@@ -1,4 +1,3 @@
 #!/usr/bin/env node
-import { register } from 'tsx/esm/api'
-register()
-await import('../src/mcp.ts')
+// The Poney MCP server (stdio), built. In the Poney repository, `npm run mcp` runs it from source.
+import '../dist/mcp.js'

@@ -10,9 +10,9 @@
 import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { PoneyDocument, PONEY_VERSION, parseDocument, toJSON } from '@poney/core'
-import { commerce } from '@poney/examples'
-import { ownership } from '@poney/ext-ownership'
+import { PoneyDocument, PONEY_VERSION, parseDocument, toJSON } from '@hattoriai/poney-core'
+import { commerce } from '@hattoriai/poney-examples'
+import { ownership } from '@hattoriai/poney-ext-ownership'
 
 const out = (path: string) => fileURLToPath(new URL(`../spec/${path}`, import.meta.url))
 

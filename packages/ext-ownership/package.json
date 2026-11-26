@@ -1,20 +1,55 @@
 {
-  "name": "@poney/ext-ownership",
+  "name": "@hattoriai/poney-ext-ownership",
   "version": "0.1.0",
   "type": "module",
-  "description": "Example Poney extension: teams, ownership and on-call.",
+  "description": "Poney extension: teams, who owns what, on-call, and a team map.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hattoriai/poney.git",
+    "directory": "packages/ext-ownership"
+  },
+  "homepage": "https://github.com/hattoriai/poney#readme",
+  "bugs": "https://github.com/hattoriai/poney/issues",
   "exports": {
-    ".": "./src/index.ts",
-    "./layout": "./src/layout.ts",
-    "./diagram": "./src/diagram.tsx"
+    ".": {
+      "poney-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./layout": {
+      "poney-source": "./src/layout.ts",
+      "types": "./dist/layout.d.ts",
+      "default": "./dist/layout.js"
+    },
+    "./diagram": {
+      "poney-source": "./src/diagram.tsx",
+      "types": "./dist/diagram.d.ts",
+      "default": "./dist/diagram.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
-    "@poney/core": "0.1.0",
-    "@poney/layout": "0.1.0",
-    "@poney/react": "0.1.0",
+    "@hattoriai/poney-core": "0.1.0",
+    "@hattoriai/poney-layout": "0.1.0",
+    "@hattoriai/poney-react": "0.1.0",
     "lucide-react": "^1.75.0",
-    "react": "^18.3.1",
     "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1 || ^19.0.0"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "tsup": "8.5.1"
   }
 }

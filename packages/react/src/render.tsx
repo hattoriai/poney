@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
-import { refKey, type ModelIndex, type Ref } from '@poney/core'
+import { refKey, type ModelIndex, type Ref } from '@hattoriai/poney-core'
 
 /**
  * What a renderer needs from its host (an app, a page, a headless render).
@@ -61,7 +61,7 @@ export const RenderProvider = ({ value, children }: { value: RenderValue; childr
 
 export function useRenderIndex(): ModelIndex {
   const v = useContext(RenderContext)
-  if (!v) throw new Error('Poney renderers need a RenderProvider (from @poney/react) with the model index')
+  if (!v) throw new Error('Poney renderers need a RenderProvider (from @hattoriai/poney-react) with the model index')
   return v.idx
 }
 

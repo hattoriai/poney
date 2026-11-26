@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronLeft, ChevronRight, CircleAlert, Compass, FileCode2, FolderGit2, GitMerge, Info, Maximize2, MessageCircleQuestion, Pause, Play, X } from 'lucide-react'
-import { marksOf, parseRef, refKey, type Scene, type Walkthrough, plainText } from '@poney/core'
+import { marksOf, parseRef, refKey, type Scene, type Walkthrough, plainText } from '@hattoriai/poney-core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
 import { SceneView } from './Stage'
 import { CodeBlock } from './CodeBlock'
 import { EditableText } from '@/components/text/EditableText'
 import { Prose } from '@/components/text/Prose'
-import { STATE_LABEL, stepLetter, type Mode } from '@poney/react'
+import { STATE_LABEL, stepLetter, type Mode } from '@hattoriai/poney-react'
 
 /* ─── Per-reader state, kept in this browser ──────────────────────────────── */
 

@@ -1,4 +1,4 @@
-import { projectErd, refKey, type Cardinality, type ErdTable, type Field, type PoneyDocument, type ViewOf } from '@poney/core'
+import { projectErd, refKey, type Cardinality, type ErdTable, type Field, type PoneyDocument, type ViewOf } from '@hattoriai/poney-core'
 import { BASE_OPTIONS, runElk, type ElkNode } from './elk'
 import { union } from './geometry'
 import { measure } from './text'

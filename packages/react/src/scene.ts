@@ -1,5 +1,5 @@
-import { indexOf, marksOf, parseRef, refKey, type Badge, type ChangeState, type Effect, type ModelIndex, type PoneyDocument, type TraceStep, type View, type Walkthrough } from '@poney/core'
-import { union, type Rect, type SceneBase, type ViewLayoutOptions } from '@poney/layout'
+import { indexOf, marksOf, parseRef, refKey, type Badge, type ChangeState, type Effect, type ModelIndex, type PoneyDocument, type TraceStep, type View, type Walkthrough } from '@hattoriai/poney-core'
+import { union, type Rect, type SceneBase, type ViewLayoutOptions } from '@hattoriai/poney-layout'
 import type { Mode, StoryState } from './context'
 
 /** Layout options for a view shown in a walkthrough scene. */

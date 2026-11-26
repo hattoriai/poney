@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { CircleDot } from 'lucide-react'
-import type { ViewOf } from '@poney/core'
-import type { StateScene } from '@poney/layout'
+import type { ViewOf } from '@hattoriai/poney-core'
+import type { StateScene } from '@hattoriai/poney-layout'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { LegendShape } from '../shared/Legend'

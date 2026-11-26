@@ -1,5 +1,5 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { roundedPath, trimEnd, endAngle, type StateScene } from '@poney/layout'
+import { roundedPath, trimEnd, endAngle, type StateScene } from '@hattoriai/poney-layout'
 import { useRenderBind as useBind, type BindFn } from './render'
 import { CalloutBadge, Head, lookClass, StateTag, stateFill, stateStroke, useLook, useStory } from './context'
 

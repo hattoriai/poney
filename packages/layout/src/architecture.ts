@@ -5,7 +5,7 @@ import {
   type ArchitectureNode,
   type PoneyDocument,
   type ViewOf,
-} from '@poney/core'
+} from '@hattoriai/poney-core'
 import { BASE_OPTIONS, runElk, type ElkNode } from './elk'
 import { union } from './geometry'
 import type { Point, Rect, SceneBase } from './types'

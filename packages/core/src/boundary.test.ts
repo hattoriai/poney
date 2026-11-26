@@ -16,7 +16,7 @@ function files(dir: string): string[] {
   })
 }
 
-describe('@poney/core boundary', () => {
+describe('@hattoriai/poney-core boundary', () => {
   it('imports no UI, layout or state library', () => {
     const offenders = files(__dirname).filter((f) => FORBIDDEN.test(readFileSync(f, 'utf8')))
     expect(offenders).toEqual([])
