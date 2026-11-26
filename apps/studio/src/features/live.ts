@@ -28,15 +28,23 @@ export function installLive() {
     })
 }
 
-function connect(base: string) {
+function connect(base: string, attempt = 0) {
   const s = useStudio.getState()
-  s.setLive({ state: 'connecting', url: base })
+  if (attempt === 0) s.setLive({ state: 'connecting', url: base })
   const events = new EventSource(`${base}/api/live/events`)
   events.onopen = () => {
+    attempt = 0
     useStudio.getState().setLive({ ...useStudio.getState().live, state: 'on', url: base })
     void giveBack(base).then(() => reconnect(base))
   }
-  events.onerror = () => useStudio.getState().setLive({ ...useStudio.getState().live, state: 'lost' })
+  events.onerror = () => {
+    useStudio.getState().setLive({ ...useStudio.getState().live, state: 'lost' })
+    // The browser retries a dropped connection by itself, but gives up for good when the server answers with an error,
+    // as while the local server restarts. Then a new connection is opened, waiting longer each time (up to 10 seconds).
+    if (events.readyState !== EventSource.CLOSED) return
+    events.close()
+    window.setTimeout(() => connect(base, attempt + 1), Math.min(10_000, 500 * 2 ** attempt))
+  }
   let first = true
   events.addEventListener('document', (e) => {
     const { revision, document, source } = JSON.parse((e as MessageEvent).data) as { revision: number; document: unknown; source?: 'agent' | 'file' | 'workspace' }
