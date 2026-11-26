@@ -1,69 +1,69 @@
 # Agents, the CLI and MCP
 
-An agent learns the format from the guide, writes a `.poney` file, checks it, looks at each scene, and shows it to a person. It can do each step with the CLI or with the MCP server; they do the same things.
+Use the CLI to check a walkthrough or render a diagram from the terminal. Through the Model Context Protocol (MCP), your coding agent can also open the walkthrough in Studio and answer questions there.
 
 ## Install
 
 ```sh
-npm install -g @hattoriai/poney     # the commands poney and poney-mcp (Node 22 or later)
+npm install -g @hattoriai/poney     # installs poney and poney-mcp (Node 22 or later)
 ```
 
-Or without installing: `npx @hattoriai/poney <command>`, and for the MCP server `npx -y --package=@hattoriai/poney poney-mcp`.
+For a one-off command, use `npx @hattoriai/poney <command>`. You can also run the MCP server with `npx -y --package=@hattoriai/poney poney-mcp`.
 
 ## The MCP server
 
-`poney-mcp` speaks MCP over stdio. To add it to Claude Code:
+`poney-mcp` uses standard input and output (stdio). In Claude Code, choose the command that matches your installation.
 
 ```sh
-claude mcp add poney -- poney-mcp                                     # installed
-claude mcp add poney -- npx -y --package=@hattoriai/poney poney-mcp   # without installing
+claude mcp add poney -- poney-mcp                                     # global install
+claude mcp add poney -- npx -y --package=@hattoriai/poney poney-mcp   # run with npx
 ```
 
-Other MCP clients take the same command. In this repository, `.mcp.json` registers the server from source.
+In another MCP client, use `poney-mcp` as the server command, or `npx` with the arguments shown above. This repository’s `.mcp.json` runs the server from source.
 
 | Tool | What it does |
 |---|---|
-| `poney_guide` | The guide and a complete example, for a change (default) or a tour (`topic: "tour"`). |
-| `poney_schema` | The JSON Schema. |
-| `poney_check` | Validates and lints: errors and warnings with paths and fix hints. With `repo` (and `rev`: a commit, `a..b`, or `working`), it also proves that the code shown is in the diff or the file at those lines, and that cited tests and `sourceRefs` exist. |
-| `poney_render` | One scene as a PNG, so the agent can see it. Without a document, it renders what is open in the Studio. |
-| `poney_open` | Shows a document live in Poney Studio. Every open window updates. |
-| `poney_read` | What the person sees and does: the scene, the selection, answers to questions, notes for the agent, the question thread, and the document if they changed it. |
-| `poney_wait` | Waits for the next question the person asks in the Studio ("Ask the agent"), with the scene they were on. |
-| `poney_reply` | Answers in the Studio thread. A reply can link to a scene. |
-| `poney_excerpt` | A code block copied exactly from a file, for a scene's `code`. |
-| `poney_import` | Adds what an importer reads in the repository (a database schema, the module imports) to the open document. It only adds. |
-| `poney_overlay` | Live facts about the parts, through their source paths: test coverage, recent changes. |
+| `poney_guide` | Returns the guide and a worked example for a change walkthrough (default) or a tour (`topic: "tour"`). |
+| `poney_schema` | Returns the document’s JSON Schema for structured output. |
+| `poney_check` | Reports errors and warnings with hints. Pass `repo` to check excerpts, diffs, cited tests and `sourceRefs` against the code. Set `rev` to a commit, a range (`a..b`) or `working` for uncommitted changes. |
+| `poney_render` | Renders a scene or view as a PNG. Defaults to the document open in Studio. |
+| `poney_open` | Opens a document in Studio and updates connected windows. |
+| `poney_read` | Returns the reader’s current scene, selection, answers, notes and conversation. Includes the document if the reader edited it. |
+| `poney_wait` | Waits for a question from Studio and returns it with the reader’s scene and selection. |
+| `poney_reply` | Posts an answer in Studio, with an optional link to a scene. |
+| `poney_excerpt` | Copies lines from a source file into a scene’s `code` block. |
+| `poney_import` | Adds tables or module dependencies from a repository and preserves existing entries. |
+| `poney_overlay` | Uses source paths to show test coverage or recent changes for each part of the system. |
 
 ## The CLI
 
 ```sh
-poney brief                                   # the guide and a complete example (--tour for a tour)
-poney check lockout.poney                     # errors and warnings, each with a fix hint
-poney check tour.poney --git .                # also checks the code it shows against the repository
-poney render lockout.poney --scene states     # PNG (or --format svg), exactly as the Studio draws it
-poney render shop.poney --view architecture --format svg   # any view of any type
-poney schema                                  # the JSON Schema, for structured output
-poney excerpt . src/notes/save.ts 12-40       # a code block copied from a file
-poney import diagram.mmd --out diagram.poney  # Mermaid to Poney
-poney import                                  # the importers, and what each would read here
+poney brief                                   # authoring guide and example (add --tour for a tour)
+poney check lockout.poney                     # validate a document
+poney check tour.poney --git .                # check excerpts and references against the code
+poney render lockout.poney --scene states     # export one scene as a PNG
+poney render shop.poney --view architecture --format svg   # export a view as SVG
+poney schema                                  # print the JSON Schema
+poney excerpt . src/notes/save.ts 12-40       # copy lines 12–40 into a code block
+poney import diagram.mmd --out diagram.poney  # convert a Mermaid diagram
+poney import                                  # list importers and the files they would read
 poney import schema . --into app.poney        # add tables and foreign keys from the database schema
-poney overlay coverage app.poney .            # live facts on the parts: test coverage, recent changes
-poney studio                                  # Poney Studio, in your browser
+poney overlay coverage app.poney .            # show test coverage by part of the system
+poney studio                                  # start Studio locally
 ```
 
 `poney --help` lists every option.
 
 ## The live Studio
 
-The MCP server runs a small local hub (port 5319 and up, or `PONEY_PORT`), which also serves the Studio, so the person opens the address `poney_open` gives. The top bar shows **Live** when the Studio is linked to a hub. When a Studio hub already runs, the MCP server attaches to it (or to `PONEY_HUB_URL`).
+Open the address returned by `poney_open`. Look for **Live** in Studio’s top bar to confirm the connection. The MCP server looks for Studio on port 5319 (or `PONEY_PORT`) and starts a local server if needed. Set `PONEY_HUB_URL` to connect to a specific server.
 
-A typical loop for a tour: `poney_open` the document, then call `poney_wait`; when it returns a question, answer with `poney_reply` (with a link to a scene where it helps), then wait again.
+For a tour, call `poney_open`, then `poney_wait`. Answer each question with `poney_reply` and wait again. Include a scene ID to point the reader to a diagram.
 
 ## What makes a good walkthrough
 
-[`packages/agent/brief.md`](../packages/agent/brief.md) is the guide that `poney brief` prints, with [`brief-change.md`](../packages/agent/brief-change.md) and [`brief-tour.md`](../packages/agent/brief-tour.md). In short: small scenes, plain words, every ref resolved, every test real, code copied and never retyped.
+Give each scene one thing to explain. Copy the relevant lines from the source file, and name the test that covers the case you describe. `poney brief` prints the [authoring guide](../packages/agent/brief.md) with instructions for a [change walkthrough](../packages/agent/brief-change.md) or a [tour](../packages/agent/brief-tour.md).
 
 ## Mermaid
 
-`poney import diagram.mmd` (and `fromMermaid` in `@hattoriai/poney-core`) converts `sequenceDiagram`, `flowchart`/`graph`, `stateDiagram(-v2)` and `erDiagram` into a Poney document with one view. Mermaid describes one picture; the import creates the entities, behaviours and data types that the picture implies. Styling directives are ignored.
+`poney import diagram.mmd` reads a Mermaid diagram and prints a Poney document with one view. It supports `sequenceDiagram`, `flowchart` (or `graph`), `stateDiagram`, `stateDiagram-v2` and `erDiagram`, and skips styling directives. In JavaScript, use `fromMermaid` from `@hattoriai/poney-core`.

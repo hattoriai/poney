@@ -1,10 +1,10 @@
 # Contributing to Poney
 
-Thank you for helping. Issues and pull requests are welcome at [github.com/hattoriai/poney](https://github.com/hattoriai/poney).
+We welcome bug reports and pull requests on [GitHub](https://github.com/hattoriai/poney).
 
 ## Set up
 
-Node 22 or later.
+Use Node 22 or later.
 
 ```sh
 git clone https://github.com/hattoriai/poney && cd poney
@@ -12,41 +12,41 @@ npm install
 npm run dev        # the Studio at http://localhost:5173, with its local hub
 ```
 
-Nothing needs building to develop: inside this repository, the packages resolve to their source (the `poney-source` export condition in TypeScript, Vite, Vitest and the scripts).
+You can start editing as soon as the dependencies are installed. The development server and tests load the packages directly from source using the `poney-source` export condition.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | The Studio dev server at http://localhost:5173. It starts the local hub too, or uses one that runs |
-| `npm run studio` | The Studio from its production build, with its hub at http://127.0.0.1:5319 (run `npm run build` first) |
-| `npm test` | Every test: the format, layouts, renderers, conformance, the CLI and the hub |
-| `npm run typecheck` | Type checks every package |
+| `npm run dev` | Starts Studio at http://localhost:5173 and connects it to a local hub, starting one if needed |
+| `npm run studio` | Serves the production build of Studio and starts its hub (default port 5319). Run `npm run build` first |
+| `npm test` | Runs the full test suite, including format conformance, layouts, renderers, CLI and hub |
+| `npm run typecheck` | Checks TypeScript types across all packages |
 | `npm run spec` | Generates `spec/poney.schema.json` and `spec/examples/kestrel-commerce.poney` from the source |
-| `npm run poney -- <command>` | The CLI, from source: `npm run poney -- check spec/examples/tour.poney` |
-| `npm run mcp` | The MCP server, from source (`.mcp.json` registers it for Claude Code) |
-| `npm run build:packages` | Builds what is published to npm |
+| `npm run poney -- <command>` | Runs the CLI from source, for example `npm run poney -- check spec/examples/tour.poney` |
+| `npm run mcp` | Runs the MCP server from source. Claude Code uses the same setup through `.mcp.json` |
+| `npm run build:packages` | Builds the packages for publication to npm |
 
 ## Where things are
 
-[docs/architecture.md](docs/architecture.md) describes the packages, the pipeline from document to picture, and the local hub. [docs/extending.md](docs/extending.md) says how to add an extension, a plugin or a diagram type.
+For a map of the repository and an explanation of how a document becomes a diagram, see [Architecture](docs/architecture.md). For a new plugin, extension or diagram type, see [Extending Poney](docs/extending.md).
 
 ## Rules of the codebase
 
-- **Each package depends only on the packages below it** in this order: core, layout, react, render, agent. The format (`@hattoriai/poney-core`) imports no UI library; a test checks this.
-- **The packages have no Tailwind and no global CSS.** The stylesheet in `packages/react/src/styles` is plain CSS in the cascade layer `poney`, with `--poney-*` tokens and `.poney-*` classes. The Studio is an app and uses Tailwind.
+- **Package dependencies** run from core through layout, react, render and agent. Each package may depend only on those earlier in the list. A test keeps `@hattoriai/poney-core` free of UI dependencies.
+- **Package styles** belong in `packages/react/src/styles`. Use plain CSS in `@layer poney`, with `--poney-*` variables and `.poney-*` classes. Keep styles scoped. Only Studio uses Tailwind.
 - **React is a peer dependency** of every package that uses it.
-- **A change to the format** changes `packages/core/src/schema`, the checks in `validation/validate.ts` and `spec/SPEC.md`; then run `npm run spec`. A change that makes earlier documents invalid (a rename, a removed value) also raises `PONEY_VERSION`, adds the step to `packages/core/src/upgrade.ts` with a test, and lists it in section 11 of the specification, so that existing files still open.
-- **The conformance suite** (`spec/conformance`) has a valid or invalid document for each rule. Add one when you add a rule.
-- **There is no Prettier or ESLint configuration.** Follow the style of the file you change.
+- **Format changes** belong in `packages/core/src/schema`, `validation/validate.ts` and `spec/SPEC.md`. Run `npm run spec` afterwards. If the change breaks an older document, bump `PONEY_VERSION`, add and test an upgrade step in `packages/core/src/upgrade.ts`, and record it in section 11 of the specification.
+- **Conformance tests** use example documents in `spec/conformance`. Add a valid or invalid example for each new validation rule.
+- **Formatting** follows the surrounding code. This repository has no Prettier or ESLint configuration.
 
 ## Pull requests
 
-- One topic per pull request, with a title that says what changes for a person.
-- `npm run typecheck` and `npm test` must pass; CI runs both.
-- For a change to a diagram, look at it: `npm run poney -- render <file> --view <id>` gives a PNG.
-- Add a line to [CHANGELOG.md](CHANGELOG.md) under the next version when people who use the packages will notice the change.
+- Keep each pull request to one topic. Give it a title that describes what changes for someone using Poney.
+- Run `npm run typecheck` and `npm test`. Both must pass in CI.
+- If you change a diagram, render it with `npm run poney -- render <file> --view <id>` and inspect the PNG.
+- If the change affects package users, add a line under the next version in the [changelog](CHANGELOG.md).
 
-Releases are described in [RELEASING.md](RELEASING.md).
+For release instructions, see the [release guide](RELEASING.md).
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
+By contributing, you agree to license your contribution under the [MIT License](LICENSE).

@@ -1,17 +1,17 @@
 # Use Poney in your app
 
-Poney is a format and a set of renderers, like Mermaid. Poney Studio is one app that uses them; your app can be another. The packages have no global styles, no Tailwind and no app framework other than React for the renderers.
+Use Poney’s packages to read a document, draw a diagram in React or export an image from Node.
 
 ```sh
 npm install @hattoriai/poney-core                 # read, check and change documents (any runtime)
-npm install @hattoriai/poney-layout               # lay a view out into a scene
+npm install @hattoriai/poney-layout               # position the elements in a diagram
 npm install @hattoriai/poney-react                # draw scenes in React (React 18 or 19)
-npm install @hattoriai/poney-render               # draw scenes to SVG or PNG in Node
+npm install @hattoriai/poney-render               # export SVG or PNG in Node
 ```
 
 ## Read and check a document
 
-`parseDocument` throws on an invalid document; `validateDocument` returns the issues. Both upgrade a document written for an earlier version of the format first.
+`validateDocument` takes a parsed JSON object and reports any issues. Use `parseDocument` if you prefer an exception on invalid input. Both upgrade older documents first.
 
 ```ts
 import { validateDocument, indexOf } from '@hattoriai/poney-core'
@@ -20,14 +20,14 @@ import { ownership } from '@hattoriai/poney-ext-ownership'
 const result = validateDocument(json, { extensions: [ownership] })
 if (result.ok) {
   const idx = indexOf(result.document)
-  idx.behaviorsInvolving('payment-service')           // the behaviours it takes part in
+  idx.behaviorsInvolving('payment-service')
   idx.viewsShowing({ kind: 'entity', id: 'payment-service' })
 } else {
   console.log(result.issues)                          // { path, message, severity }
 }
 ```
 
-Validation has three passes: shape (Zod, the same rules as the JSON Schema), referential integrity (the rules R1 to R14 in the [specification](../spec/SPEC.md)), and extensions.
+Validation checks the document’s structure, its references and any rules from registered extensions. For example, if a view names a service, that service must exist in the model. See rules R1–R14 in the [specification](../spec/SPEC.md).
 
 ## Draw a view in React
 
@@ -48,48 +48,48 @@ const { Renderer } = diagramFor(view)!
 </RenderProvider>
 ```
 
-`layoutView(doc, view, options)` lays out any view. The options are reader choices that do not change the document: which groups are open, which tables show every field.
+`layoutView` calculates the positions for a view. Its optional third argument lets you collapse groups or expand table fields for display without editing the document.
 
 ### Your app is the host
 
-Renderers draw SVG from a scene. They do not compute layout and do not change the document. Everything interactive comes from your app, through `RenderProvider`:
+Pass the model index to `RenderProvider` to draw the scene as SVG. Your app can also supply event handlers and keep track of what the reader selects.
 
-| | What it gives | Without it |
+| Input | Purpose | Default |
 |---|---|---|
-| `idx` | The model index (required) | — |
-| `bind(ref, label)` | Click, hover and keyboard behaviour for an element | Plain SVG with `data-ref` |
-| `selection`, `hover` | What to light up | Nothing dims |
-| `viewState`, `setViewState` | Open groups, expanded tables | Each view keeps its own while shown |
-| `still` | A picture: no controls | Controls are drawn |
-| `ZoomProvider` | The zoom level, for level of detail | 1 |
+| `idx` | Looks up model elements by ID | Required |
+| `bind(ref, label)` | Adds click, hover and keyboard handlers to an element | SVG element with `data-ref` |
+| `selection`, `hover` | Identifies the element to highlight | No highlight |
+| `viewState`, `setViewState` | Keeps track of open groups and expanded tables | Each view keeps its own state while mounted |
+| `still` | Hides controls for a static picture | Controls visible |
+| `ZoomProvider` (separate provider) | Sets the zoom level used to show or hide detail | `1` |
 
-Without `bind`, `selection` and the others, a diagram is a still picture. Poney Studio's host is [`apps/studio/src/story/StudioRender.tsx`](../apps/studio/src/story/StudioRender.tsx): it passes its store's selection and view state, and a `bind` with rename on double-click, a context menu and pointing for the agent.
+Studio uses `bind` to let readers rename an element with a double-click, open its context menu or point it out to an agent. See [StudioRender.tsx](../apps/studio/src/story/StudioRender.tsx).
 
-Each diagram type is a `DiagramModule` with a `label`, an `icon`, a `howToRead` sentence, a `Renderer` and an optional `Legend`; `diagramFor(view)` finds the module for a view.
+`diagramFor(view)` returns the matching `DiagramModule`. Each module includes a `Renderer`, `label`, `icon`, a short `howToRead` description and an optional `Legend`.
 
 ## Styles and themes
 
 Import `@hattoriai/poney-react/styles.css` once. It is plain CSS, about 1.3 KB gzipped.
 
-- **Nothing global, easy to override.** Every rule is in the cascade layer `poney` and uses `:where()`, so your own CSS wins without `!important`. It sets only `--poney-*` tokens and `.poney-*` classes: no resets, no element styles.
-- **Themes.** Override any `--poney-*` token (colours, `--poney-font-sans`, `--poney-font-mono`). Light is the default; set `data-poney-theme="dark"` on any element (often `<html>`) to draw Poney dark inside it.
-- **With a bundler** (Vite, webpack, Next.js…), the file and its parts are inlined, minified and fingerprinted by your build.
-- **Without one**, or from a CDN, use the prebuilt single file `@hattoriai/poney-react/styles.min.css`.
-- Motion stops for readers who ask for reduced motion. The package is marked `sideEffects: ["*.css"]`, so bundlers drop the renderers an app does not use.
+- All rules live in the `poney` cascade layer and use `:where()`. You can override `.poney-*` classes and `--poney-*` variables in your own stylesheet.
+- The default theme is light. Set `data-poney-theme="dark"` on a diagram’s container or on `<html>` for the whole page. Use the `--poney-*` variables to change colours and fonts, including `--poney-font-sans` and `--poney-font-mono`.
+- If you use a bundler such as Vite or webpack, import the stylesheet alongside your components.
+- To serve a single CSS file directly or from a CDN, use `@hattoriai/poney-react/styles.min.css`.
+- Animations respect the reader’s reduced-motion setting. The package marks CSS as a side effect so bundlers can omit unused renderers.
 
 ## Draw without a browser
 
-`@hattoriai/poney-render` draws any view or walkthrough scene to SVG or PNG in Node, with the real fonts and the same colours as the stylesheet:
+In Node, `renderScene` returns an SVG string and `renderScenePng` returns a PNG buffer. Both accept a view or a walkthrough scene and use the same colours as Studio.
 
 ```ts
 import { renderScene, renderScenePng } from '@hattoriai/poney-render'
 ```
 
-From a terminal: `poney render doc.poney --view <id> --format svg --out view.svg`. Text measuring is injectable (`setTextMeasurer` in `@hattoriai/poney-layout`), so layouts also run in a worker or with a server-side font engine.
+From the terminal, run `poney render doc.poney --view <id> --format svg --out view.svg`. If your layout runs in a worker or uses a server-side font engine, pass your own text measurement function to `setTextMeasurer` in `@hattoriai/poney-layout`.
 
 ## Change a document
 
-Commands are the only way to change a document. Each is plain JSON, and `applyCommand` is pure: it returns a new document and refuses changes that break referential integrity.
+Pass a JSON command to `applyCommand` to edit a document. It returns a new document and throws if the edit would break a reference.
 
 ```ts
 import { applyCommand, toJSON } from '@hattoriai/poney-core'
@@ -100,8 +100,8 @@ const next = applyCommand(doc, { type: 'entity.update', id: 'payment-service', c
 ## Other formats
 
 - `fromMermaid(text)` converts a Mermaid sequence diagram, flowchart, state diagram or ER diagram into a Poney document with one view.
-- `fromJSON` and `toJSON` read and write the JSON form.
+- `fromJSON` reads and validates a JSON string. `toJSON` writes a document back to a string.
 
 ## Other languages
 
-Read [the specification](../spec/SPEC.md), check shapes with [the JSON Schema](../spec/poney.schema.json), implement the rules R1 to R14, upgrade older documents as section 11 says, and run [the conformance suite](../spec/conformance).
+When implementing a reader, use the [JSON Schema](../spec/poney.schema.json) to check document structure. The [specification](../spec/SPEC.md) defines rules R1–R14 for references and explains how to upgrade older documents in section 11. Test your reader against the [conformance suite](../spec/conformance).

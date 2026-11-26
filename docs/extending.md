@@ -1,16 +1,14 @@
 # Extending Poney
 
-There are three ways to extend Poney:
-
-- An **extension** adds to the format: new entity kinds, data on elements ("facets"), new view types, checks and lints. Documents declare the extensions they use.
-- A **plugin** runs in the local hub, next to the code: **importers** add what they read in a repository to a document, and **overlays** show live facts on the parts.
-- A **new diagram type** in the core, when every reader must know it.
+- Use an **extension** for information that belongs in the document, such as which team owns a service. Extensions can define new kinds of elements, fields and views, along with rules for checking them.
+- Use a **plugin** to bring in information from a repository. An **importer** adds what it finds to the document. An **overlay** displays information such as test coverage on the diagram.
+- Add a **core diagram type** when every Poney reader should support the notation.
 
 ## Extensions
 
-[`packages/ext-ownership`](../packages/ext-ownership) is a complete example. An extension has up to three parts.
+The ownership extension adds teams to the model and a team map to show which services they own. See the [complete extension](../packages/ext-ownership).
 
-**The format part** has no UI and runs anywhere:
+**The format definition** describes what gets stored in the file. In this example, `team` is a new entity kind. A *facet* is a set of extra fields on an element, such as the team that owns a service.
 
 ```ts
 import { defineExtension } from '@hattoriai/poney-core'
@@ -26,26 +24,26 @@ export const ownership = defineExtension({
 })
 ```
 
-`validate` reports errors (the document is invalid); `lint` gives warnings with a stable code and a hint, as the core lints do. [`packages/ext-security`](../packages/ext-security) uses `lint` to warn where personal data or secrets cross a trust zone without encryption or a named authentication. It needs no view type of its own: an architecture view's groups draw the zones.
+Use `validate` to catch errors such as a service naming a team that doesn’t exist. Use `lint` for warnings and include a stable code and a suggested fix. For example, the security extension warns when sensitive data crosses a trust boundary without encryption. It shows the zones as groups in an architecture view. [Security extension source](../packages/ext-security)
 
-**The drawing part** (`@hattoriai/poney-ext-ownership/layout` and `/diagram`) is a layout and a renderer for the view type, for any app. Register them with `registerExtensionLayout(...)` from `@hattoriai/poney-layout` and `registerDiagram(...)` from `@hattoriai/poney-react`. The CLI does this, so `poney render` draws the team map too.
+**The layout and renderer** draw the team map. The ownership package exports them from `/layout` and `/diagram`. Register them with `registerExtensionLayout` from `@hattoriai/poney-layout` and `registerDiagram` from `@hattoriai/poney-react`. The CLI already registers both for `poney render`.
 
-**The Studio part** ([`apps/studio/src/extensions/ownership`](../apps/studio/src/extensions/ownership)) is an inspector section, registered with `registerStudioExtension(...)`.
+**The Studio inspector** can show details when a reader selects an element. Register a section with `registerStudioExtension`. See the [ownership inspector](../apps/studio/src/extensions/ownership).
 
-A document declares the extensions it uses. Readers that do not know an optional extension keep its data and still work; readers that do not know a *required* one refuse the document (section 8 of [the specification](../spec/SPEC.md)).
+Documents list the extensions they use. When a reader encounters an unfamiliar optional extension, it preserves the data so another reader can use it. If the extension is required, the reader must reject the document. See section 8 of the [specification](../spec/SPEC.md).
 
 ## Plugins: importers and overlays
 
-Plugins run in the local hub, next to the code, and the Studio shows what they return.
+Plugins run locally, with access to the repository. Studio displays their results.
 
-- **Importers** read a source and add what they find to a document. They only add: what the document already has keeps its words. Built in: `schema` (tables, columns and foreign keys from `db/schema.rb`, SQL DDL or `schema.prisma`) and `js-modules` (the modules of a JavaScript or TypeScript codebase and who imports whom, across npm workspaces and tsconfig paths).
-- **Overlays** read live facts and mark the parts they concern, through each part's `sourceRefs`, without changing the document. Built in: `coverage` (from the last lcov, Istanbul, SimpleCov or ExCoveralls report) and `churn` (commits in the last 90 days).
+- **Importers** add missing items and preserve existing entries and descriptions. The `schema` importer reads tables, columns and foreign keys from `db/schema.rb`, SQL DDL or `schema.prisma`. The `js-modules` importer follows JavaScript and TypeScript imports, including imports across npm workspaces and `tsconfig` path aliases.
+- **Overlays** use each element’s `sourceRefs` to match it to files in the repository. The `coverage` overlay reads the latest lcov, Istanbul, SimpleCov or ExCoveralls report. The `churn` overlay counts commits that touched those files in the last 90 days. Both display their results without editing the document.
 
-People use them with `poney import` and `poney overlay`, or in the Studio (**Import from the code…** and **Facts**); agents use `poney_import` and `poney_overlay`.
+In Studio, choose **Import from the code…** or **Facts**. From the terminal, use `poney import` or `poney overlay`. The corresponding MCP tools are `poney_import` and `poney_overlay`.
 
 ### Your own plugin
 
-A plugin is a module whose default export comes from `definePlugin`, with `importers`, `overlays` and format `extensions`:
+Make `definePlugin(...)` the module’s default export. It accepts `importers`, `overlays` and format `extensions`. Here’s the outline of a Sentry overlay.
 
 ```js
 import { definePlugin } from '@hattoriai/poney/plugins'
@@ -65,14 +63,14 @@ export default definePlugin({
 })
 ```
 
-List it in `~/.poney/plugins.json` (or in the file that `PONEY_PLUGINS` names): `{ "plugins": ["/path/to/sentry.mjs"] }`. A plugin runs code on your computer, so the list lives in your home folder, never in a project: opening or cloning a repository does not load its code. A plugin with the same id as a built-in one replaces it.
+List the module in `~/.poney/plugins.json`, for example `{ "plugins": ["/path/to/sentry.mjs"] }`. This list is personal because plugins run code on your computer. Set `PONEY_PLUGINS` to use a different file. An importer or overlay with the same ID as a built-in replaces it.
 
 ## A new diagram type
 
-To add a diagram type without changing the format, write an extension with a view type. To add one to the core:
+An extension can add a view type of its own. For a built-in diagram, update the following parts of Poney.
 
-1. **Format.** Add the view's shape to `packages/core/src/schema/views.ts` and its referential checks to `validation/validate.ts`. Add `viewShows` cases to `model/query.ts`, so search and navigation find elements in it. Document it in `spec/SPEC.md` and run `npm run spec`.
-2. **Projection** (optional). Add a pure function under `packages/core/src/projections`.
-3. **Layout.** Add `layoutX(doc, view, options): SceneBase` in `packages/layout/src` and a case in `layoutView`. Put an anchor in the scene for every element a person can select.
-4. **Renderer.** Add `packages/react/src/diagrams/x/index.tsx`, exporting a `DiagramModule`, and add it to `BUILT_IN_DIAGRAMS` in `diagrams/registry.ts`. Take everything app-specific from the host (`useRenderIndex`, `useRenderBind`, `useRenderSubject`, `useViewState`). For a toolbar button in the Studio, add it to `apps/studio/src/renderers/tools.tsx`.
-5. **Inspector.** If the diagram brings a new kind of element reference, add a body for it in `apps/studio/src/components/inspector/bodies.tsx`.
+1. **Format.** Define the view in `packages/core/src/schema/views.ts` and check its references in `validation/validate.ts`. Update `viewShows` in `model/query.ts` so search and navigation can find elements in the view. Document the type in `spec/SPEC.md` and run `npm run spec`.
+2. **Projection.** If the diagram needs a function to select or group model elements, add it under `packages/core/src/projections`.
+3. **Layout.** Add `layoutX(doc, view, options): SceneBase` in `packages/layout/src` and call it from `layoutView`. Give every selectable element an anchor so the canvas can frame it.
+4. **Renderer.** Export a `DiagramModule` from `packages/react/src/diagrams/x/index.tsx` and register it in `BUILT_IN_DIAGRAMS` in `diagrams/registry.ts`. Use `useRenderIndex`, `useRenderBind`, `useRenderSubject` and `useViewState` for data and interactions supplied by the app. Studio toolbar buttons belong in `apps/studio/src/renderers/tools.tsx`.
+5. **Inspector.** If the diagram introduces a new kind of element reference, add its inspector content to `apps/studio/src/components/inspector/bodies.tsx`.
