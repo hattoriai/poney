@@ -3,7 +3,7 @@
 Poney: explain software in diagrams that agents write and people read.
 
 ```sh
-npm install -g @hattoriai/poney                            # the commands poney and poney-mcp
+npm install -g @hattoriai/poney                            # the commands poney and poney-mcp (Node 22+)
 poney render shop.poney --view architecture --format svg   # any view to SVG or PNG
 poney check shop.poney                                     # errors and warnings, with fixes
 poney studio                                               # Poney Studio, in your browser
