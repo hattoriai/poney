@@ -6,11 +6,14 @@ import type { Point, Rect, SceneBase } from './types'
  * Dependency layout: one horizontal band per layer, top to bottom. Nodes in
  * a band are ordered by the average position of what they connect to, which
  * removes most crossings. Edges are smooth curves, so they read as
- * "depends on" rather than as wires.
+ * "depends on" rather than as wires. An edge that crosses more than one
+ * band goes through a free gap between the nodes of each band it crosses,
+ * so it never passes behind a node.
  */
 export interface DependencyScene extends SceneBase {
   bands: (Rect & { id: string; label: string; description?: string })[]
   nodes: (Rect & { entityId: string; band: number })[]
+  /** Cubic Bézier segments, chained: start, then (control, control, end) for each segment. */
   edges: { id: string; source: string; target: string; kind: string; d: Point[]; direction: 'down' | 'up' | 'across' }[]
 }
 
@@ -18,6 +21,10 @@ const BAND_H = 132
 const LABEL_W = 168
 const NODE_H = 58
 const GAP = 28
+/** Space kept between an edge and a node it passes. */
+const CLEAR = 14
+/** Space between edges that share a gap. */
+const LANE = 9
 
 export function layoutDependency(doc: PoneyDocument, view: ViewOf<'dependency'>): DependencyScene {
   const idx = indexOf(doc)
@@ -95,22 +102,65 @@ export function layoutDependency(doc: PoneyDocument, view: ViewOf<'dependency'>)
     return n.x + n.w / 2 - span / 2 + (list.length > 1 ? (i / (list.length - 1)) * span : 0)
   }
 
+  // Free gaps in each band, and how many edges already pass through each.
+  const used = new Map<string, number>()
+  const gaps = rows.map((row) => {
+    const xs = row.map((id) => byId.get(id)!).sort((m, n) => m.x - n.x)
+    const out: { from: number; to: number }[] = []
+    let left = LABEL_W + 24 - GAP
+    for (const n of xs) {
+      out.push({ from: left + CLEAR, to: n.x - CLEAR })
+      left = n.x + n.w
+    }
+    out.push({ from: left + CLEAR, to: totalW - CLEAR })
+    return out.filter((g) => g.to >= g.from)
+  })
+  /** Where an edge crosses band b, near x: inside a free gap, beside the edges already there. */
+  const corridor = (b: number, x: number) => {
+    let best = { gap: 0, x, cost: Infinity }
+    gaps[b].forEach((g, i) => {
+      const at = Math.min(g.to, Math.max(g.from, x))
+      if (Math.abs(at - x) < best.cost) best = { gap: i, x: at, cost: Math.abs(at - x) }
+    })
+    const key = `${b}:${best.gap}`
+    const n = used.get(key) ?? 0
+    used.set(key, n + 1)
+    const g = gaps[b][best.gap]
+    // Later edges step aside, alternately right and left, staying in the gap.
+    const shifted = best.x + (n === 0 ? 0 : (n % 2 ? 1 : -1) * Math.ceil(n / 2) * LANE)
+    return Math.min(g.to, Math.max(g.from, shifted))
+  }
+  /** A vertical curve from p to q, leaving and arriving straight. */
+  const curve = (p: Point, q: Point): Point[] => {
+    const k = Math.max(20, Math.abs(q.y - p.y) * 0.45) * (q.y >= p.y ? 1 : -1)
+    return [{ x: p.x, y: p.y + k }, { x: q.x, y: q.y - k }, q]
+  }
+
   const edges: DependencyScene['edges'] = plan.map(({ r, a, b, direction, out, inn }) => {
     const p0 = { x: portX(r.source, out, r.id, b), y: out === 'bottom' ? a.y + a.h : a.y }
     const p3 = { x: portX(r.target, inn, r.id, a), y: inn === 'top' ? b.y : b.y + b.h }
-    let c1: Point
-    let c2: Point
     if (direction === 'across') {
       const lift = 46
-      c1 = { x: p0.x, y: p0.y - lift }
-      c2 = { x: p3.x, y: p3.y - lift }
-    } else {
-      const k = Math.max(40, Math.abs(p3.y - p0.y) * 0.45)
-      const s = direction === 'down' ? 1 : -1
-      c1 = { x: p0.x, y: p0.y + k * s }
-      c2 = { x: p3.x, y: p3.y - k * s }
+      return { id: r.id, source: r.source, target: r.target, kind: r.kind, d: [p0, { x: p0.x, y: p0.y - lift }, { x: p3.x, y: p3.y - lift }, p3], direction }
     }
-    return { id: r.id, source: r.source, target: r.target, kind: r.kind, d: [p0, c1, c2, p3], direction }
+    // Through each band between the two, straight down a free gap, past the nodes' top and bottom.
+    const s = direction === 'down' ? 1 : -1
+    const between: number[] = []
+    for (let k = a.band + s; k !== b.band; k += s) between.push(k)
+    const d: Point[] = [p0]
+    let at = p0
+    between.forEach((k, i) => {
+      const t = (i + 1) / (between.length + 1)
+      const x = corridor(k, p0.x + (p3.x - p0.x) * t)
+      const top = k * BAND_H + (BAND_H - NODE_H) / 2 - 6
+      const bottom = top + NODE_H + 12
+      const enter = { x, y: s > 0 ? top : bottom }
+      const exit = { x, y: s > 0 ? bottom : top }
+      d.push(...curve(at, enter), { x, y: enter.y + (exit.y - enter.y) / 3 }, { x, y: enter.y + ((exit.y - enter.y) * 2) / 3 }, exit)
+      at = exit
+    })
+    d.push(...curve(at, p3))
+    return { id: r.id, source: r.source, target: r.target, kind: r.kind, d, direction }
   })
 
   const anchors: Record<string, Rect> = {}

@@ -92,17 +92,27 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
         const up = focus?.userEdges.has(e.id)
         const groupHot = focus?.group && (focus.deps.has(e.source) || focus.deps.has(e.target))
         const color = down ? DOWN : up ? UP : groupHot ? 'var(--poney-ink-2)' : 'var(--poney-ink-4)'
-        const [p0, c1, c2, p3] = e.d
+        // The edge is a chain of cubic segments; the arrow sits on the last one.
+        const p3 = e.d[e.d.length - 1]
+        const c2 = e.d[e.d.length - 2]
         const angle = Math.atan2(p3.y - c2.y, p3.x - c2.x)
         const back = ls.head === 'triangle' ? 10 : 6
         const end = { x: p3.x - Math.cos(angle) * back, y: p3.y - Math.sin(angle) * back }
+        const path = (last: { x: number; y: number }) => {
+          let d = `M ${e.d[0].x} ${e.d[0].y}`
+          for (let i = 1; i + 2 < e.d.length; i += 3) {
+            const to = i + 2 === e.d.length - 1 ? last : e.d[i + 2]
+            d += ` C ${e.d[i].x} ${e.d[i].y} ${e.d[i + 1].x} ${e.d[i + 1].y} ${to.x} ${to.y}`
+          }
+          return d
+        }
         const dim = focus && !down && !up && !groupHot
         const rel = idx.relationships.get(e.id)
         return (
           <g key={e.id} {...bind({ kind: 'relationship', id: e.id }, `${idx.entities.get(e.source)?.name} ${rel?.kind === 'implements' ? 'implements' : 'depends on'} ${idx.entities.get(e.target)?.name}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
-            <path d={`M ${p0.x} ${p0.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p3.x} ${p3.y}`} fill="none" stroke="transparent" strokeWidth={12} />
+            <path d={path(p3)} fill="none" stroke="transparent" strokeWidth={12} />
             <path
-              d={`M ${p0.x} ${p0.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`}
+              d={path(end)}
               fill="none"
               stroke={color}
               strokeWidth={down || up ? 1.9 : 1.2}
