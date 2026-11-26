@@ -25,6 +25,7 @@ const app = agent({ name: 'fake' })
   })
   .onRequest(methods.agent.session.load, async ({ params, client }) => {
     mcpServers = params.mcpServers
+    await client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'Earlier question.' } } })
     await client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'Earlier answer.' } } })
     return { configOptions: Object.values(settings) }
   })

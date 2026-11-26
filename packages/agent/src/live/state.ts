@@ -127,10 +127,20 @@ export class LiveState extends EventEmitter<Events> {
     return message
   }
 
-  /** Empties a project's thread. */
-  clearThread(project: string) {
-    this.threads.delete(project)
-    if (project === this.projectKey()) this.emit('thread', [])
+  /** Removes messages from a project's thread. */
+  remove(project: string, ids: ReadonlySet<number>) {
+    const messages = this.threads.get(project)
+    if (!messages) return
+    this.threads.set(project, messages.filter((m) => !ids.has(m.id)))
+    if (project === this.projectKey()) this.emit('thread', this.thread())
+  }
+
+  /** The person's questions in a project that no agent took yet, except `skip`. They count as taken now. */
+  takeQuestions(project: string, skip: ReadonlySet<number> = new Set()): Extract<Message, { from: 'person' }>[] {
+    const after = this.delivered.get(project) ?? 0
+    const asked = this.thread(project).filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > after)
+    if (asked.length) this.delivered.set(project, Math.max(...asked.map((m) => m.id)))
+    return asked.filter((m) => !skip.has(m.id))
   }
 
   /**

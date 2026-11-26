@@ -12,7 +12,7 @@
 import { methods, type ClientConnection, type RequestPermissionRequest, type RequestPermissionResponse, type SessionNotification } from '@agentclientprotocol/sdk'
 import { startAgent, type RunningAgent } from './acp'
 import type { LiveState } from '../live/state'
-import type { AgentSession, Message, SessionSetting } from '../live/types'
+import type { AgentSession, Message, MessageInput, SessionSetting } from '../live/types'
 import { applySetting, fromConfigOptions, fromLists } from './settings'
 import type { ProviderSpec } from './providers'
 import { agentKey, type AgentChoice, type SessionStore } from './sessions'
@@ -44,6 +44,12 @@ export class ProjectAgent {
   private systemPrompt = false
   /** The agent message being written in this turn, and tool calls by their ACP id. */
   private writing?: Extract<Message, { from: 'agent' }>
+  /** In a replayed history, the person's message being written. */
+  private asking?: Question
+  /** True while the agent replays a loaded session. */
+  private replaying = false
+  /** The messages the agent replayed from its earlier session: they are not new questions. */
+  readonly history = new Set<number>()
   private tools = new Map<string, Extract<Message, { from: 'tool' }>>()
   private choices = new Map<number, (optionId: string | null) => void>()
   /** Called when the status changes: started, busy or not, settings, stopped. */
@@ -91,6 +97,7 @@ export class ProjectAgent {
     this.sessionId = resume?.sessionId
     const mcp = this.mcp()
     let agent: RunningAgent
+    this.replaying = true
     try {
       agent = await startAgent(spec, cwd, {
         mcpServers: [{ name: 'poney', command: mcp.command, args: mcp.args, env: [{ name: 'PONEY_HUB_URL', value: mcp.hubUrl }] }],
@@ -101,16 +108,20 @@ export class ProjectAgent {
       })
     } catch (e) {
       if (run === this.run) {
+        this.replaying = false
         this.sessionId = undefined
         this.writing = undefined
+        this.asking = undefined
       }
       throw e
     }
     if (run !== this.run) return agent.stop()
+    this.replaying = false
+    this.asking = undefined
     const lost = !!resume && agent.how === 'new'
     // What a failed load replayed is not the conversation; else the replayed answer is complete.
-    if (lost && resume.how === 'load') this.state.clearThread(this.project)
-    else if (this.writing) this.state.put({ ...this.writing, done: true }, this.project)
+    if (lost && resume.how === 'load') this.state.remove(this.project, this.history)
+    else if (this.writing) this.put({ ...this.writing, done: true })
     this.writing = undefined
     this.tools.clear()
     this.agent = agent
@@ -122,14 +133,14 @@ export class ProjectAgent {
     this.settings = [...offered, ...fromLists(raw.models as never, raw.modes as never, offered)].map((s) => ({ ...s, initial: s.current }))
     agent.child.once('exit', () => {
       if (this.agent !== agent) return
-      this.state.put({ from: 'notice', text: `${spec.name} stopped. ${agent.stderr().slice(-2).join(' ')}`.trim(), tone: 'error' }, this.project)
+      this.put({ from: 'notice', text: `${spec.name} stopped. ${agent.stderr().slice(-2).join(' ')}`.trim(), tone: 'error' })
       this.stop()
     })
     // An agent that took the briefing as system instructions, or a session that had it, needs no briefing in the next prompt.
     this.briefed = agent.systemPromptApplied || agent.how !== 'new'
     this.systemPrompt = agent.systemPromptApplied
     this.store.setSession(this.project, { agentKey: this.key, sessionId: agent.sessionId, at: new Date().toISOString() })
-    if (lost) this.state.put({ from: 'notice', text: 'The earlier session did not resume. This is a new session.', tone: 'info' }, this.project)
+    if (lost) this.put({ from: 'notice', text: 'The earlier session did not resume. This is a new session.', tone: 'info' })
     await this.applyDefaults()
     this.onChange?.()
   }
@@ -185,6 +196,13 @@ export class ProjectAgent {
     void this.drain()
   }
 
+  /** Puts a message in the project's thread. */
+  private put(m: MessageInput | Message): Message {
+    const out = this.state.put(m, this.project)
+    if (this.replaying) this.history.add(out.id)
+    return out
+  }
+
   /** The default agent's settings, where the session's differ. A setting the agent does not offer, or refuses, stays as it is. */
   private async applyDefaults() {
     const d = this.store.defaultAgent()
@@ -212,12 +230,12 @@ export class ProjectAgent {
     try {
       await this.connection.agent.request(methods.agent.session.prompt, { sessionId: this.sessionId, prompt: [{ type: 'text', text: this.promptFor(q) }] })
     } catch (e) {
-      if (run === this.run) this.state.put({ from: 'notice', text: `The request failed: ${e instanceof Error ? e.message : String(e)}`, tone: 'error' }, this.project)
+      if (run === this.run) this.put({ from: 'notice', text: `The request failed: ${e instanceof Error ? e.message : String(e)}`, tone: 'error' })
     } finally {
       if (run === this.run) {
         // Updates arrive while the prompt runs, so TypeScript cannot see that `writing` changed.
         const last = this.writing as Extract<Message, { from: 'agent' }> | undefined
-        if (last) this.state.put({ ...last, done: true }, this.project)
+        if (last) this.put({ ...last, done: true })
         this.writing = undefined
         this.working = false
         this.onChange?.()
@@ -247,17 +265,28 @@ export class ProjectAgent {
     if (n.sessionId !== this.sessionId) return
     const u = n.update
     switch (u.sessionUpdate) {
+      case 'user_message_chunk': {
+        // Only a replayed history has the person's words: each turn starts a new answer.
+        if (!this.replaying || u.content.type !== 'text') return
+        if (this.writing) this.put({ ...this.writing, done: true })
+        this.writing = undefined
+        const text = (this.asking?.text ?? '') + u.content.text
+        this.asking = this.put(this.asking ? { ...this.asking, text } : { from: 'person', text }) as Question
+        return
+      }
       case 'agent_message_chunk': {
         if (u.content.type !== 'text') return
+        this.asking = undefined
         const text = (this.writing?.text ?? '') + u.content.text
-        this.writing = this.state.put(this.writing ? { ...this.writing, text } : { from: 'agent', text }, this.project) as Extract<Message, { from: 'agent' }>
+        this.writing = this.put(this.writing ? { ...this.writing, text } : { from: 'agent', text }) as Extract<Message, { from: 'agent' }>
         return
       }
       case 'tool_call': {
+        this.asking = undefined
         // Words after a tool call start a new message, so the order reads true.
-        if (this.writing) this.state.put({ ...this.writing, done: true }, this.project)
+        if (this.writing) this.put({ ...this.writing, done: true })
         this.writing = undefined
-        const m = this.state.put({ from: 'tool', title: u.title, status: u.status ?? 'pending', kind: u.kind }, this.project) as Extract<Message, { from: 'tool' }>
+        const m = this.put({ from: 'tool', title: u.title, status: u.status ?? 'pending', kind: u.kind }) as Extract<Message, { from: 'tool' }>
         this.tools.set(u.toolCallId, m)
         return
       }
@@ -274,7 +303,7 @@ export class ProjectAgent {
       case 'tool_call_update': {
         const m = this.tools.get(u.toolCallId)
         if (!m) return
-        this.tools.set(u.toolCallId, this.state.put({ ...m, title: u.title ?? m.title, status: u.status ?? m.status }, this.project) as Extract<Message, { from: 'tool' }>)
+        this.tools.set(u.toolCallId, this.put({ ...m, title: u.title ?? m.title, status: u.status ?? m.status }) as Extract<Message, { from: 'tool' }>)
         return
       }
       default:
@@ -283,10 +312,10 @@ export class ProjectAgent {
   }
 
   private async onPermission(p: RequestPermissionRequest): Promise<RequestPermissionResponse> {
-    const m = this.state.put({ from: 'permission', title: p.toolCall.title ?? 'The agent asks to continue', options: p.options.map((o) => ({ id: o.optionId, name: o.name, kind: o.kind })) }, this.project)
+    const m = this.put({ from: 'permission', title: p.toolCall.title ?? 'The agent asks to continue', options: p.options.map((o) => ({ id: o.optionId, name: o.name, kind: o.kind })) })
     const optionId = await new Promise<string | null>((resolve) => this.choices.set(m.id, resolve))
     this.choices.delete(m.id)
-    this.state.put({ ...(m as Extract<Message, { from: 'permission' }>), chosen: optionId ?? 'cancelled' }, this.project)
+    this.put({ ...(m as Extract<Message, { from: 'permission' }>), chosen: optionId ?? 'cancelled' })
     return { outcome: optionId ? { outcome: 'selected', optionId } : { outcome: 'cancelled' } }
   }
 }

@@ -104,7 +104,11 @@ describe('AgentPool', () => {
 
     const two = setup()
     await two.open(a)
-    expect(texts(two.state.thread(), 'agent')).toEqual(['Earlier answer.'])
+    // The replayed history: the person's words and the agent's, each its own message.
+    expect(two.state.thread().map((m) => [m.from, (m as { text?: string }).text])).toEqual([
+      ['person', 'Earlier question.'],
+      ['agent', 'Earlier answer.'],
+    ])
     expect(two.state.status().session).toMatchObject({ providerId: 'fake', cwd: a })
     expect(sessionOf(await askAndAnswer(two.state, two.pool, 'And then?'))).toBe(id)
   })
@@ -181,6 +185,70 @@ describe('AgentPool', () => {
     expect(new SessionStore().defaultAgent()).toEqual({ agent: { providerId: 'fake' }, settings: { model: 'large' } })
     await open(b)
     expect(state.status().session?.settings.find((s) => s.id === 'model')?.current).toBe('large')
+  })
+
+  it('answers a question asked while the agent starts', async () => {
+    const { state, pool } = setup()
+    const a = folder()
+    new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
+    state.setWorkspace(workspaceProject(a))
+    state.ask('Where does it start?')
+    await until(() => state.thread(a).some((m) => m.from === 'permission'))
+    pool.get(a)!.choose(state.thread(a).find((m) => m.from === 'permission')!.id, 'yes')
+    await until(() => texts(state.thread(a), 'agent').some((t) => t.startsWith('Done (yes)')))
+    expect(texts(state.thread(a), 'person')).toEqual(['Where does it start?'])
+  })
+
+  it('keeps a question asked while a lost session is replaced', async () => {
+    const { state, pool } = setup()
+    const a = folder()
+    const store = new SessionStore()
+    store.setDefaultAgent({ agent: { providerId: 'stubborn' }, settings: {} })
+    store.setSession(a, { agentKey: 'stubborn', sessionId: 'old-1', at: new Date().toISOString() })
+    state.setWorkspace(workspaceProject(a))
+    state.ask('Where does it start?')
+    await until(() => state.thread(a).some((m) => m.from === 'permission'))
+    pool.get(a)!.choose(state.thread(a).find((m) => m.from === 'permission')!.id, 'yes')
+    await until(() => texts(state.thread(a), 'agent').some((t) => t.startsWith('Done (yes)')))
+    expect(texts(state.thread(a), 'person')).toEqual(['Where does it start?'])
+    expect(texts(state.thread(a), 'notice')).toEqual(['The earlier session did not resume. This is a new session.'])
+  })
+
+  it('never stops an agent that waits for the person', async () => {
+    const { state, pool, open } = setup(1)
+    const [a, b] = [folder(), folder()]
+    await open(a)
+    await pool.connect({ providerId: 'fake' })
+    state.ask('Give me a tour.')
+    await until(() => state.thread(a).some((m) => m.from === 'permission'))
+    await open(b)
+    expect(pool.get(a)).toBeDefined()
+    pool.get(a)!.choose(state.thread(a).find((m) => m.from === 'permission')!.id, 'yes')
+    await until(() => texts(state.thread(a), 'agent').some((t) => t.startsWith('Done (yes)')))
+  })
+
+  it('gives the person the agent of the project opened last', async () => {
+    const { state, pool } = setup()
+    const [a, b] = [folder(), folder()]
+    new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
+    state.setWorkspace(workspaceProject(a))
+    state.setWorkspace(workspaceProject(b))
+    await pool.activate()
+    await until(() => !!pool.get(a)?.connected)
+    expect(state.status().session).toMatchObject({ cwd: b })
+    expect(state.thread(a).filter((m) => m.from === 'notice')).toEqual([])
+    const answer = await askAndAnswer(state, pool, 'Where does it start?')
+    expect(answer).toContain(`Session: ${new SessionStore().session(b)?.sessionId}.`)
+    expect(state.thread(a).filter((m) => m.from === 'person' || m.from === 'agent')).toEqual([])
+  })
+
+  it('gives the questions back when no project is open', async () => {
+    const { state, pool, open } = setup()
+    await open(folder())
+    await pool.connect({ providerId: 'fake' })
+    state.setWorkspace(undefined)
+    await pool.activate()
+    expect(state.status().session).toBeNull()
   })
 
   it('needs an open project to connect', async () => {

@@ -46,7 +46,8 @@ export class AgentPool {
   /** Gives the person the open project's agent: the one that runs, or the default agent, started now. Never throws. */
   async activate(): Promise<void> {
     const project = this.state.projectKey()
-    if (!project) return
+    // No project: no agent answers.
+    if (!project) return this.state.setSession(null, null)
     let agent = this.agents.get(project)
     if (agent) {
       this.agents.delete(project)
@@ -123,8 +124,10 @@ export class AgentPool {
 
   private publish(agent: ProjectAgent) {
     if (agent.project !== this.state.projectKey() || this.agents.get(agent.project) !== agent) return
-    if (agent.connected) this.state.setSession(agent.status(), (q) => agent.ask(q))
-    else this.state.setSession(null, null)
+    if (!agent.connected) return this.state.setSession(null, null)
+    this.state.setSession(agent.status(), (q) => agent.ask(q))
+    // Questions asked while the agent started.
+    for (const q of this.state.takeQuestions(agent.project, agent.history)) agent.ask(q)
   }
 
   /** Above the limit, stops the agents activated longest ago, but never one that works or waits for the person. */
