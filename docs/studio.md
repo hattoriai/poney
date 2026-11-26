@@ -20,6 +20,11 @@ A new tab opens on the start page: open a `.poney` file (or drop it, or paste it
 - **The diagram is a canvas.** Pinch or <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + scroll zooms the diagram, never the page; drag pans; double-click zooms in; "Reset view" frames the scene again. "Expand" opens it near full screen.
 - Reading progress and answers are kept in this browser.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../media/change-sequence-dark.png">
+  <img alt="A scene of a change walkthrough: a sequence diagram with the new messages in green, the changed participants in amber, and four numbered notes below" src="../media/change-sequence-light.png">
+</picture>
+
 Scenes can also say what a reader must see, by meaning: a `trace` (a path the reader plays step by step while the camera follows), `effects` (`flow`, `attention`, `hot-path`, `slow`, `failing`, `blocked`) and `badges` (short facts such as "p95 840 ms"). The Studio animates them; a PNG draws them still and numbers the path. Nothing moves for readers who ask for reduced motion.
 
 ## Exploring the whole system
