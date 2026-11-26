@@ -55,12 +55,12 @@ function GroupPeek({ node, names }: { node: MapScene['nodes'][number]; names: st
   const y = node.y + node.h + 12
   return (
     <g pointerEvents="none" transform={`translate(${x} ${y})`}>
-      <rect width={w} height={h} rx={12} fill="var(--paper-raised)" stroke="var(--story-rule)" />
-      <text x={16} y={22} fontSize={11.5} fontWeight={600} fill="var(--ink-3)">
+      <rect width={w} height={h} rx={12} fill="var(--poney-paper-raised)" stroke="var(--poney-story-rule)" />
+      <text x={16} y={22} fontSize={11.5} fontWeight={600} fill="var(--poney-ink-3)">
         Inside
       </text>
       {rows.map((r, i) => (
-        <text key={i} x={16} y={44 + i * 22} fontSize={12.5} fontWeight={i < shown.length ? 500 : 400} fill={i < shown.length ? 'var(--ink)' : 'var(--ink-3)'}>
+        <text key={i} x={16} y={44 + i * 22} fontSize={12.5} fontWeight={i < shown.length ? 500 : 400} fill={i < shown.length ? 'var(--poney-ink)' : 'var(--poney-ink-3)'}>
           {r}
         </text>
       ))}
@@ -77,7 +77,7 @@ function MapNode({ node, entity }: { node: MapScene['nodes'][number]; entity: En
   const style = idx.style(entity)
   const { setHot, toggleGroup } = useStory()
   const { x, y, w, h } = node
-  const stroke = look.hot ? 'var(--poney)' : stateStroke(look.state, look.focused ? 'var(--story-line)' : 'var(--story-rule)')
+  const stroke = look.hot ? 'var(--poney-accent)' : stateStroke(look.state, look.focused ? 'var(--poney-story-line)' : 'var(--poney-story-rule)')
   const removed = look.state === 'removed'
   const sub = members.length ? `${members.length} inside${entity.technology ? ` · ${entity.technology}` : ''}` : entity.technology ?? style.label
   const props = bind({ kind: 'entity', id: entity.id }, `${entity.name}. ${entity.summary}`)
@@ -85,7 +85,7 @@ function MapNode({ node, entity }: { node: MapScene['nodes'][number]; entity: En
     <g
       transform={`translate(${x} ${y})`}
       {...props}
-      className={`dg-el ${lookClass(look)}`}
+      className={`poney-el ${lookClass(look)}`}
       onMouseEnter={() => {
         props.onMouseEnter?.()
         setHot(key)
@@ -95,18 +95,18 @@ function MapNode({ node, entity }: { node: MapScene['nodes'][number]; entity: En
         setHot(null)
       }}
     >
-      {members.length > 0 && <rect x={5} y={5} width={w} height={h} rx={14} fill="var(--story-node)" stroke="var(--story-rule)" strokeWidth={1.2} />}
+      {members.length > 0 && <rect x={5} y={5} width={w} height={h} rx={14} fill="var(--poney-story-node)" stroke="var(--poney-story-rule)" strokeWidth={1.2} />}
       <rect width={w} height={h} rx={14} fill={stateFill(look.state)} stroke={stroke} strokeWidth={look.state || look.hot ? 1.75 : 1.2} strokeDasharray={removed || entity.kind === 'external' ? '6 4' : undefined} />
       {members.length > 0 && toggleGroup && <GroupToggle open={false} name={entity.name} x={w - 22} y={h / 2} onToggle={() => toggleGroup(entity.id)} />}
-      <Glyph name={style.icon} x={18} y={h / 2 - 9} size={18} color={look.state ? `var(--${look.state})` : toneColor(style.tone)} />
-      <text x={48} y={h / 2 - 2} fontSize={15} fontWeight={600} fill="var(--ink)" textDecoration={removed ? 'line-through' : undefined}>
+      <Glyph name={style.icon} x={18} y={h / 2 - 9} size={18} color={look.state ? `var(--poney-${look.state})` : toneColor(style.tone)} />
+      <text x={48} y={h / 2 - 2} fontSize={15} fontWeight={600} fill="var(--poney-ink)" textDecoration={removed ? 'line-through' : undefined}>
         {clip(entity.name, w - (members.length && toggleGroup ? 92 : 60), 15, 600)}
       </text>
-      <text x={48} y={h / 2 + 17} fontSize={12.5} fill="var(--ink-3)">
+      <text x={48} y={h / 2 + 17} fontSize={12.5} fill="var(--poney-ink-3)">
         {clip(sub, w - (members.length && toggleGroup ? 92 : 60), 12.5)}
       </text>
       <StateTag state={look.state} x={w - 12} y={0} anchor="end" />
-      <rect className="dg-focus" x={-5} y={-5} width={w + 10} height={h + 10} rx={18} fill="none" stroke="var(--poney)" strokeWidth={2} strokeDasharray="4 3" />
+      <rect className="poney-focus" x={-5} y={-5} width={w + 10} height={h + 10} rx={18} fill="none" stroke="var(--poney-accent)" strokeWidth={2} strokeDasharray="4 3" />
     </g>
   )
 }
@@ -123,11 +123,11 @@ function MapGroup({ group, entity }: { group: NonNullable<MapScene['groups']>[nu
   const style = idx.style(entity)
   const { x, y, w, h } = group
   const props = bind({ kind: 'entity', id: entity.id }, `${entity.name}. ${entity.summary}`)
-  const stroke = look.hot ? 'var(--poney)' : stateStroke(look.state, 'var(--story-rule)')
+  const stroke = look.hot ? 'var(--poney-accent)' : stateStroke(look.state, 'var(--poney-story-rule)')
   const sub = entity.technology ?? style.label
   return (
-    <g transform={`translate(${x} ${y})`} className={`dg-el ${lookClass({ ...look, dim: look.dim && inside.dim })}`}>
-      <rect width={w} height={h} rx={18} fill={look.state ? `var(--${look.state}-wash)` : 'var(--sunken)'} fillOpacity={look.state ? 0.55 : 0.45} stroke={stroke} strokeWidth={look.state || look.hot ? 1.6 : 1.1} />
+    <g transform={`translate(${x} ${y})`} className={`poney-el ${lookClass({ ...look, dim: look.dim && inside.dim })}`}>
+      <rect width={w} height={h} rx={18} fill={look.state ? `var(--poney-${look.state}-wash)` : 'var(--poney-sunken)'} fillOpacity={look.state ? 0.55 : 0.45} stroke={stroke} strokeWidth={look.state || look.hot ? 1.6 : 1.1} />
       <g
         {...props}
         onMouseEnter={() => {
@@ -140,11 +140,11 @@ function MapGroup({ group, entity }: { group: NonNullable<MapScene['groups']>[nu
         }}
       >
         <rect width={w} height={44} rx={18} fill="transparent" />
-        <Glyph name={style.icon} x={16} y={14} size={16} color={look.state ? `var(--${look.state})` : toneColor(style.tone)} />
-        <text x={40} y={27} fontSize={14} fontWeight={600} fill="var(--ink)">
+        <Glyph name={style.icon} x={16} y={14} size={16} color={look.state ? `var(--poney-${look.state})` : toneColor(style.tone)} />
+        <text x={40} y={27} fontSize={14} fontWeight={600} fill="var(--poney-ink)">
           {clip(entity.name, w - (toggleGroup ? 150 : 110), 14, 600)}
         </text>
-        <text x={40 + Math.min(measureName(entity.name), w - (toggleGroup ? 150 : 110)) + 10} y={27} fontSize={12} fill="var(--ink-3)">
+        <text x={40 + Math.min(measureName(entity.name), w - (toggleGroup ? 150 : 110)) + 10} y={27} fontSize={12} fill="var(--poney-ink-3)">
           {clip(sub, Math.max(0, w - 40 - measureName(entity.name) - (toggleGroup ? 56 : 24)), 12)}
         </text>
       </g>
@@ -163,7 +163,7 @@ function GroupToggle({ open, name, x, y, onToggle }: { open: boolean; name: stri
       role="button"
       tabIndex={0}
       aria-label={`${open ? 'Close' : 'Open'} ${name}`}
-      className="cursor-pointer"
+      className="poney-control"
       onClick={(e) => {
         e.stopPropagation()
         onToggle()
@@ -176,9 +176,9 @@ function GroupToggle({ open, name, x, y, onToggle }: { open: boolean; name: stri
       }}
     >
       <title>{open ? `Close ${name}` : `Open ${name}`}</title>
-      <circle cx={x} cy={y} r={11} fill="var(--paper-raised)" stroke="var(--story-line)" strokeWidth={1.1} />
-      <line x1={x - 4.5} y1={y} x2={x + 4.5} y2={y} stroke="var(--ink-2)" strokeWidth={1.6} strokeLinecap="round" />
-      {!open && <line x1={x} y1={y - 4.5} x2={x} y2={y + 4.5} stroke="var(--ink-2)" strokeWidth={1.6} strokeLinecap="round" />}
+      <circle cx={x} cy={y} r={11} fill="var(--poney-paper-raised)" stroke="var(--poney-story-line)" strokeWidth={1.1} />
+      <line x1={x - 4.5} y1={y} x2={x + 4.5} y2={y} stroke="var(--poney-ink-2)" strokeWidth={1.6} strokeLinecap="round" />
+      {!open && <line x1={x} y1={y - 4.5} x2={x} y2={y + 4.5} stroke="var(--poney-ink-2)" strokeWidth={1.6} strokeLinecap="round" />}
     </g>
   )
 }
@@ -191,7 +191,7 @@ function MapEdge({ edge }: { edge: MapScene['edges'][number] }) {
   const look = useLookAny(edge.relationships.map((r) => `relationship:${r}`))
   const rel = idx.relationships.get(edge.id)
   const [p0, c1, c2, p3] = edge.curve
-  const color = look.hot ? 'var(--poney)' : stateStroke(look.state, look.focused ? 'var(--story-line)' : 'var(--story-rule)')
+  const color = look.hot ? 'var(--poney-accent)' : stateStroke(look.state, look.focused ? 'var(--poney-story-line)' : 'var(--poney-story-rule)')
   const angle = Math.atan2(p3.y - c2.y, p3.x - c2.x)
   const end = { x: p3.x - Math.cos(angle) * 8, y: p3.y - Math.sin(angle) * 8 }
   const async = rel?.kind === 'publishes' || rel?.kind === 'subscribes'
@@ -199,7 +199,7 @@ function MapEdge({ edge }: { edge: MapScene['edges'][number] }) {
   return (
     <g
       {...props}
-      className={`dg-el ${lookClass(look)}`}
+      className={`poney-el ${lookClass(look)}`}
       onMouseEnter={() => {
         props.onMouseEnter?.()
         setHot(key)
@@ -231,13 +231,13 @@ function EdgeLabel({ edge }: { edge: MapScene['edges'][number] }) {
   const show = !look.hidden && (look.hot || s.allLabels || !!look.callout || (!!s.focus && look.focused) || (!s.focus && !!look.state))
   if (!show) return null
   const { x, y, w, h, text, sub } = edge.label
-  const color = look.hot ? 'var(--poney)' : look.state ? `var(--${look.state})` : 'var(--ink-2)'
-  const line = look.hot ? 'var(--poney)' : look.state ? `var(--${look.state})` : 'var(--story-line)'
+  const color = look.hot ? 'var(--poney-accent)' : look.state ? `var(--poney-${look.state})` : 'var(--poney-ink-2)'
+  const line = look.hot ? 'var(--poney-accent)' : look.state ? `var(--poney-${look.state})` : 'var(--poney-story-line)'
   // A label beside its curve points back to it, so it is never read as another line's.
   const lead = edge.leader
   const nearest = lead ? { x: Math.max(x, Math.min(x + w, lead.x)), y: Math.max(y, Math.min(y + h, lead.y)) } : undefined
   return (
-    <g pointerEvents="none" className={`st-el ${look.dim ? 'st-dim' : ''}`}>
+    <g pointerEvents="none" className={`poney-story-el ${look.dim ? 'poney-story-dim' : ''}`}>
       {lead && nearest && (
         <>
           <line x1={nearest.x} y1={nearest.y} x2={lead.x} y2={lead.y} stroke={line} strokeWidth={1} strokeDasharray="2 3" />
@@ -245,12 +245,12 @@ function EdgeLabel({ edge }: { edge: MapScene['edges'][number] }) {
         </>
       )}
     <g transform={`translate(${x} ${y})`}>
-      <rect width={w} height={h} rx={11} fill="var(--paper-raised)" stroke={look.hot ? 'var(--poney)' : look.state ? `var(--${look.state})` : 'var(--story-rule)'} />
+      <rect width={w} height={h} rx={11} fill="var(--poney-paper-raised)" stroke={look.hot ? 'var(--poney-accent)' : look.state ? `var(--poney-${look.state})` : 'var(--poney-story-rule)'} />
       <text x={w / 2} y={15} textAnchor="middle" fontSize={12} fontWeight={500} fill={color}>
         {text}
       </text>
       {sub && (
-        <text x={w / 2} y={29} textAnchor="middle" fontSize={11} fill="var(--ink-3)">
+        <text x={w / 2} y={29} textAnchor="middle" fontSize={11} fill="var(--poney-ink-3)">
           {sub}
         </text>
       )}

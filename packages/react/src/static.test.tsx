@@ -19,7 +19,7 @@ describe('headless rendering', () => {
     it(`renders the view ${view}, with no CSS a picture cannot read`, async () => {
       const r = await renderScene(doc, { view })
       expect(r.svg).toMatch(/^<svg xmlns/)
-      expect(r.svg).not.toMatch(/var\(--|color-mix|class="dg-focus"/)
+      expect(r.svg).not.toMatch(/var\(--|color-mix|class="poney-focus"/)
       expect(r.svg).not.toMatch(/aria-label="(Open|Close) /)
     })
   }
@@ -29,7 +29,7 @@ describe('headless rendering', () => {
       const r = await renderScene(doc, { scene })
       expect(r.svg).toMatch(/^<svg xmlns/)
       expect(r.svg).not.toContain('var(--')
-      expect(r.svg).not.toContain('class="dg-focus"')
+      expect(r.svg).not.toContain('class="poney-focus"')
       expect(r.width).toBeGreaterThan(500)
     })
   }

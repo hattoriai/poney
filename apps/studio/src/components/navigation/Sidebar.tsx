@@ -170,7 +170,7 @@ export function Mark() {
       <path d="M40 26V86M40 26H62A17 17 0 0 1 62 60H40" fill="none" stroke="var(--paper)" strokeWidth="6" strokeLinejoin="round" />
       <rect x="28" y="16" width="24" height="20" rx="5" fill="var(--paper)" />
       <rect x="28" y="50" width="24" height="20" rx="5" fill="var(--paper)" />
-      <rect x="28" y="76" width="24" height="20" rx="5" fill="var(--poney)" />
+      <rect x="28" y="76" width="24" height="20" rx="5" fill="var(--accent)" />
     </svg>
   )
 }

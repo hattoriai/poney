@@ -101,12 +101,12 @@ function polyline(points: Point[], radius: number): Omit<LineShape, 'stepAt' | '
 }
 
 const DEFAULT_COLOR: Record<EffectKind, string> = {
-  flow: 'var(--lapis)',
-  attention: 'var(--poney)',
-  'hot-path': 'var(--poney)',
-  slow: 'var(--ochre)',
-  failing: 'var(--failure)',
-  blocked: 'var(--failure)',
+  flow: 'var(--poney-lapis)',
+  attention: 'var(--poney-accent)',
+  'hot-path': 'var(--poney-accent)',
+  slow: 'var(--poney-ochre)',
+  failing: 'var(--poney-failure)',
+  blocked: 'var(--poney-failure)',
 }
 const colorOf = (as: EffectKind, tone?: string) => (tone ? toneColor(tone) : DEFAULT_COLOR[as])
 const keyOf = (k: string) => {
@@ -137,7 +137,7 @@ export function EmphasisUnder({ scene, view }: { scene: SceneBase; view: View })
           strokeWidth={strong ? 9 : 11}
           strokeLinecap="round"
           strokeDasharray={e.as === 'slow' ? '1 14' : undefined}
-          className={e.as === 'attention' ? 'pn-pulse' : undefined}
+          className={e.as === 'attention' ? 'poney-pulse' : undefined}
         />,
       )
     }
@@ -163,7 +163,7 @@ export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) 
       const color = colorOf(e.as, e.tone)
       const id = `${key}-${e.as}-${i}`
       if (line) {
-        if (e.as === 'flow') out.push(<path key={id} d={line.d} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeDasharray="0.1 11" className="pn-flow" />)
+        if (e.as === 'flow') out.push(<path key={id} d={line.d} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeDasharray="0.1 11" className="poney-flow" />)
         if (e.as === 'slow' || e.as === 'failing' || e.as === 'blocked') {
           out.push(<Sign key={id} as={e.as} x={line.sign.x} y={line.sign.y} color={color} />)
         }
@@ -182,7 +182,7 @@ export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) 
             strokeWidth={e.as === 'hot-path' ? 2.5 : 2}
             strokeDasharray={e.as === 'blocked' ? '6 4' : e.as === 'slow' ? '2 4' : undefined}
             strokeLinecap="round"
-            className={e.as === 'attention' ? 'pn-pulse' : undefined}
+            className={e.as === 'attention' ? 'poney-pulse' : undefined}
           />,
         )
         if (e.as === 'slow' || e.as === 'failing' || e.as === 'blocked') out.push(<Sign key={`${id}-s`} as={e.as} x={rect.x + rect.w + 2} y={rect.y + rect.h + 2} color={color} />)
@@ -205,11 +205,11 @@ export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) 
     const widths = badges.map((b) => measure(b.text, 11, 600) + 16)
     let left = x - (widths.reduce((a, b) => a + b, 0) + (badges.length - 1) * 4) / 2
     badges.forEach((b, i) => {
-      const color = b.tone ? toneColor(b.tone) : 'var(--ink-2)'
+      const color = b.tone ? toneColor(b.tone) : 'var(--poney-ink-2)'
       out.push(
         <g key={`b-${key}-${i}`} transform={`translate(${left} ${y - 10})`}>
-          <rect width={widths[i]} height={20} rx={10} fill="var(--paper-raised)" stroke={color} strokeWidth={1.1} />
-          <text x={widths[i] / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={600} fill={color} className="font-tabular">
+          <rect width={widths[i]} height={20} rx={10} fill="var(--poney-paper-raised)" stroke={color} strokeWidth={1.1} />
+          <text x={widths[i] / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={600} fill={color} className="poney-numbers">
             {b.text}
           </text>
         </g>,
@@ -235,16 +235,16 @@ export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) 
       if (line)
         out.push(
           <g key={`token-${trace.current}`}>
-            <circle r={7} fill="var(--poney)" stroke="var(--paper-raised)" strokeWidth={2.5}>
+            <circle r={7} fill="var(--poney-accent)" stroke="var(--poney-paper-raised)" strokeWidth={2.5}>
               {trace.animate ? (
                 <animateMotion dur="0.9s" fill="freeze" path={line.d} keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.4 0 0.2 1" />
               ) : null}
             </circle>
-            {!trace.animate && <circle cx={line.at(1).x} cy={line.at(1).y} r={7} fill="var(--poney)" stroke="var(--paper-raised)" strokeWidth={2.5} />}
+            {!trace.animate && <circle cx={line.at(1).x} cy={line.at(1).y} r={7} fill="var(--poney-accent)" stroke="var(--poney-paper-raised)" strokeWidth={2.5} />}
           </g>,
         )
       else if (rect)
-        out.push(<rect key={`token-${trace.current}`} x={rect.x - 7} y={rect.y - 7} width={rect.w + 14} height={rect.h + 14} rx={20} fill="none" stroke="var(--poney)" strokeWidth={2.5} className={trace.animate ? 'pn-pulse' : undefined} />)
+        out.push(<rect key={`token-${trace.current}`} x={rect.x - 7} y={rect.y - 7} width={rect.w + 14} height={rect.h + 14} rx={20} fill="none" stroke="var(--poney-accent)" strokeWidth={2.5} className={trace.animate ? 'poney-pulse' : undefined} />)
     }
   }
   return out.length ? <g pointerEvents="none">{out}</g> : null
@@ -254,7 +254,7 @@ export function EmphasisOver({ scene, view }: { scene: SceneBase; view: View }) 
 function Sign({ as, x, y, color }: { as: 'slow' | 'failing' | 'blocked'; x: number; y: number; color: string }) {
   return (
     <g>
-      <circle cx={x} cy={y} r={10} fill="var(--paper-raised)" stroke={color} strokeWidth={1.6} />
+      <circle cx={x} cy={y} r={10} fill="var(--poney-paper-raised)" stroke={color} strokeWidth={1.6} />
       {as === 'slow' && <Glyph name="timer" x={x - 6.5} y={y - 6.5} size={13} color={color} />}
       {as === 'failing' && <path d={`M ${x - 3.6} ${y - 3.6} L ${x + 3.6} ${y + 3.6} M ${x + 3.6} ${y - 3.6} L ${x - 3.6} ${y + 3.6}`} stroke={color} strokeWidth={2} strokeLinecap="round" />}
       {as === 'blocked' && <path d={`M ${x - 4.5} ${y} L ${x + 4.5} ${y}`} stroke={color} strokeWidth={2.4} strokeLinecap="round" />}
@@ -269,8 +269,8 @@ export const stepLetter = (i: number) => (i < 26 ? String.fromCharCode(65 + i) :
 function StepMark({ n, x, y }: { n: number; x: number; y: number }) {
   return (
     <g>
-      <rect x={x - 8.5} y={y - 8.5} width={17} height={17} rx={5} fill="var(--poney)" stroke="var(--paper-raised)" strokeWidth={1.75} />
-      <text x={x} y={y + 3.8} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--paper-raised)" className="font-tabular">
+      <rect x={x - 8.5} y={y - 8.5} width={17} height={17} rx={5} fill="var(--poney-accent)" stroke="var(--poney-paper-raised)" strokeWidth={1.75} />
+      <text x={x} y={y + 3.8} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--poney-paper-raised)" className="poney-numbers">
         {stepLetter(n - 1)}
       </text>
     </g>

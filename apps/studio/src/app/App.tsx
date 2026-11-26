@@ -26,6 +26,8 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    // The diagrams (@poney/react) follow the same theme.
+    document.documentElement.dataset.poneyTheme = theme
   }, [theme])
 
   useEffect(() => writeLocation(viewId, selection, selection ? refKey(selection) : null), [viewId, selection])

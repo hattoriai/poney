@@ -59,7 +59,7 @@ export function RenameField() {
           if (e.key === 'Escape') finishRename(null)
         }}
         onBlur={() => finishRename(value)}
-        className={`fixed z-50 rounded-sm border-0 border-b-2 border-poney p-0 px-[2px] font-sans text-ink caret-[var(--poney)] ${align === 'center' ? 'text-center' : ''}`}
+        className={`fixed z-50 rounded-sm border-0 border-b-2 border-poney p-0 px-[2px] font-sans text-ink caret-[var(--accent)] ${align === 'center' ? 'text-center' : ''}`}
         // On the element's own fill, so it reads as the element's name, also where it grows past the box.
         style={{ ...style, left, top, width, height: lineHeight + 2, outline: 'none', boxShadow: 'none', background: 'var(--story-node)' }}
       />

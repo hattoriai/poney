@@ -1,0 +1,24 @@
+/*
+ * Walkthrough stories: elements fade and recolour when the change mode or
+ * the scene changes; what the scene is not about dims or hides.
+ */
+@layer poney {
+  :where(.poney-story-el) {
+    transition:
+      opacity 420ms ease,
+      transform 420ms ease;
+  }
+  :where(.poney-story-el *) {
+    transition:
+      fill 320ms ease,
+      stroke 320ms ease,
+      opacity 320ms ease;
+  }
+  :where(.poney-story-hidden) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  :where(.poney-story-dim) {
+    opacity: 0.16;
+  }
+}

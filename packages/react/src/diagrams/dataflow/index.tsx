@@ -47,9 +47,9 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
         const hot = focus?.edges.has(e.id)
         const selected = selectedEdge === e.id
         const ref = e.control ? ({ kind: 'relationship', id: e.id } as const) : ({ kind: 'dataFlow', id: e.id } as const)
-        const color = selected || hot ? 'var(--poney)' : e.control ? 'var(--ink-4)' : 'var(--ink-2)'
+        const color = selected || hot ? 'var(--poney-accent)' : e.control ? 'var(--poney-ink-4)' : 'var(--poney-ink-2)'
         return (
-          <g key={e.id} {...bind(ref, idx.describe(ref).title)} className={`dg-el ${focus && !hot ? 'dg-dim' : ''}`}>
+          <g key={e.id} {...bind(ref, idx.describe(ref).title)} className={`poney-el ${focus && !hot ? 'poney-dim' : ''}`}>
             <EdgeLine points={e.points} style={{ color, width: e.control ? 1 : selected || hot ? 2 : 1.6, dash: e.control ? '1.5 4' : undefined, head: e.control ? 'open-arrow' : 'arrow', flowing: !e.control && (selected || hot) }} />
           </g>
         )
@@ -62,9 +62,9 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
         const dim = focus && !focus.nodes.has(n.entityId)
         const { w, h } = n
         return (
-          <g key={n.id} transform={`translate(${n.x} ${n.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, ${n.role}`)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
-            {n.role === 'process' && <rect className="dg-body" width={w} height={h} rx={h / 2} fill="var(--paper-raised)" stroke={tone} strokeWidth={1.3} />}
-            {n.role === 'terminator' && <rect className="dg-body" width={w} height={h} rx={4} fill={toneWash(s.tone, 10)} stroke={tone} strokeWidth={1.3} />}
+          <g key={n.id} transform={`translate(${n.x} ${n.y})`} {...bind({ kind: 'entity', id: e.id }, `${e.name}, ${n.role}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
+            {n.role === 'process' && <rect className="poney-body" width={w} height={h} rx={h / 2} fill="var(--poney-paper-raised)" stroke={tone} strokeWidth={1.3} />}
+            {n.role === 'terminator' && <rect className="poney-body" width={w} height={h} rx={4} fill={toneWash(s.tone, 10)} stroke={tone} strokeWidth={1.3} />}
             {n.role === 'store' && (
               <>
                 <rect width={w} height={h} fill={toneWash(s.tone, 10)} />
@@ -74,11 +74,11 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
               </>
             )}
             <Glyph name={s.icon} x={n.role === 'store' ? 9 : n.role === 'process' ? 20 : 14} y={h / 2 - 8} size={16} color={tone} />
-            <text x={n.role === 'store' ? 46 : n.role === 'process' ? 44 : 38} y={h / 2 + (n.role === 'store' ? 4.5 : -1)} fontSize={13.5} fontWeight={650} fill="var(--ink)">
+            <text x={n.role === 'store' ? 46 : n.role === 'process' ? 44 : 38} y={h / 2 + (n.role === 'store' ? 4.5 : -1)} fontSize={13.5} fontWeight={650} fill="var(--poney-ink)">
               {clip(e.name, w - 60, 13.5, 650)}
             </text>
             {n.role !== 'store' && (
-              <text x={n.role === 'process' ? 44 : 38} y={h / 2 + 15} fontSize={11.5} fill="var(--ink-3)">
+              <text x={n.role === 'process' ? 44 : 38} y={h / 2 + 15} fontSize={11.5} fill="var(--poney-ink-3)">
                 {n.role === 'process' ? 'Process' : s.label}
               </text>
             )}
@@ -92,10 +92,10 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
         const hot = focus?.edges.has(e.id) || selectedEdge === e.id
         const { x, y, w, h } = e.label
         return (
-          <g key={`l-${e.id}`} transform={`translate(${x} ${y})`} className={focus && !hot ? 'dg-dim' : ''} pointerEvents="none">
-            <rect width={w} height={h} rx={h / 2} fill="var(--paper-raised)" stroke={hot ? 'var(--poney)' : 'var(--rule-strong)'} />
-            <circle cx={11} cy={h / 2} r={3} fill={hot ? 'var(--poney)' : 'var(--malachite)'} />
-            <text x={19} y={h / 2 + 4} fontSize={11.5} fontWeight={hot ? 650 : 500} fill={hot ? 'var(--poney)' : 'var(--ink-2)'}>
+          <g key={`l-${e.id}`} transform={`translate(${x} ${y})`} className={focus && !hot ? 'poney-dim' : ''} pointerEvents="none">
+            <rect width={w} height={h} rx={h / 2} fill="var(--poney-paper-raised)" stroke={hot ? 'var(--poney-accent)' : 'var(--poney-rule-strong)'} />
+            <circle cx={11} cy={h / 2} r={3} fill={hot ? 'var(--poney-accent)' : 'var(--poney-malachite)'} />
+            <text x={19} y={h / 2 + 4} fontSize={11.5} fontWeight={hot ? 650 : 500} fill={hot ? 'var(--poney-accent)' : 'var(--poney-ink-2)'}>
               {e.label.text}
             </text>
           </g>
@@ -107,12 +107,12 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
 
 function Legend() {
   return (
-    <div className="space-y-1.5">
+    <div className="poney-legend">
       <LegendShape shape="card" tone="umber" label="Outside the system: people and providers" />
       <LegendShape shape="pill" tone="lapis" label="Process: code that changes data" />
       <LegendShape shape="store" tone="malachite" label="Store: where data rests" />
-      <LegendRow line="solid" label="Data moving, with what it carries" color="var(--ink-2)" />
-      <LegendRow line="dotted" label="Control only: a call with no data shown" color="var(--ink-4)" />
+      <LegendRow line="solid" label="Data moving, with what it carries" color="var(--poney-ink-2)" />
+      <LegendRow line="dotted" label="Control only: a call with no data shown" color="var(--poney-ink-4)" />
     </div>
   )
 }

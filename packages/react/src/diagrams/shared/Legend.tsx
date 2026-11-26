@@ -6,8 +6,8 @@ export function LegendShape({ shape, tone, label, dashed }: { shape: string; ton
   const c = toneColor(tone)
   const fill = toneWash(tone, 14)
   return (
-    <div className="flex items-center gap-2.5 text-[12px] text-ink-2">
-      <svg width="22" height="16" aria-hidden className="shrink-0">
+    <div className="poney-legend-row">
+      <svg width="22" height="16" aria-hidden className="poney-legend-mark">
         {shape === 'person' && (
           <>
             <circle cx="11" cy="5" r="3.6" fill={fill} stroke={c} strokeWidth="1.2" />
@@ -52,10 +52,10 @@ export function LegendShape({ shape, tone, label, dashed }: { shape: string; ton
 }
 
 /** A line sample with its label. */
-export function LegendRow({ line, label, color = 'var(--ink-3)', head = true }: { line: 'solid' | 'dashed' | 'dotted'; label: string; color?: string; head?: boolean }) {
+export function LegendRow({ line, label, color = 'var(--poney-ink-3)', head = true }: { line: 'solid' | 'dashed' | 'dotted'; label: string; color?: string; head?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5 text-[12px] text-ink-2">
-      <svg width="22" height="16" aria-hidden className="shrink-0">
+    <div className="poney-legend-row">
+      <svg width="22" height="16" aria-hidden className="poney-legend-mark">
         <line x1="1" y1="8" x2={head ? 15 : 21} y2="8" stroke={color} strokeWidth="1.4" strokeDasharray={line === 'dashed' ? '4 3' : line === 'dotted' ? '1.4 3' : undefined} />
         {head && <path d="M14 4.5 L21 8 L14 11.5 Z" fill={color} />}
       </svg>

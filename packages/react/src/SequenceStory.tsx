@@ -21,7 +21,7 @@ export function SequenceStory({ scene }: { scene: SequenceScene }) {
         <Lifeline key={p.entityId} p={p} />
       ))}
       {scene.activations.map((a, i) => (
-        <rect key={i} x={a.x + 1} y={a.y1} width={8} height={a.y2 - a.y1} rx={3} fill="var(--sunken)" stroke="var(--story-rule)" />
+        <rect key={i} x={a.x + 1} y={a.y1} width={8} height={a.y2 - a.y1} rx={3} fill="var(--poney-sunken)" stroke="var(--poney-story-rule)" />
       ))}
       {scene.fragments.map((f) => (
         <FragmentLabels key={`fl-${f.id}`} f={f} behavior={behavior} />
@@ -38,7 +38,7 @@ export function SequenceStory({ scene }: { scene: SequenceScene }) {
 
 function Lifeline({ p }: { p: SequenceScene['participants'][number] }) {
   const look = useLook(`entity:${p.entityId}`)
-  return <line x1={p.x} x2={p.x} y1={p.lifeline.y1} y2={p.lifeline.y2} stroke={look.hot ? 'var(--poney)' : 'var(--story-rule)'} strokeWidth={look.hot ? 1.5 : 1} className={lookClass({ ...look, dim: false })} />
+  return <line x1={p.x} x2={p.x} y1={p.lifeline.y1} y2={p.lifeline.y2} stroke={look.hot ? 'var(--poney-accent)' : 'var(--poney-story-rule)'} strokeWidth={look.hot ? 1.5 : 1} className={lookClass({ ...look, dim: false })} />
 }
 
 function Participant({ p }: { p: SequenceScene['participants'][number] }) {
@@ -56,7 +56,7 @@ function Participant({ p }: { p: SequenceScene['participants'][number] }) {
     <g
       transform={`translate(${x} ${y})`}
       {...props}
-      className={`dg-el ${lookClass({ ...look, dim: false })}`}
+      className={`poney-el ${lookClass({ ...look, dim: false })}`}
       onMouseEnter={() => {
         props.onMouseEnter?.()
         setHot(key)
@@ -66,12 +66,12 @@ function Participant({ p }: { p: SequenceScene['participants'][number] }) {
         setHot(null)
       }}
     >
-      <rect width={w} height={h} rx={14} fill={stateFill(look.state)} stroke={look.hot ? 'var(--poney)' : stateStroke(look.state, 'var(--story-line)')} strokeWidth={look.state ? 1.75 : 1.2} strokeDasharray={e.kind === 'external' ? '6 4' : undefined} />
-      <Glyph name={s.icon} x={16} y={h / 2 - 9} size={18} color={look.state ? `var(--${look.state})` : toneColor(s.tone)} />
-      <text x={44} y={h / 2 - 1} fontSize={14.5} fontWeight={600} fill="var(--ink)">
+      <rect width={w} height={h} rx={14} fill={stateFill(look.state)} stroke={look.hot ? 'var(--poney-accent)' : stateStroke(look.state, 'var(--poney-story-line)')} strokeWidth={look.state ? 1.75 : 1.2} strokeDasharray={e.kind === 'external' ? '6 4' : undefined} />
+      <Glyph name={s.icon} x={16} y={h / 2 - 9} size={18} color={look.state ? `var(--poney-${look.state})` : toneColor(s.tone)} />
+      <text x={44} y={h / 2 - 1} fontSize={14.5} fontWeight={600} fill="var(--poney-ink)">
         {clip(e.name, w - 54, 14.5, 600)}
       </text>
-      <text x={44} y={h / 2 + 16} fontSize={12} fill="var(--ink-3)">
+      <text x={44} y={h / 2 + 16} fontSize={12} fill="var(--poney-ink-3)">
         {clip(e.technology ?? s.label, w - 54, 12)}
       </text>
       <StateTag state={look.state} x={w - 10} y={0} anchor="end" />
@@ -81,9 +81,9 @@ function Participant({ p }: { p: SequenceScene['participants'][number] }) {
 }
 
 function messageColor(look: Look) {
-  if (look.hot) return 'var(--poney)'
-  if (look.state) return `var(--${look.state})`
-  return 'var(--ink-2)'
+  if (look.hot) return 'var(--poney-accent)'
+  if (look.state) return `var(--poney-${look.state})`
+  return 'var(--poney-ink-2)'
 }
 
 function MessageRow({ m, behavior }: { m: SequenceScene['messages'][number]; behavior: string }) {
@@ -99,7 +99,7 @@ function MessageRow({ m, behavior }: { m: SequenceScene['messages'][number]; beh
   const props = bind({ kind: 'message', behavior, id: m.id }, `Step ${m.number}: ${m.label}`)
   const events = {
     ...props,
-    className: `dg-el ${lookClass(look)}`,
+    className: `poney-el ${lookClass(look)}`,
     onMouseEnter: () => {
       props.onMouseEnter?.()
       setHot(key)
@@ -114,10 +114,10 @@ function MessageRow({ m, behavior }: { m: SequenceScene['messages'][number]; beh
     const start = anchor === 'middle' ? lx - total / 2 : lx
     return (
       <>
-        <text x={start} y={ly} fontSize={11.5} fontWeight={600} fill="var(--ink-3)" className="font-tabular" stroke="var(--paper-raised)" strokeWidth={5} paintOrder="stroke" strokeLinejoin="round">
+        <text x={start} y={ly} fontSize={11.5} fontWeight={600} fill="var(--poney-ink-3)" className="poney-numbers" stroke="var(--poney-paper-raised)" strokeWidth={5} paintOrder="stroke" strokeLinejoin="round">
           {num}
         </text>
-        <text x={start + numW} y={ly} stroke="var(--paper-raised)" strokeWidth={5} paintOrder="stroke" strokeLinejoin="round" fontSize={13} fontWeight={look.state ? 600 : 500} fill={look.state || look.hot ? color : m.kind === 'return' ? 'var(--ink-2)' : 'var(--ink)'}>
+        <text x={start + numW} y={ly} stroke="var(--poney-paper-raised)" strokeWidth={5} paintOrder="stroke" strokeLinejoin="round" fontSize={13} fontWeight={look.state ? 600 : 500} fill={look.state || look.hot ? color : m.kind === 'return' ? 'var(--poney-ink-2)' : 'var(--poney-ink)'}>
           {m.label}
         </text>
         <StateTag state={look.state} x={start + total + 14} y={ly - 4.5} />
@@ -152,9 +152,9 @@ function Fragment({ f, behavior }: { f: SequenceScene['fragments'][number]; beha
   const look = useLook(`fragment:${behavior}:${f.id}`)
   return (
     <g className={lookClass(look)}>
-      <rect x={f.x} y={f.y} width={f.w} height={f.h} rx={14} fill="var(--paper)" fillOpacity={0.55} stroke="var(--story-rule)" />
+      <rect x={f.x} y={f.y} width={f.w} height={f.h} rx={14} fill="var(--poney-paper)" fillOpacity={0.55} stroke="var(--poney-story-rule)" />
       {f.branches.slice(1).map((b, i) => (
-        <line key={i} x1={f.x + 10} x2={f.x + f.w - 10} y1={b.y} y2={b.y} stroke="var(--story-rule)" strokeDasharray="4 4" />
+        <line key={i} x1={f.x + 10} x2={f.x + f.w - 10} y1={b.y} y2={b.y} stroke="var(--poney-story-rule)" strokeDasharray="4 4" />
       ))}
     </g>
   )
@@ -166,17 +166,17 @@ function FragmentLabels({ f, behavior }: { f: SequenceScene['fragments'][number]
   const name = fragmentLabel(f.kind)
   const first = f.branches[0]?.guard ?? ''
   const nameW = measure(name, 11.5, 650)
-  const halo = { stroke: 'var(--paper-raised)', strokeWidth: 5, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+  const halo = { stroke: 'var(--poney-paper-raised)', strokeWidth: 5, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
   return (
     <g className={lookClass(look)} pointerEvents="none">
-      <text x={f.x + 14} y={f.y + 19} fontSize={11.5} fontWeight={650} fill="var(--ink-3)" {...halo}>
+      <text x={f.x + 14} y={f.y + 19} fontSize={11.5} fontWeight={650} fill="var(--poney-ink-3)" {...halo}>
         {name}
       </text>
-      <text x={f.x + 24 + nameW} y={f.y + 19} fontSize={12} fill="var(--ink-2)" {...halo}>
+      <text x={f.x + 24 + nameW} y={f.y + 19} fontSize={12} fill="var(--poney-ink-2)" {...halo}>
         {f.kind === 'loop' || f.kind === 'opt' ? first : `if ${first}`}
       </text>
       {f.branches.slice(1).map((b, i) => (
-        <text key={i} x={f.x + 14} y={b.y + 18} fontSize={12} fill="var(--ink-2)" {...halo}>
+        <text key={i} x={f.x + 14} y={b.y + 18} fontSize={12} fill="var(--poney-ink-2)" {...halo}>
           {f.kind === 'par' ? `and ${b.guard}` : `else, if ${b.guard}`}
         </text>
       ))}

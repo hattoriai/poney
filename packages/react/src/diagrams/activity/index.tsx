@@ -58,12 +58,12 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
         const laneHot = subject?.kind === 'entity' && subject.id === l.entityId
         return (
           <g key={i}>
-            <rect x={l.x} y={0} width={l.w} height={scene.height} fill={i % 2 ? 'var(--paper)' : 'transparent'} fillOpacity={0.45} />
-            {i > 0 && <line x1={l.x} x2={l.x} y1={0} y2={scene.height} stroke="var(--rule)" />}
+            <rect x={l.x} y={0} width={l.w} height={scene.height} fill={i % 2 ? 'var(--poney-paper)' : 'transparent'} fillOpacity={0.45} />
+            {i > 0 && <line x1={l.x} x2={l.x} y1={0} y2={scene.height} stroke="var(--poney-rule)" />}
             <g {...(e ? bind({ kind: 'entity', id: e.id }, `Lane: ${e.name}`) : {})}>
-              <rect x={l.x + 8} y={8} width={l.w - 16} height={scene.laneHeader - 16} rx={8} fill={laneHot ? 'var(--poney-wash)' : 'var(--paper-raised)'} stroke={laneHot ? 'var(--poney)' : 'var(--rule)'} />
+              <rect x={l.x + 8} y={8} width={l.w - 16} height={scene.laneHeader - 16} rx={8} fill={laneHot ? 'var(--poney-accent-wash)' : 'var(--poney-paper-raised)'} stroke={laneHot ? 'var(--poney-accent)' : 'var(--poney-rule)'} />
               {s && <Glyph name={s.icon} x={l.x + l.w / 2 - measure(l.label, 13, 650) / 2 - 12} y={scene.laneHeader / 2 - 7} size={14} color={toneColor(s.tone)} />}
-              <text x={l.x + l.w / 2 + (s ? 9 : 0)} y={scene.laneHeader / 2 + 4.5} textAnchor="middle" fontSize={13} fontWeight={650} fill="var(--ink)">
+              <text x={l.x + l.w / 2 + (s ? 9 : 0)} y={scene.laneHeader / 2 + 4.5} textAnchor="middle" fontSize={13} fontWeight={650} fill="var(--poney-ink)">
                 {l.label}
               </text>
             </g>
@@ -74,9 +74,9 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
       {/* Flows */}
       {scene.edges.map((e) => {
         const hot = focus?.edges.has(e.id) || sel('activityFlow', e.id)
-        const color = hot ? 'var(--poney)' : 'var(--ink-3)'
+        const color = hot ? 'var(--poney-accent)' : 'var(--poney-ink-3)'
         return (
-          <g key={e.id} {...bind({ kind: 'activityFlow', behavior, id: e.id }, idx.describe({ kind: 'activityFlow', behavior, id: e.id }).title)} className={`dg-el ${focus && !hot ? 'dg-dim' : ''}`}>
+          <g key={e.id} {...bind({ kind: 'activityFlow', behavior, id: e.id }, idx.describe({ kind: 'activityFlow', behavior, id: e.id }).title)} className={`poney-el ${focus && !hot ? 'poney-dim' : ''}`}>
             <EdgeLine points={e.points} style={{ color, width: hot ? 1.9 : 1.3, head: 'arrow', dash: e.back ? '6 4' : undefined }} />
             {e.guard && e.guardAt && (
               <g pointerEvents="none">
@@ -86,10 +86,10 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
                   width={measure(e.guard, 11.5, 650) + 14}
                   height={19}
                   rx={9.5}
-                  fill="var(--plaster)"
-                  stroke={hot ? 'var(--poney)' : 'var(--rule-strong)'}
+                  fill="var(--poney-plaster)"
+                  stroke={hot ? 'var(--poney-accent)' : 'var(--poney-rule-strong)'}
                 />
-                <text x={e.guardAt.anchor === 'end' ? e.guardAt.x - 5 : e.guardAt.x + 5} y={e.guardAt.y + 2.5} textAnchor={e.guardAt.anchor === 'end' ? 'end' : 'start'} fontSize={11.5} fontWeight={650} fill={hot ? 'var(--poney)' : 'var(--ink-2)'}>
+                <text x={e.guardAt.anchor === 'end' ? e.guardAt.x - 5 : e.guardAt.x + 5} y={e.guardAt.y + 2.5} textAnchor={e.guardAt.anchor === 'end' ? 'end' : 'start'} fontSize={11.5} fontWeight={650} fill={hot ? 'var(--poney-accent)' : 'var(--poney-ink-2)'}>
                   {e.guard}
                 </text>
               </g>
@@ -105,16 +105,16 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
         const ref = { kind: 'activityNode', behavior, id: n.id } as const
         const label = `${idx.describe(ref).kind}: ${n.label}`
         const { x, y, w, h } = n
-        const outcome = n.outcome === 'failure' ? 'var(--failure)' : n.outcome === 'success' ? 'var(--success)' : 'var(--ink)'
+        const outcome = n.outcome === 'failure' ? 'var(--poney-failure)' : n.outcome === 'success' ? 'var(--poney-success)' : 'var(--poney-ink)'
         let body: React.ReactNode
         switch (n.kind) {
           case 'start':
-            body = <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--ink)" />
+            body = <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--poney-ink)" />
             break
           case 'end':
             body = (
               <>
-                <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--paper-raised)" stroke={outcome} strokeWidth={1.6} />
+                <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--poney-paper-raised)" stroke={outcome} strokeWidth={1.6} />
                 <circle cx={w / 2} cy={h / 2} r={w / 2 - 5.5} fill={outcome} />
                 <text x={w / 2} y={h + 17} textAnchor="middle" fontSize={12.5} fontWeight={650} fill={outcome}>
                   {n.label}
@@ -124,14 +124,14 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
             break
           case 'fork':
           case 'join':
-            body = <rect width={w} height={h} rx={3} fill="var(--ink)" />
+            body = <rect width={w} height={h} rx={3} fill="var(--poney-ink)" />
             break
           case 'decision':
           case 'merge':
             body = (
               <>
-                <path className="dg-body" d={`M ${w / 2} 0 L ${w} ${h / 2} L ${w / 2} ${h} L 0 ${h / 2} Z`} fill="var(--paper-raised)" stroke="var(--ochre)" strokeWidth={1.4} strokeLinejoin="round" />
-                <text x={w / 2} y={h / 2 + 4.5} textAnchor="middle" fontSize={12.5} fontWeight={650} fill="var(--ink)">
+                <path className="poney-body" d={`M ${w / 2} 0 L ${w} ${h / 2} L ${w / 2} ${h} L 0 ${h / 2} Z`} fill="var(--poney-paper-raised)" stroke="var(--poney-ochre)" strokeWidth={1.4} strokeLinejoin="round" />
+                <text x={w / 2} y={h / 2 + 4.5} textAnchor="middle" fontSize={12.5} fontWeight={650} fill="var(--poney-ink)">
                   {n.label}
                 </text>
               </>
@@ -140,9 +140,9 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
           default:
             body = (
               <>
-                <rect className="dg-body" width={w} height={h} rx={10} fill="var(--paper-raised)" stroke="var(--rule-strong)" strokeWidth={1.1} />
+                <rect className="poney-body" width={w} height={h} rx={10} fill="var(--poney-paper-raised)" stroke="var(--poney-rule-strong)" strokeWidth={1.1} />
                 {n.lines.map((line, i) => (
-                  <text key={i} x={w / 2} y={h / 2 + 4.5 + (i - (n.lines.length - 1) / 2) * 16} textAnchor="middle" fontSize={13} fontWeight={500} fill="var(--ink)">
+                  <text key={i} x={w / 2} y={h / 2 + 4.5 + (i - (n.lines.length - 1) / 2) * 16} textAnchor="middle" fontSize={13} fontWeight={500} fill="var(--poney-ink)">
                     {line}
                   </text>
                 ))}
@@ -151,7 +151,7 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
         }
         const pad = n.kind === 'fork' || n.kind === 'join' ? 6 : 0
         return (
-          <g key={n.id} transform={`translate(${x} ${y})`} {...bind(ref, label)} className={`dg-el ${dim ? 'dg-dim' : ''}`}>
+          <g key={n.id} transform={`translate(${x} ${y})`} {...bind(ref, label)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             {pad > 0 && <rect x={0} y={-pad} width={w} height={h + pad * 2} fill="transparent" />}
             {body}
             <Rings w={w} h={h} rx={n.kind === 'start' || n.kind === 'end' ? w / 2 : 10} selected={selected} />
@@ -164,7 +164,7 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
 
 function Legend() {
   return (
-    <div className="space-y-1.5">
+    <div className="poney-legend">
       <LegendShape shape="dot" tone="ink" label="Start" />
       <LegendShape shape="card" tone="slate" label="Action" />
       <LegendShape shape="diamond" tone="ochre" label="Decision: one way out per answer" />

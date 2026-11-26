@@ -92,10 +92,10 @@ export function lookOf(s: StoryState, key: string): Look {
   }
 }
 
-export const lookClass = (l: Look) => `st-el ${l.hidden ? 'st-hidden' : l.dim ? 'st-dim' : ''}`
+export const lookClass = (l: Look) => `poney-story-el ${l.hidden ? 'poney-story-hidden' : l.dim ? 'poney-story-dim' : ''}`
 
-export const stateStroke = (s?: ChangeState, fallback = 'var(--story-rule)') => (s ? `var(--${s})` : fallback)
-export const stateFill = (s?: ChangeState, fallback = 'var(--story-node)') => (s ? `var(--${s}-wash)` : fallback)
+export const stateStroke = (s?: ChangeState, fallback = 'var(--poney-story-rule)') => (s ? `var(--poney-${s})` : fallback)
+export const stateFill = (s?: ChangeState, fallback = 'var(--poney-story-node)') => (s ? `var(--poney-${s}-wash)` : fallback)
 export const STATE_LABEL: Record<ChangeState, string> = { new: 'New', changed: 'Changed', removed: 'Removed' }
 
 /** A small label that says New, Changed or Removed, centred on a point. */
@@ -106,8 +106,8 @@ export function StateTag({ state, x, y, anchor = 'start' }: { state?: ChangeStat
   const left = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2
   return (
     <g pointerEvents="none">
-      <rect x={left} y={y - 9} width={w} height={18} rx={9} fill={`var(--${state}-wash)`} stroke={`var(--${state})`} strokeWidth={1} />
-      <text x={left + w / 2} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={650} fill={`var(--${state})`}>
+      <rect x={left} y={y - 9} width={w} height={18} rx={9} fill={`var(--poney-${state}-wash)`} stroke={`var(--poney-${state})`} strokeWidth={1} />
+      <text x={left + w / 2} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={650} fill={`var(--poney-${state})`}>
         {text}
       </text>
     </g>
@@ -117,9 +117,9 @@ export function StateTag({ state, x, y, anchor = 'start' }: { state?: ChangeStat
 /** A numbered marker that ties the diagram to a note in the text. */
 export function CalloutBadge({ n, x, y, hot }: { n: number; x: number; y: number; hot?: boolean }) {
   return (
-    <g pointerEvents="none" className="st-el">
-      <circle cx={x} cy={y} r={12} fill={hot ? 'var(--poney)' : 'var(--ink)'} stroke="var(--paper-raised)" strokeWidth={2.5} />
-      <text x={x} y={y + 4.2} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--paper-raised)" className="font-tabular">
+    <g pointerEvents="none" className="poney-story-el">
+      <circle cx={x} cy={y} r={12} fill={hot ? 'var(--poney-accent)' : 'var(--poney-ink)'} stroke="var(--poney-paper-raised)" strokeWidth={2.5} />
+      <text x={x} y={y + 4.2} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--poney-paper-raised)" className="poney-numbers">
         {n}
       </text>
     </g>

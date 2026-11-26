@@ -1,56 +1,56 @@
 @import 'tailwindcss';
-/* The renderers live in packages (any app can use them); their class names are generated here too. */
-@source '../../../../packages/react/src';
-@source '../../../../packages/ext-ownership/src';
 @import '@fontsource-variable/hanken-grotesk';
 @import '@fontsource-variable/jetbrains-mono';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /*
- * Poney palette.
+ * Poney palette. The colours Poney's diagrams use come from
+ * @poney/react/styles.css (--poney-*); the Studio's own tokens point at them,
+ * and add what only the Studio needs (shadows, fonts, the dotted canvas).
+ *
  * The canvas is a pale, cool plaster. Ink is a cool slate. The accent, a red
  * earth, is used for one job only: showing what is selected or focused.
  * Element kinds use mineral pigments, desaturated so that a full diagram
  * stays calm.
  */
 :root {
-  --plaster: #eef0ec;
+  --plaster: var(--poney-plaster);
   --plaster-dot: #d5d9d2;
-  --paper: #fbfbf9;
-  --paper-raised: #ffffff;
-  --sunken: #e5e8e3;
-  --ink: #1d2230;
-  --ink-2: #4e5566;
-  --ink-3: #848a97;
-  --ink-4: #b3b8c1;
-  --rule: #dcdfd8;
-  --rule-strong: #c8ccc4;
-  --poney: #b24a32;
-  --poney-wash: #b24a3214;
-  --poney-ring: #b24a3240;
+  --paper: var(--poney-paper);
+  --paper-raised: var(--poney-paper-raised);
+  --sunken: var(--poney-sunken);
+  --ink: var(--poney-ink);
+  --ink-2: var(--poney-ink-2);
+  --ink-3: var(--poney-ink-3);
+  --ink-4: var(--poney-ink-4);
+  --rule: var(--poney-rule);
+  --rule-strong: var(--poney-rule-strong);
+  --accent: var(--poney-accent);
+  --accent-wash: #b24a3214;
+  --accent-ring: #b24a3240;
 
-  --lapis: #3a5a9e;
-  --malachite: #2e7656;
-  --ochre: #a8761c;
-  --umber: #7d5a43;
-  --tyrian: #7a4a88;
-  --slate: #56627a;
-  --verdigris: #26807f;
+  --lapis: var(--poney-lapis);
+  --malachite: var(--poney-malachite);
+  --ochre: var(--poney-ochre);
+  --umber: var(--poney-umber);
+  --tyrian: var(--poney-tyrian);
+  --slate: var(--poney-slate);
+  --verdigris: var(--poney-verdigris);
 
-  --success: #2e7656;
-  --failure: #9c3554;
+  --success: var(--poney-success);
+  --failure: var(--poney-failure);
 
   /* Change states, for walkthroughs. Colour is kept for these three meanings. */
-  --new: #1d8a4e;
-  --new-wash: #ecf8f0;
-  --changed: #b86e0b;
-  --changed-wash: #fdf5e6;
-  --removed: #c03550;
-  --removed-wash: #fcf0f2;
-  --story-node: #ffffff;
-  --story-line: #8c939e;
-  --story-rule: #d7dade;
+  --new: var(--poney-new);
+  --new-wash: var(--poney-new-wash);
+  --changed: var(--poney-changed);
+  --changed-wash: var(--poney-changed-wash);
+  --removed: var(--poney-removed);
+  --removed-wash: var(--poney-removed-wash);
+  --story-node: var(--poney-story-node);
+  --story-line: var(--poney-story-line);
+  --story-rule: var(--poney-story-rule);
 
   --shadow-float: 0 1px 2px #1d22300d, 0 8px 24px -8px #1d22301f;
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
@@ -59,39 +59,10 @@
 }
 
 [data-theme='dark'] {
-  --plaster: #15181e;
   --plaster-dot: #262b34;
-  --paper: #1b1f27;
-  --paper-raised: #212631;
-  --sunken: #12151a;
-  --ink: #e6e8ec;
-  --ink-2: #aeb4c0;
-  --ink-3: #7c8391;
-  --ink-4: #535a67;
-  --rule: #2a2f39;
-  --rule-strong: #3a404c;
-  --poney: #e2765b;
-  --poney-wash: #e2765b1c;
-  --poney-ring: #e2765b4d;
+  --accent-wash: #e2765b1c;
+  --accent-ring: #e2765b4d;
 
-  --lapis: #7f9ce0;
-  --malachite: #5fb68d;
-  --ochre: #d6a64c;
-  --umber: #c19a7f;
-  --tyrian: #b98ac8;
-  --slate: #98a3b9;
-  --verdigris: #58bcba;
-  --success: #5fb68d;
-  --failure: #e07a98;
-  --new: #4fc887;
-  --new-wash: #15281f;
-  --changed: #e3a54a;
-  --changed-wash: #2b2416;
-  --removed: #ef7f97;
-  --removed-wash: #2e1a20;
-  --story-node: #1f242d;
-  --story-line: #7d8592;
-  --story-rule: #363c48;
   --shadow-float: 0 1px 2px #0006, 0 12px 32px -8px #0009;
   color-scheme: dark;
 }
@@ -107,8 +78,8 @@
   --color-ink-4: var(--ink-4);
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
-  --color-poney: var(--poney);
-  --color-poney-wash: var(--poney-wash);
+  --color-poney: var(--accent);
+  --color-poney-wash: var(--accent-wash);
   --color-new: var(--new);
   --color-new-wash: var(--new-wash);
   --color-changed: var(--changed);
@@ -139,7 +110,7 @@ body {
 
 /* One focus treatment everywhere: a poney ring. */
 :focus-visible {
-  outline: 2px solid var(--poney);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -150,42 +121,10 @@ body {
   outline: none;
 }
 
-/* SVG elements show focus with a drawn ring instead (see .dg-focus). */
+/* SVG elements show focus with a drawn ring instead (see .poney-focus). */
 svg :focus,
 svg :focus-visible {
   outline: none;
-}
-svg [data-ref]:focus-visible .dg-focus {
-  opacity: 1;
-}
-.dg-focus {
-  opacity: 0;
-  pointer-events: none;
-}
-/* Lines, states and messages have no drawn ring: a poney glow marks the focused one. */
-svg [data-ref]:focus-visible:not(:has(.dg-focus)) {
-  filter: drop-shadow(0 0 0.6px var(--poney)) drop-shadow(0 0 3px var(--poney));
-}
-
-.dg-el {
-  cursor: pointer;
-  transition: opacity 180ms ease;
-}
-.dg-dim {
-  opacity: 0.3;
-}
-.dg-edge-path {
-  transition: stroke 160ms ease, stroke-width 160ms ease, opacity 180ms ease;
-}
-
-@keyframes dg-flow {
-  to {
-    stroke-dashoffset: -20;
-  }
-}
-.dg-flowing {
-  stroke-dasharray: 6 4;
-  animation: dg-flow 0.9s linear infinite;
 }
 
 @keyframes fade-in {
@@ -216,48 +155,7 @@ svg [data-ref]:focus-visible:not(:has(.dg-focus)) {
   font-variant-numeric: tabular-nums;
 }
 
-/* Story renderers: elements fade and recolour when the change mode or the scene changes. */
-.st-el {
-  transition: opacity 420ms ease, transform 420ms ease;
-}
-.st-el * {
-  transition: fill 320ms ease, stroke 320ms ease, opacity 320ms ease;
-}
-.st-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-.st-dim {
-  opacity: 0.16;
-}
 
-/* Emphasis: data moving along a line, and a slow pulse that asks for attention. Still for readers who ask for less motion. */
-.pn-flow {
-  animation: pn-flow 1.1s linear infinite;
-}
-@keyframes pn-flow {
-  to {
-    stroke-dashoffset: -11.1;
-  }
-}
-.pn-pulse {
-  animation: pn-pulse 1.8s ease-in-out infinite;
-}
-@keyframes pn-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pn-flow,
-  .pn-pulse {
-    animation: none !important;
-  }
-}
 
 /* Pointing at something for the agent: the target from the Point button as the cursor, and the element under it lit. */
 .pointing svg,
@@ -265,7 +163,7 @@ svg [data-ref]:focus-visible:not(:has(.dg-focus)) {
   cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2228%22%20height%3D%2228%22%20viewBox%3D%220%200%2028%2028%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%3E%3Cg%20stroke%3D%22%23ffffff%22%20stroke-width%3D%224.5%22%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%229%22/%3E%3Cpath%20d%3D%22M23%2014h-3M8%2014H5M14%205v3M14%2020v3%22/%3E%3C/g%3E%3Cg%20stroke%3D%22%23b24a32%22%20stroke-width%3D%222%22%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%229%22/%3E%3Cpath%20d%3D%22M23%2014h-3M8%2014H5M14%205v3M14%2020v3%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%221.6%22%20fill%3D%22%23b24a32%22/%3E%3C/svg%3E") 14 14, crosshair !important;
 }
 .pointing svg [data-ref]:hover {
-  filter: drop-shadow(0 0 0.6px var(--poney)) drop-shadow(0 0 4px var(--poney));
+  filter: drop-shadow(0 0 0.6px var(--accent)) drop-shadow(0 0 4px var(--accent));
 }
 
 /* Syntax colours from Shiki: each token has a light and a dark colour. */

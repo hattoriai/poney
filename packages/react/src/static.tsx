@@ -15,7 +15,7 @@ import { layoutView, setTextMeasurer, wrap, type FontFamily } from '@poney/layou
 import { StoryProvider, type Mode } from './context'
 import { RenderProvider } from './render'
 import { findScene, fit, sceneFrame, sceneLayoutOptions, storyState } from './scene'
-import { THEMES, type ThemeName } from './theme'
+import { FONTS, THEMES, type ThemeName } from './theme'
 import { SceneStory } from './SceneStory'
 import { stepLetter } from './emphasis'
 import { diagramFor } from './diagrams/registry'
@@ -183,7 +183,7 @@ export async function renderScene(doc: PoneyDocument, options: RenderSceneOption
       ly += (lines.length * 20 + 8) * scale
       const x = vb.x + 40 * scale
       const e = entries[i]
-      const mark = e.step ? `<rect x="1" y="1" width="20" height="20" rx="6" fill="${colors.poney}"/>` : `<circle cx="11" cy="11" r="11" fill="${colors.ink}"/>`
+      const mark = e.step ? `<rect x="1" y="1" width="20" height="20" rx="6" fill="${colors.accent}"/>` : `<circle cx="11" cy="11" r="11" fill="${colors.ink}"/>`
       return (
         `<g transform="translate(${x} ${y}) scale(${scale})">${mark}` +
         `<text x="11" y="15" text-anchor="middle" font-size="12" font-weight="700" fill="${colors['paper-raised']}">${e.step ? stepLetter(e.n - 1) : e.n}</text>` +
@@ -231,14 +231,15 @@ export async function renderScenePng(doc: PoneyDocument, options: RenderSceneOpt
  */
 function flatten(markup: string, colors: Record<string, string>): string {
   return markup
-    .replace(/<rect[^>]*class="dg-focus"[^>]*?(?:\/>|><\/rect>)/g, '')
-    .replace(/var\(--([a-z0-9-]+)\)/g, (_, name: string) => colors[name] ?? '#888888')
+    .replace(/<rect[^>]*class="poney-focus"[^>]*?(?:\/>|><\/rect>)/g, '')
+    .replace(/var\(--poney-font-(sans|mono)\)/g, (_, f: 'sans' | 'mono') => FONTS[f].replace(/'/g, ''))
+    .replace(/var\(--poney-([a-z0-9-]+)\)/g, (_, name: string) => colors[name] ?? '#888888')
     // Tints are CSS color-mix(); a picture gets the mixed color itself.
     .replace(/color-mix\(in srgb,\s*(#[0-9a-fA-F]{6})\s+([\d.]+)%,\s*(#[0-9a-fA-F]{6}|transparent)\s*\)/g, (_, a: string, pct: string, b: string) => mix(a, Number(pct) / 100, b))
     .replace(/<(\w+)([^>]*?) class="([^"]*)"/g, (all, tag: string, attrs: string, cls: string) => {
-      const opacity = cls.includes('st-hidden') ? '0' : cls.includes('st-dim') ? '0.16' : cls.includes('dg-dim') ? '0.3' : undefined
+      const opacity = cls.includes('poney-story-hidden') ? '0' : cls.includes('poney-story-dim') ? '0.16' : cls.includes('poney-dim') ? '0.3' : undefined
       // A line that carries data flows in the Studio; a still picture draws it dashed.
-      const dashed = cls.includes('dg-flowing') ? ' stroke-dasharray="6 4"' : ''
+      const dashed = cls.includes('poney-flowing') ? ' stroke-dasharray="6 4"' : ''
       return opacity || dashed ? `<${tag}${attrs}${opacity ? ` opacity="${opacity}"` : ''}${dashed}` : all
     })
 }
