@@ -9,6 +9,6 @@ const { svg } = await renderScene(doc, { view: 'architecture' })
 const { png } = await renderScenePng(doc, { scene: 'checkout', theme: 'dark' })
 ```
 
-From a terminal, the `poney` package: `npx poney render doc.poney --view architecture --format svg`.
+From a terminal, the `@hattoriai/poney` CLI: `poney render doc.poney --view architecture --format svg`.
 
 Part of [Poney](https://github.com/hattoriai/poney): the format, the renderers, and tools to explain software. MIT licensed.

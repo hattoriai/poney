@@ -1,5 +1,5 @@
 {
-  "name": "poney",
+  "name": "@hattoriai/poney",
   "version": "0.1.0",
   "type": "module",
   "description": "Poney: explain software in diagrams that agents write and people read. The CLI (render, check, import), the MCP server for agents, and Poney Studio.",

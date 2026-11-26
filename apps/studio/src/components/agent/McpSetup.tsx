@@ -5,7 +5,7 @@ import { listAgents } from '@/features/agent'
 
 /** How to start the Poney MCP server: what this install reports, else the published package. */
 type Command = { command: string; args: string[] }
-const PUBLISHED: Command = { command: 'npx', args: ['-y', '--package=poney', 'poney-mcp'] }
+const PUBLISHED: Command = { command: 'npx', args: ['-y', '--package=@hattoriai/poney', 'poney-mcp'] }
 const shell = (c: Command) => [c.command, ...c.args].map((x) => (/\s/.test(x) ? `"${x}"` : x)).join(' ')
 
 /** How to add the Poney MCP server, per agent: a command where the agent has one, else its config. */

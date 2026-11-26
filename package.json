@@ -18,7 +18,7 @@
     "poney": "node --conditions=poney-source --import tsx packages/agent/src/cli.ts",
     "mcp": "node --conditions=poney-source --import tsx packages/agent/src/mcp.ts",
     "studio": "node --conditions=poney-source --import tsx packages/agent/src/cli.ts studio",
-    "build:packages": "npm run build -w @hattoriai/poney-core -w @hattoriai/poney-layout -w @hattoriai/poney-react -w @hattoriai/poney-render -w @hattoriai/poney-ext-ownership -w @hattoriai/poney-ext-security && npm run build -w @hattoriai/poney-studio && npm run build -w poney"
+    "build:packages": "npm run build -w @hattoriai/poney-core -w @hattoriai/poney-layout -w @hattoriai/poney-react -w @hattoriai/poney-render -w @hattoriai/poney-ext-ownership -w @hattoriai/poney-ext-security && npm run build -w @hattoriai/poney-studio && npm run build -w @hattoriai/poney"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

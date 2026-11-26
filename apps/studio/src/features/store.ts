@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AgentStatus, ContextItem, Message, OverlayResult } from 'poney/live'
+import type { AgentStatus, ContextItem, Message, OverlayResult } from '@hattoriai/poney/live'
 import { createHistory, execute, indexOf, redo, refKey, undo, type Command, type History, type Ref, type PoneyDocument } from '@hattoriai/poney-core'
 
 /**

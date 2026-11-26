@@ -10,9 +10,9 @@ Seven packages are published to npm, with one version:
 | `@hattoriai/poney-render` | SVG and PNG in Node |
 | `@hattoriai/poney-ext-ownership` | Extension |
 | `@hattoriai/poney-ext-security` | Extension |
-| `poney` | The CLI, the MCP server and Poney Studio |
+| `@hattoriai/poney` | The CLI (commands `poney` and `poney-mcp`), the MCP server and Poney Studio |
 
-`@hattoriai/poney-examples` and `@hattoriai/poney-studio` are private: the Studio ships built inside `poney`.
+`@hattoriai/poney-examples` and `@hattoriai/poney-studio` are private: the Studio ships built inside `@hattoriai/poney`.
 
 ## A release
 
@@ -31,7 +31,7 @@ npm lets you set up trusted publishing only for a package that exists, so 0.1.0 
 3. Publish each, in this order (`--provenance=false`: provenance only comes from CI):
 
    ```sh
-   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security poney; do
+   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
      npm publish -w "$name" --access public --provenance=false
    done
    ```
