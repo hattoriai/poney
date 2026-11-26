@@ -12,12 +12,22 @@ export interface LiveRead {
   /** The document the person is looking at. */
   current?: unknown
   thread: Message[]
+  /** The project's file exists but is not a valid document. */
+  invalid?: string
+}
+
+/** What opening a document did. `saved`: kept in its project, not shown. `refused`: why nothing was saved. */
+export interface Opened {
+  revision: number
+  viewers: number
+  saved?: boolean
+  refused?: string
 }
 
 export interface LiveApi {
   /** Where the person opens the Studio. */
   readonly studioUrl: string
-  open(document: unknown): Promise<{ revision: number; viewers: number; saved?: boolean }>
+  open(document: unknown): Promise<Opened>
   read(): Promise<LiveRead>
   /** `answeredInStudio`: an agent the Studio started takes the questions, so there is nothing to wait for. */
   waitForQuestions(timeoutMs: number): Promise<{ questions: Extract<Message, { from: 'person' }>[]; viewers: number; place?: Place; answeredInStudio?: boolean }>
@@ -33,7 +43,7 @@ export class LocalLive implements LiveApi {
   get studioUrl() {
     return this.server.studioUrl
   }
-  async open(document: unknown): Promise<{ revision: number; viewers: number; saved?: boolean }> {
+  async open(document: unknown): Promise<Opened> {
     return { revision: this.state.open(document), viewers: this.server.viewers }
   }
   async read(): Promise<LiveRead> {
@@ -67,7 +77,7 @@ export class RemoteLive implements LiveApi {
   open(document: unknown) {
     // An agent the Studio started names its project: the hub shows the document only when that project is open.
     const project = process.env.PONEY_PROJECT
-    return this.call<{ revision: number; viewers: number; saved?: boolean }>('/api/live/open', { body: { document, ...(project ? { project } : {}) } })
+    return this.call<Opened>('/api/live/open', { body: { document, ...(project ? { project } : {}) } })
   }
   read() {
     const project = process.env.PONEY_PROJECT

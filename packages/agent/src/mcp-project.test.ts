@@ -74,3 +74,18 @@ describe('an agent of a project that is not open', () => {
     expect(JSON.stringify(doc)).not.toContain('only-b')
   })
 })
+
+describe('an agent of a project whose file is not a valid document', () => {
+  it('is refused, and the file stays as it is', async () => {
+    const path = workspaceFile(workspaceProject(a))
+    const conflicted = `<<<<<<< HEAD\n${readFileSync(path, 'utf8')}=======\n{}\n>>>>>>> theirs\n`
+    writeFileSync(path, conflicted)
+    const r = await call('poney_open', { document: withWalkthrough('new-one') })
+    expect(r.isError).toBe(true)
+    expect(textOf(r)).toBe("The project's file is not a valid document. Not saved.")
+    expect(readFileSync(path, 'utf8')).toBe(conflicted)
+    // Reading tells an invalid file apart from a missing one.
+    const read = JSON.parse(textOf(await call('poney_read', { includeDocument: true })))
+    expect(read).toMatchObject({ document: null, problem: "The project's file is not a valid document." })
+  })
+})

@@ -26,6 +26,13 @@ function repositoryOf(dir: string): string | undefined {
 /** Where a folder's Poney file goes. */
 export const workspaceFile = (w: WorkspaceProject) => join(w.cwd, 'docs', 'poney', `${w.id}.poney`)
 
+/** Why a file that exists is not a valid document (a merge conflict, a bad edit); undefined when it is missing or valid. */
+function invalidFile(path: string): string | undefined {
+  if (!existsSync(path)) return undefined
+  const { result, report } = check({ text: readFileSync(path, 'utf8') })
+  return result?.ok ? undefined : report.split('\n')[0] || 'Not a valid document.'
+}
+
 const isEmpty = (doc: unknown) => {
   const d = doc as { views?: unknown[]; walkthroughs?: unknown[] } | undefined
   return !d?.views?.length && !d?.walkthroughs?.length
@@ -38,6 +45,8 @@ export class DocumentFiles {
   private timer?: ReturnType<typeof setTimeout>
   /** The project the file holds. A document of another project releases the file; it never overwrites it. */
   private project?: string
+  /** The file a save was refused for, so the person is told once. */
+  private refused?: string
 
   constructor(private readonly state: LiveState) {
     state.on('document', (_rev, doc, source) => {
@@ -81,6 +90,10 @@ export class DocumentFiles {
         return this.open(path)
       } catch (e) {
         this.state.put({ from: 'notice', text: e instanceof Error ? e.message.split('\n')[0] : String(e), tone: 'error' })
+        // The file is the person's to fix: nothing is saved over it.
+        this.tie(undefined)
+        if (this.state.openProjectId !== w.id) this.state.open(emptyDocument(w), 'workspace')
+        return
       }
     }
     this.tie(path, w.id)
@@ -97,25 +110,28 @@ export class DocumentFiles {
     if (existsSync(path)) this.watch(path)
   }
 
-  /** Saves a document into another project's file, whether or not that project is open. Nothing for an empty document, nothing when unchanged; true when it wrote. */
-  saveFor(w: WorkspaceProject, doc: unknown): boolean {
+  /**
+   * Saves a document into another project's file, whether or not that project is open.
+   * Nothing for an empty document or when unchanged, and never over a file that is not a valid document.
+   */
+  saveFor(w: WorkspaceProject, doc: unknown): 'saved' | 'unchanged' | 'invalid' {
     const into = intoWorkspace(doc, w)
-    if (isEmpty(into)) return false
+    if (isEmpty(into)) return 'unchanged'
     const path = workspaceFile(w)
+    if (invalidFile(path)) return 'invalid'
     const text = `${JSON.stringify(into, null, 2)}\n`
-    if (existsSync(path) && readFileSync(path, 'utf8') === text) return false
+    if (existsSync(path) && readFileSync(path, 'utf8') === text) return 'unchanged'
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, text)
-    return true
+    return 'saved'
   }
 
-  /** The document saved in a project's file, if there is one. */
-  savedFor(w: WorkspaceProject): unknown {
-    try {
-      return JSON.parse(readFileSync(workspaceFile(w), 'utf8'))
-    } catch {
-      return null
-    }
+  /** The document saved in a project's file: none when the file is missing, `invalid` when it is not a valid document. */
+  savedFor(w: WorkspaceProject): { document?: unknown; invalid?: string } {
+    const path = workspaceFile(w)
+    if (!existsSync(path)) return {}
+    const invalid = invalidFile(path)
+    return invalid ? { invalid } : { document: JSON.parse(readFileSync(path, 'utf8')) }
   }
 
   /** Writes the document to its file, unless it is empty or unchanged. */
@@ -132,6 +148,13 @@ export class DocumentFiles {
     }
     const text = `${JSON.stringify(doc, null, 2)}\n`
     if (text === this.written) return
+    // A file that changed on disk into something that is not a document (a merge conflict, a bad edit) is the person's to fix.
+    if (existsSync(path) && readFileSync(path, 'utf8') !== this.written && invalidFile(path)) {
+      if (this.refused !== path) this.state.put({ from: 'notice', text: `${path} is not a valid document. Not saved.`, tone: 'error' })
+      this.refused = path
+      return
+    }
+    this.refused = undefined
     mkdirSync(dirname(path), { recursive: true })
     this.written = text
     writeFileSync(path, text)

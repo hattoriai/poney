@@ -44,6 +44,8 @@ const TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.json': 'application/json',
 }
+const NOT_VALID = "The project's file is not a valid document."
+const NOT_SAVED = `${NOT_VALID} Not saved.`
 /** The Studio's dev server may also use the hub. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
@@ -173,7 +175,9 @@ export class LiveServer {
         if (project && project !== s.projectKey()) {
           if (!this.files) return json(res, 400, { error: 'This hub cannot save documents.' })
           const w = workspaceProject(checkFolder(project))
-          if (this.files.saveFor(w, document)) {
+          const saved = this.files.saveFor(w, document)
+          if (saved === 'invalid') return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, refused: NOT_SAVED })
+          if (saved === 'saved') {
             const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
             s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
           }
@@ -184,7 +188,10 @@ export class LiveServer {
       case 'GET /api/live/read': {
         // An agent of a project that is not open reads its own project: the saved document and its thread.
         const project = url.searchParams.get('project')
-        if (project && project !== s.projectKey() && this.files) return json(res, 200, { viewers: this.viewers, current: this.files.savedFor(workspaceProject(checkFolder(project))), thread: s.thread(project) })
+        if (project && project !== s.projectKey() && this.files) {
+          const { document, invalid } = this.files.savedFor(workspaceProject(checkFolder(project)))
+          return json(res, 200, { viewers: this.viewers, current: document ?? null, ...(invalid ? { invalid: NOT_VALID } : {}), thread: s.thread(project) })
+        }
         return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread() })
       }
       case 'GET /api/live/wait': {

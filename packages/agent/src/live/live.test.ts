@@ -212,6 +212,31 @@ describe('a workspace project, saved as a file', () => {
   })
 })
 
+describe('a project whose file is not a valid document', () => {
+  it('is reported, and what an agent opens next does not overwrite it', async () => {
+    const { LiveState } = await import('./state')
+    const { DocumentFiles } = await import('./files')
+    const cwd = mkdtempSync(join(tmpdir(), 'broken-'))
+    const w = workspaceProject(cwd)
+    const path = workspaceFile(w)
+    const { mkdirSync } = await import('node:fs')
+    mkdirSync(dirname(path), { recursive: true })
+    const broken = '<<<<<<< HEAD\n{"poneyVersion": "0.1.0"}\n=======\n{}\n>>>>>>> theirs\n'
+    writeFileSync(path, broken)
+    const state = new LiveState()
+    const files = new DocumentFiles(state)
+    state.setWorkspace(w)
+    expect(state.thread()).toContainEqual(expect.objectContaining({ from: 'notice', tone: 'error' }))
+    const tour = JSON.parse(readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
+    state.open(tour) // the agent's poney_open
+    state.setWorkspace(w) // the person opens the project again
+    state.open(tour)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(readFileSync(path, 'utf8')).toBe(broken)
+    files.close()
+  })
+})
+
 describe('waiting for questions while the Studio has its own agent', () => {
   it('returns at once, and wakes agents that were waiting', async () => {
     const { LiveState } = await import('./state')

@@ -184,7 +184,8 @@ server.registerTool(
           true,
         )
     }
-    const { revision, viewers, saved } = await live.open(JSON.parse(JSON.stringify(result.document)))
+    const { revision, viewers, saved, refused } = await live.open(JSON.parse(JSON.stringify(result.document)))
+    if (refused) return text(refused, true)
     if (saved) return text(SAVED)
     const where = viewers ? `Shown in ${viewers} open Studio window${viewers > 1 ? 's' : ''}.` : noWindow()
     return text(`Opened revision ${revision}: "${result.document.walkthroughs[0]?.title ?? result.document.project.name}". ${where}${result.warnings.length ? `\n\n${report}` : ''}`)
@@ -215,7 +216,8 @@ server.registerTool(
       const { document, summary } = await p.runImport(importer, repo, { into: current ?? undefined, path, store })
       const { result, report } = check({ document })
       if (!result?.ok) return text(`Not opened: the document has errors after the import.\n\n${report}`, true)
-      const { revision, viewers, saved } = await live.open(document)
+      const { revision, viewers, saved, refused } = await live.open(document)
+      if (refused) return text(refused, true)
       if (saved) return text(`${summary}\n${SAVED}`)
       return text(`${summary}\nOpened revision ${revision}${viewers ? '' : `. ${noWindow()}`}. Give the new parts and tables plain summaries, then group them into views that explain something.`)
     } catch (e) {
@@ -302,7 +304,7 @@ server.registerTool(
     const r = await live.read()
     if (!r.studio && !args.includeDocument) return text(r.viewers ? 'A Studio window is open but has reported nothing yet.' : noWindow())
     const { document, ...rest } = r.studio ?? { document: undefined }
-    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20) }
+    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20), ...(r.invalid ? { problem: r.invalid } : {}) }
     if (document !== undefined || args.includeDocument) out.document = document ?? r.current
     return text(JSON.stringify(out, null, 2))
   },
