@@ -100,11 +100,17 @@ export class DocumentFiles {
   }
 
   /** Writes the document to its file, unless it is empty or unchanged. */
-  private save(doc: unknown) {
+  private save(doc: unknown): void {
     const path = this.state.file
     if (!path || isEmpty(doc)) return
     const id = (doc as { project?: { id?: string } }).project?.id
-    if (this.project && id !== this.project) return this.tie(undefined)
+    if (this.project && id !== this.project) {
+      // Another project: never over this file. The agent's folder's own project goes to that folder's file.
+      const w = this.state.project
+      if (!w || id !== w.id) return this.tie(undefined)
+      this.tie(workspaceFile(w), w.id)
+      return this.save(doc)
+    }
     const text = `${JSON.stringify(doc, null, 2)}\n`
     if (text === this.written) return
     mkdirSync(dirname(path), { recursive: true })

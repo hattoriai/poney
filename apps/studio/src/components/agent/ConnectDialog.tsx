@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Folder as FolderIcon, Loader2, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useStudio } from '@/features/store'
-import { agentFor, checkAgent, connectHere, customAgents, lastFolder, rememberAgentFor, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
+import { agentFor, checkAgent, connectHere, customAgents, lastFolder, openProjectFolder, rememberAgentFor, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
 import { Modal } from '@/components/dialogs/Modal'
 import { FileBrowser } from './FileBrowser'
 
@@ -19,6 +19,8 @@ export function ConnectDialog() {
   const open = useStudio((s) => s.connectOpen)
   const setOpen = useStudio((s) => s.setConnectOpen)
   const project = useProjectRoot()
+  // From the start page, the folder's own project opens; otherwise the agent writes to the document on screen.
+  const fromStart = useStudio((s) => s.startOpen || !s.history)
   const [providers, setProviders] = useState<Provider[]>([])
   const [custom, setCustom] = useState(() => customAgents())
   const [choice, setChoice] = useState<Choice | null>(null)
@@ -64,9 +66,17 @@ export function ConnectDialog() {
     setBusy('Starting the agent…')
     setError(null)
     try {
-      await connectHere(asAgent(choice), folder)
+      const before = useStudio.getState().history?.present.project.id
+      if (useStudio.getState().startOpen || !before) {
+        // From the start page, nothing is on screen: the folder's own project opens (its docs/poney/ file, or a new one), and the agent works on it.
+        await openProjectFolder(folder)
+        await connectHere(asAgent(choice))
+      } else {
+        // A document is on screen: the agent works in the folder and writes to that document.
+        await connectHere(asAgent(choice), folder)
+      }
       rememberFolder(folder)
-      const docId = useStudio.getState().history?.present.project.id
+      const docId = await documentAfter(before)
       if (docId) rememberAgentFor(docId, { folder, agent: asAgent(choice) })
       setOpen(false)
       useStudio.getState().setAgentPanelOpen(true)
@@ -79,7 +89,7 @@ export function ConnectDialog() {
 
   const ready = !!folder && !!choice && usableStatus(checks[keyOf(choice)])
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Connect an agent" description="It reads the code in the folder below and writes to this document." width={640}>
+    <Modal open={open} onOpenChange={setOpen} title="Connect an agent" description={fromStart ? 'It reads the code in the folder below, and writes to its Poney document.' : 'It reads the code in the folder below and writes to this document.'} width={640}>
       <div className="scrollbar-quiet min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
         <section aria-labelledby="code-folder">
           <h3 id="code-folder" className="text-[13px] font-semibold">
@@ -256,4 +266,15 @@ function Status({ status, signIn, onRetry }: { status?: Check; signIn: string; o
       )}
     </span>
   )
+}
+
+/** The document on screen once a project has opened: a new one when the project changed (it arrives from the local server), else the same. */
+async function documentAfter(before: string | undefined): Promise<string | undefined> {
+  for (let i = 0; i < 20; i++) {
+    const s = useStudio.getState()
+    const id = s.history?.present.project.id
+    if (id && (id !== before || !s.startOpen)) return id
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  return useStudio.getState().history?.present.project.id
 }

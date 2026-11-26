@@ -49,8 +49,10 @@ export class LiveState extends EventEmitter<Events> {
 
   /** Shows a document in every open Studio. Returns its revision. While an agent works in a folder, the document joins that folder's project. */
   open(document: unknown, source: Source = 'agent'): number {
-    // What an agent opens joins the open project (one project per folder); a file opens as it is.
-    this.document = this.workspace && source === 'agent' ? intoWorkspace(document, { ...this.workspace, id: this.openProjectId ?? this.workspace.id }) : document
+    // What an agent opens joins the open project when that project belongs to the agent's folder (its file is there, or it has none);
+    // otherwise it is the folder's own project. A file opens as it is.
+    const joins = !this.path || (this.workspace && this.path.startsWith(`${this.workspace.cwd}/`))
+    this.document = this.workspace && source === 'agent' ? intoWorkspace(document, { ...this.workspace, id: (joins ? this.openProjectId : undefined) ?? this.workspace.id }) : document
     this.source = source
     this.revision++
     this.studio = undefined
@@ -169,7 +171,8 @@ export class LiveState extends EventEmitter<Events> {
    * `keep`, the folder is only where agents work: the open document stays.
    */
   setWorkspace(w: WorkspaceProject | undefined, keep = false) {
-    if (w?.cwd === this.workspace?.cwd) return
+    // The same folder again: nothing to do, unless it is now opened as the project (it may have been only the agent's folder).
+    if (w?.cwd === this.workspace?.cwd && (keep || !w)) return
     this.workspace = w
     this.emit('workspace', w, keep)
   }
