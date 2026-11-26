@@ -44,10 +44,10 @@ npx @hattoriai/poney studio
 npx @hattoriai/poney render shop.poney --view architecture --format svg
 ```
 
-**Draw a diagram in React.** Install the renderer and the packages it uses.
+**Draw a diagram in a web page.** Install the renderers and the packages they use. Add `@hattoriai/poney-react` for React.
 
 ```sh
-npm install @hattoriai/poney-react @hattoriai/poney-layout @hattoriai/poney-core
+npm install @hattoriai/poney-diagrams @hattoriai/poney-layout @hattoriai/poney-core
 ```
 
 See [Use Poney in your app](docs/embedding.md).
@@ -73,7 +73,8 @@ For work on Poney itself, follow the [repository instructions](AGENTS.md).
 | [`@hattoriai/poney`](packages/agent) | The CLI (`poney`), the MCP server (`poney-mcp`) and Poney Studio |
 | [`@hattoriai/poney-core`](packages/core) | Reads, validates, upgrades and edits documents. Includes Mermaid import and depends only on Zod |
 | [`@hattoriai/poney-layout`](packages/layout) | Positions elements and routes connections for each diagram |
-| [`@hattoriai/poney-react`](packages/react) | Draws diagrams in React and provides their stylesheet |
+| [`@hattoriai/poney-diagrams`](packages/diagrams) | Draws diagrams as SVG with no framework, and provides their stylesheet |
+| [`@hattoriai/poney-react`](packages/react) | Draws diagrams in React |
 | [`@hattoriai/poney-render`](packages/render) | Renders a view as SVG or PNG in Node |
 | [`@hattoriai/poney-ext-ownership`](packages/ext-ownership), [`@hattoriai/poney-ext-security`](packages/ext-security) | Describe team ownership, trust zones and sensitive data |
 

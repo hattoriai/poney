@@ -1,13 +1,12 @@
-/** @jsxRuntime automatic @jsxImportSource react */
-import { useMemo } from 'react'
-import { Users } from 'lucide-react'
+/** @jsxRuntime automatic */
+/** @jsxImportSource @hattoriai/poney-diagrams */
 import type { View } from '@hattoriai/poney-core'
-import { EntityNode, Glyph, Rings, toneColor, toneWash, useRenderBind, useRenderIndex, useRenderSubject, type DiagramModule } from '@hattoriai/poney-react'
+import { EntityNode, Glyph, LUCIDE, useMemo, Rings, toneColor, toneWash, useRenderBind, useRenderIndex, useRenderSubject, type DiagramModule } from '@hattoriai/poney-diagrams'
 import { ownershipOf, TEAM_KIND } from './index'
 import type { TeamMapScene } from './layout'
 
 /**
- * The team map, drawn with @hattoriai/poney-react: one column per team, with what it
+ * The team map, drawn with @hattoriai/poney-diagrams: one column per team, with what it
  * owns. Register it (registerDiagram(teamMap)) and its layout
  * (registerExtensionLayout('ownership/team-map', layoutTeamMap)) to draw
  * "ownership/team-map" views.
@@ -73,7 +72,7 @@ function TeamMap({ scene }: { scene: TeamMapScene; view: TeamMapView }) {
 export const teamMap: DiagramModule<TeamMapView, TeamMapScene> = {
   key: 'ownership/team-map',
   label: 'Team map',
-  icon: Users,
+  icon: LUCIDE.users,
   howToRead: 'One column per team, with everything it owns. Select a part anywhere in the studio to see its team and who is on call.',
   Renderer: TeamMap,
 }

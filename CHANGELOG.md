@@ -2,6 +2,15 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
+## Unreleased
+
+### Diagrams without a framework
+
+- New package `@hattoriai/poney-diagrams`: every renderer, the walkthrough stories and the stylesheet, with no UI framework. The renderers are JSX for a small runtime of their own; `toMarkup` writes them as SVG text, and `drawInto` draws them into a page and changes only what changed on the next drawing.
+- `@hattoriai/poney-react` is now the React adapter for these renderers: the providers, `diagramFor`, `iconFor`, the story components and the scene helpers stay. The parts for writing renderers (`EntityNode`, `Glyph`, `useRenderIndex`, `useStory` and the like) move to `@hattoriai/poney-diagrams`. Import the stylesheet from `@hattoriai/poney-diagrams/styles.css`. `react-dom` is no longer a peer dependency.
+- `@hattoriai/poney-render` and `@hattoriai/poney` draw with `@hattoriai/poney-diagrams` and no longer need React. The SVG is the same as before.
+- Extensions write their renderers for `@hattoriai/poney-diagrams` and register them with its `registerDiagram`. `DiagramModule.icon` is a Lucide icon (`IconData`); the React adapter turns it into a Lucide React component.
+
 ## 0.2.0
 
 ### Format 0.2.0
