@@ -15,6 +15,14 @@ The format now uses the names of the notations it draws. Readers upgrade 0.1.0 d
 - View category `capabilities` → `use-cases`; tone `poney` → `accent`.
 - `@hattoriai/poney-core` exports `upgradeDocument`.
 
+### Diagrams
+
+- In dependency diagrams, a line that crosses several layers goes around the boxes in the layers between, not behind them.
+
+### Documentation
+
+- A shorter README, with guides in `docs/`, `CONTRIBUTING.md`, and `AGENTS.md` for coding agents. The architecture guide shows Poney's own diagrams, from `docs/poney/poney.poney`.
+
 ### Studio
 
 - Connecting an agent from the start page opens the folder's project. An agent's document never goes into the project or file of a different folder.
