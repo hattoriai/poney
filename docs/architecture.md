@@ -86,3 +86,9 @@ When you rename a service in Studio, the edit goes through the same command API 
 ## The local hub
 
 The hub is a local HTTP server on `127.0.0.1`. It saves the open document, watches its file for edits and sends updates to connected Studio windows using server-sent events. It also carries questions and replies between Studio and the agent. `poney studio` starts a hub. The MCP server connects to an existing hub or starts one of its own. The implementation lives in `packages/agent/src/live`.
+
+A project is a folder. For a file in `<folder>/docs/poney/`, the project is that folder; for another file, it is the Git repository the file is in. Each project has its own conversation.
+
+The **agent pool** (`packages/agent/src/agents/pool.ts`) runs the agents that Studio starts: one for each project, and at most two at a time. When a project opens, its agent answers the person; an agent in another project finishes its answer in that project's conversation. Above the limit, the agent used longest ago stops, unless it works or waits for the person. Only the hub that `poney studio` starts begins the default agent by itself; a hub that an MCP server starts leaves the questions to that agent.
+
+The **session store** (`packages/agent/src/agents/sessions.ts`) keeps the default agent, its settings, and the last session of each project in `~/.poney/sessions.json`. An agent that starts again in a project continues that session (ACP `session/resume`, or `session/load` after a restart).

@@ -2,7 +2,6 @@ import { indexOf, refKey, validateDocument, plainText } from '@hattoriai/poney-c
 import { knownExtensions } from './extensions'
 import { useStudio, walkId, type AgentStatus, type Message } from './store'
 import { listRecent } from './recent'
-import { agentFor, connectHere } from './agent'
 import { readLocation } from './location'
 
 /** The document the address named when the page opened (?doc=<id>); the start page may remove it from the address. */
@@ -35,7 +34,7 @@ function connect(base: string, attempt = 0) {
   events.onopen = () => {
     attempt = 0
     useStudio.getState().setLive({ ...useStudio.getState().live, state: 'on', url: base })
-    void giveBack(base).then(() => reconnect(base))
+    void giveBack(base)
   }
   events.onerror = () => {
     useStudio.getState().setLive({ ...useStudio.getState().live, state: 'lost' })
@@ -155,21 +154,6 @@ function report(base: string) {
 const isEmpty = (doc: { views: unknown[]; walkthroughs: unknown[] }) => doc.views.length === 0 && doc.walkthroughs.length === 0
 
 /**
- * The agent this document last worked with starts again, in the same folder,
- * when none runs: after the local server restarted, or on a new visit.
- */
-async function reconnect(base: string) {
-  const s = useStudio.getState()
-  const doc = s.history?.present
-  const origin = s.projects.find((p) => p.id === s.projectId)?.origin
-  const last = agentFor(doc?.project.id)
-  if (!doc || !last || origin === 'example' || s.startOpen) return
-  const info = (await fetch(`${base}/api/agent`).then((r) => r.json()).catch(() => ({}))) as { status?: { session?: unknown; listening?: boolean }; canStart?: boolean }
-  if (!info.canStart || info.status?.session || info.status?.listening) return
-  await connectHere(last.agent, last.folder).catch((e: unknown) => s.notify(`The agent did not start again: ${e instanceof Error ? e.message : String(e)}`))
-}
-
-/**
  * A local server that restarted knows no document. The one open here goes
  * back to it: from its file when this Studio knows the file (which also tells
  * it the project folder), else as it is, so agents can read it.
@@ -183,6 +167,7 @@ async function giveBack(base: string) {
   if (info.revision !== 0) return
   const path = s.liveFile ?? listRecent().find((r) => r.id === doc.project.id)?.path
   const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-  const opened = path ? await post('/api/files/open', { path }).then((r) => r.ok).catch(() => false) : false
+  // With the document: a file not written yet still brings its project back, and with it the project's agent.
+  const opened = path ? await post('/api/files/open', { path, document: doc }).then((r) => r.ok).catch(() => false) : false
   if (!opened) await post('/api/live/open', { document: doc }).catch(() => undefined)
 }

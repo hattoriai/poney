@@ -59,10 +59,11 @@ export function ask(text: string, context: ContextItem[] = []) {
   })
 }
 
-export const listAgents = () => call<{ providers: Provider[]; canStart: boolean; mcpServer?: { command: string; args: string[] } }>('/api/agent')
+export const listAgents = () => call<{ providers: Provider[]; canStart: boolean; defaultAgent: AgentChoice | null; mcpServer?: { command: string; args: string[] } }>('/api/agent')
 /** An agent as the Studio names it: a known one, or one the person added by command. */
 export type AgentChoice = { providerId: string } | { custom: { name: string; command: string } }
-export const connectAgent = (cwd: string, agent: AgentChoice) => call('/api/agent/connect', { cwd, ...agent })
+/** Starts the agent for the open project, or for `folder`, which opens as the project first. */
+export const connectAgent = (agent: AgentChoice, folder?: string) => call('/api/agent/connect', { ...agent, ...(folder ? { folder } : {}) })
 /** Asks whether an agent is signed in (its own CLI), or whether a test session opens. */
 export const checkAgent = (agent: AgentChoice, fresh = false) => call<SignInStatus>('/api/agent/check', { ...agent, fresh })
 export const disconnectAgent = () => call('/api/agent/disconnect', {})
@@ -74,31 +75,6 @@ export const setSetting = (id: string, value: string | boolean) => call('/api/ag
 
 /** Opens a folder (a repository) as the project: agents work there, and its document is saved there. */
 export const openProjectFolder = (path: string) => call<{ root: string }>('/api/project/open', { path })
-/** Starts an agent in the open project's folder, or in `folder`. The open document stays. */
-export const connectHere = (agent: AgentChoice, folder?: string) => call('/api/agent/connect-here', { ...agent, ...(folder ? { folder } : {}) })
-
-/** The agent and folder last used with a document, so a restart can connect them again. */
-export interface DocumentAgent {
-  folder: string
-  agent: AgentChoice
-}
-const AGENT_FOR = 'poney:agent-for:'
-export const agentFor = (docId: string | undefined): DocumentAgent | undefined => {
-  if (!docId) return undefined
-  try {
-    return JSON.parse(localStorage.getItem(AGENT_FOR + docId) ?? 'null') ?? undefined
-  } catch {
-    return undefined
-  }
-}
-export const rememberAgentFor = (docId: string, value: DocumentAgent) => {
-  try {
-    localStorage.setItem(AGENT_FOR + docId, JSON.stringify(value))
-  } catch {
-    /* a convenience only */
-  }
-}
-
 /** Opens a .poney file on this computer; the Studio keeps it saved. */
 export const openFile = (path: string) => call<{ path: string }>('/api/files/open', { path })
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
@@ -163,19 +139,9 @@ export const rememberFolder = (path: string) => {
   }
 }
 
-/**
- * The project's folder: as Poney on this computer says, else the folder an
- * agent already works in, else the repository a docs/poney/ file is saved in.
- */
+/** The project's folder, as the Poney hub on this computer says: one rule for every way a project opens. */
 export function useProjectRoot(): { root: string; name: string } | null {
   // A string, so the store returns the same value while nothing changes.
-  const root = useStudio(
-    (s) =>
-      s.project?.root ??
-      s.agent.session?.cwd ??
-      (s.liveFile ? /^(.*)\/docs\/poney\/[^/]+\.poney$/.exec(s.liveFile)?.[1] : undefined) ??
-      agentFor(s.history?.present.project.id)?.folder ??
-      null,
-  )
+  const root = useStudio((s) => s.project?.root ?? null)
   return root ? { root, name: root.split('/').pop() ?? root } : null
 }

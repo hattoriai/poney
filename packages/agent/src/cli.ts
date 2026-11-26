@@ -121,7 +121,7 @@ async function main(): Promise<number> {
     }
     case 'studio': {
       const { startHub } = await import('./live/hub')
-      const hub = await startHub(values.port ? Number(values.port) : undefined)
+      const hub = await startHub(values.port ? Number(values.port) : undefined, { autoStart: true })
       console.log(`Poney Studio: ${hub.server.studioUrl}`)
       if (!hub.server.servesStudio) console.log('The Studio is not built: run "npm run build" first, or "npm run dev" and open the address above.')
       console.log('Agents in their own session (Claude Code, Codex…) with the Poney MCP server attach to this Studio by themselves.')

@@ -4,7 +4,7 @@
  *
  * It knows no transport. The HTTP server shows it to the Studio; an MCP
  * server reads and writes it (in this process, or over HTTP from another);
- * the ACP bridge answers the person's questions through it.
+ * the project agents (ACP) answer the person's questions through it.
  */
 import { EventEmitter } from 'node:events'
 import type { OverlayResult } from '../plugins/types'
@@ -23,8 +23,10 @@ interface Events {
   edited: [document: unknown]
   /** The file the open document is saved to, if any. */
   file: [path: string | undefined]
-  workspace: [workspace: WorkspaceProject | undefined, keep: boolean]
+  workspace: [workspace: WorkspaceProject | undefined]
   message: [message: Message]
+  /** The open project changed: its conversation. */
+  thread: [messages: Message[]]
   agent: [status: AgentStatus]
   /** Overlay results the Studio shows, by overlay id. */
   overlays: [overlays: Record<string, OverlayResult>]
@@ -34,9 +36,11 @@ export class LiveState extends EventEmitter<Events> {
   private document?: unknown
   private source: Source = 'agent'
   private revision = 0
-  private messages: Message[] = []
-  /** Questions an agent took over MCP (poney_wait). */
-  private delivered = 0
+  /** One conversation for each project, by folder. The empty key is the thread before any project opens. */
+  private threads = new Map<string, Message[]>()
+  private lastId = 0
+  /** For each project, the last question an agent took over MCP (poney_wait). */
+  private delivered = new Map<string, number>()
   private waiters = new Set<() => void>()
   private responder: Responder | null = null
   private session: AgentStatus['session'] = null
@@ -101,18 +105,42 @@ export class LiveState extends EventEmitter<Events> {
 
   /* ─── The conversation ──────────────────────────────────────────────── */
 
-  thread(): Message[] {
-    return [...this.messages]
+  /** The key of the open project's thread. */
+  projectKey(): string {
+    return this.workspace?.cwd ?? ''
   }
 
-  /** Adds a message, or replaces the one with the same id. */
-  put(input: MessageInput | Message): Message {
-    const existing = 'id' in input ? this.messages.findIndex((m) => m.id === input.id) : -1
-    const message = (existing >= 0 ? input : { ...input, id: this.messages.length + 1, at: new Date().toISOString() }) as Message
-    if (existing >= 0) this.messages[existing] = message
-    else this.messages.push(message)
-    this.emit('message', message)
+  thread(project = this.projectKey()): Message[] {
+    return [...(this.threads.get(project) ?? [])]
+  }
+
+  /** Adds a message to a project's thread (the open project's by default), or replaces the one with the same id. Only the open project's messages are sent on. */
+  put(input: MessageInput | Message, project = this.projectKey()): Message {
+    let messages = this.threads.get(project)
+    if (!messages) this.threads.set(project, (messages = []))
+    const existing = 'id' in input ? messages.findIndex((m) => m.id === input.id) : -1
+    // One counter for all threads: an id names one message in the hub.
+    const message = (existing >= 0 ? input : { ...input, id: ++this.lastId, at: new Date().toISOString() }) as Message
+    if (existing >= 0) messages[existing] = message
+    else messages.push(message)
+    if (project === this.projectKey()) this.emit('message', message)
     return message
+  }
+
+  /** Removes messages from a project's thread. */
+  remove(project: string, ids: ReadonlySet<number>) {
+    const messages = this.threads.get(project)
+    if (!messages) return
+    this.threads.set(project, messages.filter((m) => !ids.has(m.id)))
+    if (project === this.projectKey()) this.emit('thread', this.thread())
+  }
+
+  /** The person's questions in a project that no agent took yet, except `skip`. They count as taken now. */
+  takeQuestions(project: string, skip: ReadonlySet<number> = new Set()): Extract<Message, { from: 'person' }>[] {
+    const after = this.delivered.get(project) ?? 0
+    const asked = this.thread(project).filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > after)
+    if (asked.length) this.delivered.set(project, Math.max(...asked.map((m) => m.id)))
+    return asked.filter((m) => !skip.has(m.id))
   }
 
   /**
@@ -122,7 +150,7 @@ export class LiveState extends EventEmitter<Events> {
   ask(text: string, place: Place = {}): Message {
     const m = this.put({ from: 'person', text, ...place }) as Extract<Message, { from: 'person' }>
     if (this.responder) {
-      this.delivered = m.id
+      this.delivered.set(this.projectKey(), m.id)
       this.responder(m)
     } else for (const wake of this.waiters) wake()
     return m
@@ -140,7 +168,8 @@ export class LiveState extends EventEmitter<Events> {
   async waitForQuestions(timeoutMs: number): Promise<Extract<Message, { from: 'person' }>[]> {
     // An agent the Studio started takes the questions; one that waits over MCP would only keep its turn open.
     if (this.responder) return []
-    const pending = () => this.messages.filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > this.delivered)
+    const project = this.projectKey()
+    const pending = () => this.thread(project).filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > (this.delivered.get(project) ?? 0))
     if (!pending().length) {
       let wake = () => {}
       const woken = new Promise<void>((resolve) => (wake = resolve))
@@ -153,7 +182,7 @@ export class LiveState extends EventEmitter<Events> {
       this.emitAgent()
     }
     const out = pending()
-    if (out.length) this.delivered = Math.max(this.delivered, ...out.map((m) => m.id))
+    if (out.length) this.delivered.set(project, Math.max(this.delivered.get(project) ?? 0, ...out.map((m) => m.id)))
     return out
   }
 
@@ -167,14 +196,17 @@ export class LiveState extends EventEmitter<Events> {
   /**
    * Opens a folder as the project, or, with a document tied to it, records
    * the folder it belongs to. What opens for it (its file, the document already
-   * open, or an empty project) is decided where files are known. With
-   * `keep`, the folder is only where agents work: the open document stays.
+   * open, or an empty project) is decided where files are known.
    */
-  setWorkspace(w: WorkspaceProject | undefined, keep = false) {
-    // The same folder again: nothing to do, unless it is now opened as the project (it may have been only the agent's folder).
-    if (w?.cwd === this.workspace?.cwd && (keep || !w)) return
+  setWorkspace(w: WorkspaceProject | undefined) {
+    if (w?.cwd === this.workspace?.cwd) {
+      // The same folder again. Nothing to do, unless the shown document is not the folder's: then it opens again. The thread and the agent stay.
+      if (!w || (this.file?.startsWith(`${w.cwd}/`) && this.openProjectId === w.id)) return
+      return void this.emit('workspace', w)
+    }
     this.workspace = w
-    this.emit('workspace', w, keep)
+    this.emit('workspace', w)
+    this.emit('thread', this.thread())
   }
 
   /** The id of the open document's project. */

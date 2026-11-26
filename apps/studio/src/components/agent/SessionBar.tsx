@@ -81,8 +81,8 @@ function ModelPicker({ session, model, run, onError }: { session: NonNullable<Re
                   onClick={() => {
                     if (p.id === session.providerId) return model ? setLevel('models') : close()
                     close()
-                    // Another agent takes over in the same folder; the conversation stays.
-                    run(connectAgent(session.cwd, { providerId: p.id }))
+                    // Another agent takes over in this project; the conversation stays.
+                    run(connectAgent({ providerId: p.id }))
                   }}
                 />
               ))}
@@ -95,14 +95,14 @@ function ModelPicker({ session, model, run, onError }: { session: NonNullable<Re
                     label={c.name}
                     onClick={() => {
                       close()
-                      if (id !== session.providerId) run(connectAgent(session.cwd, { custom: c }))
+                      if (id !== session.providerId) run(connectAgent({ custom: c }))
                     }}
                   />
                 )
               })}
             </Section>
             <div className="my-1 h-px bg-rule" />
-            <Row label="Configure…" icon={<Settings size={13} />} onClick={() => (close(), useStudio.getState().setConnectOpen(true))} />
+            <Row label="Change agent" icon={<Settings size={13} />} onClick={() => (close(), useStudio.getState().setConnectOpen(true))} />
           </>
         ) : (
           <>

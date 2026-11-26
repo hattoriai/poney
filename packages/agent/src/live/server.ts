@@ -19,10 +19,11 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join, normalize } from 'node:path'
 import type { LiveState } from './state'
-import type { AgentBridge } from '../agents/bridge'
-import { builtInProviders, customProvider, describeProvider, type ProviderSpec } from '../agents/providers'
+import { providerFor, type AgentPool } from '../agents/pool'
+import { builtInProviders, describeProvider } from '../agents/providers'
 import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agents/workspace'
 import { checkProvider } from '../agents/check'
+import type { AgentChoice } from '../agents/sessions'
 import { check } from '../ops'
 import type { DocumentFiles } from './files'
 
@@ -43,6 +44,8 @@ const TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.json': 'application/json',
 }
+const NOT_VALID = "The project's file is not a valid document."
+const NOT_SAVED = `${NOT_VALID} Not saved.`
 /** The Studio's dev server may also use the hub. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
@@ -58,7 +61,7 @@ export class LiveServer {
 
   constructor(
     private readonly state: LiveState,
-    private readonly bridge?: AgentBridge,
+    private readonly agents?: AgentPool,
     private readonly files?: DocumentFiles,
   ) {
     const send = (event: string, data: unknown) => {
@@ -67,6 +70,7 @@ export class LiveServer {
     }
     state.on('document', (revision, document, source) => send('document', { revision, document, source }))
     state.on('message', (message) => send('message', message))
+    state.on('thread', (messages) => send('thread', { messages }))
     state.on('agent', (status) => send('agent', status))
     state.on('file', (path) => send('file', { path: path ?? null }))
     state.on('workspace', (w) => send('project', { root: w?.cwd ?? null, name: w?.name ?? null }))
@@ -114,7 +118,7 @@ export class LiveServer {
   stop() {
     this.state.close()
     this.files?.close()
-    void this.bridge?.disconnect()
+    this.agents?.stopAll()
     for (const c of this.clients) c.end()
     this.server?.close()
   }
@@ -165,12 +169,31 @@ export class LiveServer {
         s.report((await body(req)) as object)
         return void res.writeHead(204).end()
       case 'POST /api/live/open': {
-        const { document } = (await body(req)) as { document?: unknown }
+        const { document, project } = (await body(req)) as { document?: unknown; project?: string }
         if (document === undefined) return json(res, 400, { error: 'Give a document' })
+        // An agent of a project that is not open: its document is saved in that project, not shown.
+        if (project && project !== s.projectKey()) {
+          if (!this.files) return json(res, 400, { error: 'This hub cannot save documents.' })
+          const w = workspaceProject(checkFolder(project))
+          const saved = this.files.saveFor(w, document)
+          if (saved === 'invalid') return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, refused: NOT_SAVED })
+          if (saved === 'saved') {
+            const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
+            s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
+          }
+          return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, saved: true })
+        }
         return json(res, 200, { revision: s.open(document), viewers: this.viewers })
       }
-      case 'GET /api/live/read':
+      case 'GET /api/live/read': {
+        // An agent of a project that is not open reads its own project: the saved document and its thread.
+        const project = url.searchParams.get('project')
+        if (project && project !== s.projectKey() && this.files) {
+          const { document, invalid } = this.files.savedFor(workspaceProject(checkFolder(project)))
+          return json(res, 200, { viewers: this.viewers, current: document ?? null, ...(invalid ? { invalid: NOT_VALID } : {}), thread: s.thread(project) })
+        }
         return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread() })
+      }
       case 'GET /api/live/wait': {
         const ms = Math.min(900_000, Math.max(0, Number(url.searchParams.get('timeout') ?? 300_000)))
         const questions = await s.waitForQuestions(ms)
@@ -193,7 +216,7 @@ export class LiveServer {
 
       /* Agents the Studio starts */
       case 'GET /api/agent':
-        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.bridge, mcpServer: mcpCommand() })
+        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), defaultAgent: this.agents?.defaultAgent() ?? null, canStart: !!this.agents, mcpServer: mcpCommand() })
       case 'POST /api/agent/check': {
         const r = (await body(req)) as AgentChoice & { fresh?: boolean }
         const spec = providerFor(r)
@@ -201,29 +224,36 @@ export class LiveServer {
         return json(res, 200, await checkProvider(spec, r.fresh))
       }
       case 'POST /api/agent/connect': {
-        if (!this.bridge) return json(res, 400, { error: 'This hub cannot start agents.' })
-        const r = (await body(req)) as AgentChoice & { cwd?: string }
-        const spec = providerFor(r)
-        if (!spec) return json(res, 400, { error: 'Unknown agent' })
-        await this.bridge.connect(spec, checkFolder(r.cwd ?? ''))
+        if (!this.agents) return json(res, 400, { error: 'This hub cannot start agents.' })
+        const r = (await body(req)) as AgentChoice & { folder?: string }
+        if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
+        if (r.folder) {
+          const w = workspaceProject(checkFolder(r.folder))
+          // The default first, so the folder's agent starts once, as this agent.
+          this.agents.setDefault(r)
+          s.setWorkspace(w)
+        }
+        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
+        await this.agents.connect(r)
         return json(res, 200, s.status())
       }
       case 'POST /api/agent/disconnect':
-        await this.bridge?.disconnect()
+        await this.agents?.disconnect()
         return json(res, 200, s.status())
       case 'POST /api/agent/cancel':
-        await this.bridge?.cancel()
+        await this.agents?.active()?.cancel()
         return json(res, 200, s.status())
       case 'POST /api/agent/setting': {
         const r = (await body(req)) as { id?: string; value?: string | boolean }
-        if (!this.bridge || !r.id || r.value === undefined) return json(res, 400, { error: 'Give id and value' })
-        await this.bridge.setSetting(r.id, r.value)
+        const agent = this.agents?.active()
+        if (!agent || !r.id || r.value === undefined) return json(res, 400, { error: 'Give id and value' })
+        await agent.setSetting(r.id, r.value)
         return json(res, 200, s.status())
       }
       case 'POST /api/agent/permission': {
         const r = (await body(req)) as { messageId?: number; optionId?: string }
         if (typeof r.messageId !== 'number' || !r.optionId) return json(res, 400, { error: 'Give messageId and optionId' })
-        this.bridge?.choose(r.messageId, r.optionId)
+        this.agents?.active()?.choose(r.messageId, r.optionId)
         return json(res, 200, { ok: true })
       }
 
@@ -263,34 +293,22 @@ export class LiveServer {
         s.setWorkspace(workspaceProject(checkFolder(r.path ?? '')))
         return json(res, 200, { root: s.project?.cwd })
       }
-      case 'POST /api/agent/connect-here': {
-        // An agent in the open project's folder.
-        if (!this.bridge) return json(res, 400, { error: 'This hub cannot start agents.' })
-        const r = (await body(req)) as AgentChoice & { folder?: string }
-        // The folder the agent works in; the open document stays.
-        if (r.folder) s.setWorkspace(workspaceProject(checkFolder(r.folder)), true)
-        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        const spec = providerFor(r)
-        if (!spec) return json(res, 400, { error: 'Unknown agent' })
-        await this.bridge.connect(spec, s.project.cwd)
-        return json(res, 200, s.status())
-      }
 
       /* Files */
       case 'POST /api/files/open': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot open files.' })
-        const r = (await body(req)) as { path?: string }
+        const r = (await body(req)) as { path?: string; document?: unknown }
         if (!r.path) return json(res, 400, { error: 'Give a path' })
-        this.files.open(r.path)
-        return json(res, 200, { path: r.path })
+        this.files.open(r.path, r.document)
+        return json(res, 200, { path: s.file })
       }
 
       /* Workspaces */
       case 'GET /api/workspace/folders':
         return json(res, 200, listFolders(url.searchParams.get('path') ?? undefined))
       case 'GET /api/workspace/files': {
-        // In the folder the agent works in, else the folder of the open document's file.
-        const cwd = s.status().session?.cwd ?? (s.file ? dirname(s.file) : undefined)
+        // In the project's folder, else the folder of the open document's file.
+        const cwd = s.project?.cwd ?? (s.file ? dirname(s.file) : undefined)
         if (!cwd) return json(res, 200, { files: [] })
         return json(res, 200, { root: cwd, files: await searchFiles(cwd, url.searchParams.get('q') ?? '') })
       }
@@ -334,10 +352,6 @@ export class LiveServer {
     res.end(readFileSync(file))
   }
 }
-
-/** An agent as the Studio names it: a known one by id, or one the person added by command. */
-type AgentChoice = { providerId?: string; custom?: { name: string; command: string } }
-const providerFor = (r: AgentChoice): ProviderSpec | undefined => (r.custom ? customProvider(r.custom.name, r.custom.command) : builtInProviders().find((p) => p.id === r.providerId))
 
 function json(res: ServerResponse, status: number, value: unknown) {
   res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(value))

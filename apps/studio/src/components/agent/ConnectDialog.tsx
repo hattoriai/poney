@@ -1,26 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Folder as FolderIcon, Loader2, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useStudio } from '@/features/store'
-import { agentFor, checkAgent, connectHere, customAgents, lastFolder, openProjectFolder, rememberAgentFor, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
+import { checkAgent, connectAgent, customAgents, lastFolder, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
 import { Modal } from '@/components/dialogs/Modal'
 import { FileBrowser } from './FileBrowser'
 
 type Choice = { kind: 'provider'; id: string } | { kind: 'custom'; name: string; command: string }
+const sameAgent = (a: AgentChoice, b: AgentChoice) =>
+  'providerId' in a ? 'providerId' in b && a.providerId === b.providerId : 'custom' in b && a.custom.name === b.custom.name && a.custom.command === b.custom.command
 const keyOf = (c: Choice) => (c.kind === 'provider' ? c.id : `custom:${c.name}`)
 const asAgent = (c: Choice): AgentChoice => (c.kind === 'provider' ? { providerId: c.id } : { custom: { name: c.name, command: c.command } })
 type Check = SignInStatus | 'checking'
 
 /**
- * Connect an agent to the open document: pick the agent and the folder with
- * the code. The document stays open; the agent reads the code there and
- * writes to the document.
+ * Choose the agent one time. It works in each project the person opens: the
+ * Studio starts or resumes it there. From the start page, with no project
+ * open, the person also picks the folder to open.
  */
 export function ConnectDialog() {
   const open = useStudio((s) => s.connectOpen)
   const setOpen = useStudio((s) => s.setConnectOpen)
-  const project = useProjectRoot()
-  // From the start page, the folder's own project opens; otherwise the agent writes to the document on screen.
-  const fromStart = useStudio((s) => s.startOpen || !s.history)
+  const projectRoot = useProjectRoot()
+  // From the start page, or with no document on screen, no project is open: the person picks the folder.
+  const onStart = useStudio((s) => s.startOpen || !s.history)
+  const project = onStart ? null : projectRoot
+  // Set when the person picks an agent, so a default arriving later does not replace it.
+  const touched = useRef(false)
   const [providers, setProviders] = useState<Provider[]>([])
   const [custom, setCustom] = useState(() => customAgents())
   const [choice, setChoice] = useState<Choice | null>(null)
@@ -28,16 +33,20 @@ export function ConnectDialog() {
   const [error, setError] = useState<string | null>(null)
   const [checks, setChecks] = useState<Record<string, Check>>({})
   const [folder, setFolder] = useState<string | null>(null)
+  const [defaultAgent, setDefaultAgent] = useState<AgentChoice | null>(null)
   const [picking, setPicking] = useState(false)
 
-  /** Asks an agent whether it can work; the choice falls on the first that is ready. */
-  const check = (c: Choice, fresh = false) => {
+  /** Asks an agent whether it can work; the choice falls on the default agent when it is ready, else on the first that is ready. */
+  const check = (c: Choice, fresh = false, preferred: AgentChoice | null = defaultAgent) => {
     setChecks((m) => ({ ...m, [keyOf(c)]: 'checking' }))
     return checkAgent(asAgent(c), fresh)
       .catch((e: unknown): SignInStatus => ({ state: 'error', detail: e instanceof Error ? e.message : String(e) }))
       .then((status) => {
         setChecks((m) => ({ ...m, [keyOf(c)]: status }))
-        if (status.state === 'ready') setChoice((cur) => cur ?? c)
+        if (status.state === 'ready') {
+          const isDefault = !!preferred && sameAgent(asAgent(c), preferred)
+          setChoice((cur) => (!cur || (isDefault && !touched.current) ? c : cur))
+        }
         return status
       })
   }
@@ -45,16 +54,17 @@ export function ConnectDialog() {
   useEffect(() => {
     if (!open) return
     setError(null)
-    // The folder already known, else the one last used with this document, else the last one used at all.
-    const docId = useStudio.getState().history?.present.project.id
-    const known = project?.root ?? agentFor(docId)?.folder ?? lastFolder() ?? null
+    touched.current = false
+    // With a project open its folder is shown; otherwise the person picks one, starting from the last one used.
+    const known = project?.root ?? lastFolder() ?? null
     setFolder(known)
-    setPicking(!known)
+    setPicking(!project && !known)
     listAgents()
       .then((r) => {
         setProviders(r.providers)
-        for (const p of r.providers) if (p.available) void check({ kind: 'provider', id: p.id })
-        for (const c of customAgents()) void check({ kind: 'custom', ...c })
+        setDefaultAgent(r.defaultAgent)
+        for (const p of r.providers) if (p.available) void check({ kind: 'provider', id: p.id }, false, r.defaultAgent)
+        for (const c of customAgents()) void check({ kind: 'custom', ...c }, false, r.defaultAgent)
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
     // Checks run each time the dialog opens; the server keeps answers for a few minutes.
@@ -62,22 +72,13 @@ export function ConnectDialog() {
   }, [open])
 
   const connect = async () => {
-    if (!folder || !choice) return
+    if (!choice || (!project && !folder)) return
     setBusy('Starting the agent…')
     setError(null)
     try {
-      const before = useStudio.getState().history?.present.project.id
-      if (useStudio.getState().startOpen || !before) {
-        // From the start page, nothing is on screen: the folder's own project opens (its docs/poney/ file, or a new one), and the agent works on it.
-        await openProjectFolder(folder)
-        await connectHere(asAgent(choice))
-      } else {
-        // A document is on screen: the agent works in the folder and writes to that document.
-        await connectHere(asAgent(choice), folder)
-      }
-      rememberFolder(folder)
-      const docId = await documentAfter(before)
-      if (docId) rememberAgentFor(docId, { folder, agent: asAgent(choice) })
+      // With a project open, the agent starts there; from the start page, the chosen folder opens as the project first.
+      await connectAgent(asAgent(choice), project ? undefined : folder ?? undefined)
+      if (folder && !project) rememberFolder(folder)
       setOpen(false)
       useStudio.getState().setAgentPanelOpen(true)
     } catch (e) {
@@ -87,9 +88,9 @@ export function ConnectDialog() {
     }
   }
 
-  const ready = !!folder && !!choice && usableStatus(checks[keyOf(choice)])
+  const ready = (!!project || !!folder) && !!choice && usableStatus(checks[keyOf(choice)])
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Connect an agent" description={fromStart ? 'It reads the code in the folder below, and writes to its Poney document.' : 'It reads the code in the folder below and writes to this document.'} width={640}>
+    <Modal open={open} onOpenChange={setOpen} title="Choose your agent" description="It works in each project you open." width={640}>
       <div className="scrollbar-quiet min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
         <section aria-labelledby="code-folder">
           <h3 id="code-folder" className="text-[13px] font-semibold">
@@ -98,18 +99,18 @@ export function ConnectDialog() {
           <div className="mt-2 flex items-center gap-3 rounded-xl bg-sunken px-3.5 py-2.5 text-[13px]">
             <FolderIcon size={15} className="shrink-0 text-ink-3" />
             <span className={`min-w-0 flex-1 truncate ${folder ? '' : 'text-ink-3'}`} title={folder ?? undefined}>
-              {folder ? <code className="font-mono text-[12px]">{folder}</code> : 'Choose a folder'}
+              {project ? <code className="font-mono text-[12px]">{project.root}</code> : folder ? <code className="font-mono text-[12px]">{folder}</code> : 'Choose a folder'}
             </span>
-            {!picking && (
+            {!project && !picking && (
               <button type="button" onClick={() => setPicking(true)} className="shrink-0 font-semibold text-poney hover:underline">
                 Change
               </button>
             )}
           </div>
-          {picking && (
+          {!project && picking && (
             <div className="mt-2">
               <FileBrowser
-                start={folder ?? agentFor(useStudio.getState().history?.present.project.id)?.folder ?? lastFolder()}
+                start={folder ?? lastFolder()}
                 onPickFolder={(p) => {
                   setFolder(p)
                   setPicking(false)
@@ -132,7 +133,7 @@ export function ConnectDialog() {
               return (
                 <li key={p.id}>
                   <label className={`flex items-start gap-3 px-3.5 py-3 ${usable ? 'cursor-pointer' : 'cursor-default'}`}>
-                    <input type="radio" name="agent" className="mt-1 accent-[var(--accent)]" checked={on} disabled={!usable} onChange={() => setChoice(c)} />
+                    <input type="radio" name="agent" className="mt-1 accent-[var(--accent)]" checked={on} disabled={!usable} onChange={() => (touched.current = true, setChoice(c))} />
                     <span className={`min-w-0 flex-1 ${p.available ? '' : 'opacity-70'}`}>
                       <span className="block text-[14px] font-medium">{p.name}</span>
                       {p.available ? <Status status={status} signIn={p.signIn} onRetry={() => void check(c, true)} /> : <span className="block text-[12.5px] text-ink-3">{p.install}</span>}
@@ -145,7 +146,7 @@ export function ConnectDialog() {
               const on = choice?.kind === 'custom' && choice.name === c.name
               return (
                 <li key={c.name} className="flex items-start gap-3 px-3.5 py-3">
-                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--accent)]" checked={on} onChange={() => setChoice({ kind: 'custom', ...c })} />
+                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--accent)]" checked={on} onChange={() => (touched.current = true, setChoice({ kind: 'custom', ...c }))} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[14px] font-medium">{c.name}</span>
                     <code className="block truncate font-mono text-[11.5px] text-ink-3">{c.command}</code>
@@ -173,6 +174,7 @@ export function ConnectDialog() {
               const next = [...custom.filter((x) => x.name !== a.name), a]
               setCustom(next)
               saveCustomAgents(next)
+              touched.current = true
               setChoice({ kind: 'custom', ...a })
               void check({ kind: 'custom', ...a }, true)
             }}
@@ -181,7 +183,7 @@ export function ConnectDialog() {
       </div>
       <div className="flex items-center gap-3 border-t border-rule px-5 py-3.5">
         <p role={error ? 'alert' : undefined} className={`min-w-0 flex-1 text-[12.5px] ${error ? 'text-removed' : 'text-ink-3'}`}>
-          {error ?? busy ?? (folder ? '' : 'Choose the folder with the code.')}
+          {error ?? busy ?? (project || folder ? '' : 'Choose the folder with the code.')}
         </p>
         <button type="button" disabled={!ready || !!busy} onClick={() => void connect()} className="inline-flex h-9 items-center gap-2 rounded-lg bg-ink px-4 text-[13.5px] font-semibold text-paper disabled:opacity-35">
           {busy && <Loader2 size={14} className="animate-spin" />} Connect
@@ -266,15 +268,4 @@ function Status({ status, signIn, onRetry }: { status?: Check; signIn: string; o
       )}
     </span>
   )
-}
-
-/** The document on screen once a project has opened: a new one when the project changed (it arrives from the local server), else the same. */
-async function documentAfter(before: string | undefined): Promise<string | undefined> {
-  for (let i = 0; i < 20; i++) {
-    const s = useStudio.getState()
-    const id = s.history?.present.project.id
-    if (id && (id !== before || !s.startOpen)) return id
-    await new Promise((r) => setTimeout(r, 100))
-  }
-  return useStudio.getState().history?.present.project.id
 }

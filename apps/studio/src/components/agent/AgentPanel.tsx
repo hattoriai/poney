@@ -4,7 +4,7 @@ import { ArrowUp, Check, CircleAlert, Loader2, MessageCircle, Plug, Square, Wren
 import { useStudio, WALK, type ContextItem, type Message } from '@/features/store'
 import { MessageBox } from './MessageBox'
 import { SessionBar } from './SessionBar'
-import { ask, cancelAgent, choosePermission, disconnectAgent, startersFor } from '@/features/agent'
+import { ask, cancelAgent, choosePermission, disconnectAgent, startersFor, useProjectRoot } from '@/features/agent'
 
 /**
  * The agent panel: the conversation with whichever agent answers.
@@ -33,6 +33,7 @@ export function AgentPanel() {
   }, [open, messages])
 
   const doc = useStudio((s) => s.history?.present)
+  const project = useProjectRoot()
   if (!live) return null
 
   if (!open)
@@ -58,8 +59,8 @@ export function AgentPanel() {
           <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-ink-3">
             <span className={`h-2 w-2 shrink-0 rounded-full ${session || listening ? 'bg-new' : 'bg-ink-4'}`} aria-hidden />
             {session ? (
-              <span className="truncate" title={session.cwd}>
-                {session.busy ? 'Working' : 'Ready'} in {session.cwd.split('/').slice(-2).join('/')}
+              <span className="truncate" title={project?.root}>
+                {session.busy ? 'Working' : 'Ready'}{project ? ` in ${project.name}` : ''}
               </span>
             ) : listening ? (
               'Linked from another session'

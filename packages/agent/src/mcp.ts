@@ -39,7 +39,7 @@ const text = (t: string, isError = false) => ({ content: [{ type: 'text' as cons
 async function inputOrLive(args: Input): Promise<Input | undefined> {
   if (args.document !== undefined || args.path) return args
   const { current } = await live.read()
-  return current === undefined ? undefined : { document: current }
+  return current == null ? undefined : { document: current }
 }
 
 /** The walkthroughs and diagrams of the open document that `next` leaves out. */
@@ -54,6 +54,7 @@ async function dropped(next: { walkthroughs: { id: string }[]; views: { id: stri
   ]
 }
 
+const SAVED = 'Saved in its project. It shows when the person opens that project.'
 const noWindow = () => `No Studio window is open. Ask the person to open ${live.studioUrl}.`
 
 server.registerTool(
@@ -183,7 +184,9 @@ server.registerTool(
           true,
         )
     }
-    const { revision, viewers } = await live.open(JSON.parse(JSON.stringify(result.document)))
+    const { revision, viewers, saved, refused } = await live.open(JSON.parse(JSON.stringify(result.document)))
+    if (refused) return text(refused, true)
+    if (saved) return text(SAVED)
     const where = viewers ? `Shown in ${viewers} open Studio window${viewers > 1 ? 's' : ''}.` : noWindow()
     return text(`Opened revision ${revision}: "${result.document.walkthroughs[0]?.title ?? result.document.project.name}". ${where}${result.warnings.length ? `\n\n${report}` : ''}`)
   },
@@ -210,10 +213,12 @@ server.registerTool(
     }
     try {
       const { current } = await live.read()
-      const { document, summary } = await p.runImport(importer, repo, { into: current, path, store })
+      const { document, summary } = await p.runImport(importer, repo, { into: current ?? undefined, path, store })
       const { result, report } = check({ document })
       if (!result?.ok) return text(`Not opened: the document has errors after the import.\n\n${report}`, true)
-      const { revision, viewers } = await live.open(document)
+      const { revision, viewers, saved, refused } = await live.open(document)
+      if (refused) return text(refused, true)
+      if (saved) return text(`${summary}\n${SAVED}`)
       return text(`${summary}\nOpened revision ${revision}${viewers ? '' : `. ${noWindow()}`}. Give the new parts and tables plain summaries, then group them into views that explain something.`)
     } catch (e) {
       return text(e instanceof Error ? e.message : String(e), true)
@@ -240,7 +245,7 @@ server.registerTool(
     }
     try {
       const { current } = await live.read()
-      if (current === undefined) return text('No document is open in the Studio.', true)
+      if (current == null) return text('No document is open in the Studio.', true)
       return text(p.describeOverlay(await p.runOverlay(overlay, repo, current)))
     } catch (e) {
       return text(e instanceof Error ? e.message : String(e), true)
@@ -299,7 +304,7 @@ server.registerTool(
     const r = await live.read()
     if (!r.studio && !args.includeDocument) return text(r.viewers ? 'A Studio window is open but has reported nothing yet.' : noWindow())
     const { document, ...rest } = r.studio ?? { document: undefined }
-    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20) }
+    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20), ...(r.invalid ? { problem: r.invalid } : {}) }
     if (document !== undefined || args.includeDocument) out.document = document ?? r.current
     return text(JSON.stringify(out, null, 2))
   },
