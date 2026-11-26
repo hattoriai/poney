@@ -1,6 +1,6 @@
 # Releasing Poney
 
-Seven packages are published to npm, with one version:
+Nine packages are published to npm, with one version:
 
 | Package | What it is |
 |---|---|
@@ -11,6 +11,7 @@ Seven packages are published to npm, with one version:
 | `@hattoriai/poney-render` | SVG and PNG in Node |
 | `@hattoriai/poney-ext-ownership` | Extension |
 | `@hattoriai/poney-ext-security` | Extension |
+| `@hattoriai/poney-element` | `<poney-diagram>`, and the built `poney.js` and `poney.css` for pages with no bundler |
 | `@hattoriai/poney` | The CLI (commands `poney` and `poney-mcp`), the MCP server and Poney Studio |
 
 `@hattoriai/poney-examples` and `@hattoriai/poney-studio` are private: the Studio ships built inside `@hattoriai/poney`.
@@ -33,15 +34,17 @@ npm lets you set up trusted publishing only for a package that exists, so 0.1.0 
 3. Publish each, in this order (`--provenance=false`: provenance only comes from CI):
 
    ```sh
-   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-diagrams @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
+   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-diagrams @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney-element @hattoriai/poney; do
      npm publish -w "$name" --access public --provenance=false
    done
    ```
 
-4. On npmjs.com, for each of the seven packages: **Settings → Trusted Publisher → GitHub Actions**, with the organization `hattoriai`, the repository `poney`, the workflow `release.yml` and the environment `npm`.
+4. On npmjs.com, for each of the packages: **Settings → Trusted Publisher → GitHub Actions**, with the organization `hattoriai`, the repository `poney`, the workflow `release.yml` and the environment `npm`.
 5. On GitHub, in the repository's **Settings → Environments**, create the environment `npm` with yourself as a required reviewer.
 
 From then on, every release goes through the workflow.
+
+A new package (for example `@hattoriai/poney-diagrams` or `@hattoriai/poney-element`) needs the same once: publish its first version by hand, then set its Trusted Publisher.
 
 ## In the repository
 

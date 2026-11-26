@@ -48,7 +48,7 @@ jobs:
       - name: publish
         run: |
           version="${GITHUB_REF_NAME#v}"
-          for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-diagrams @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
+          for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-diagrams @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney-element @hattoriai/poney; do
             if npm view "$name@$version" version > /dev/null 2>&1; then
               echo "$name@$version is on npm already"
             else

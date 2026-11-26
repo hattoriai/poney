@@ -1,0 +1,36 @@
+/*
+ * <poney-diagram>. The element takes the width of its container and, unless
+ * it has the `fill` attribute, the height of its scene. With `fill` it fills
+ * the box the page gives it.
+ */
+@layer poney {
+  :where(poney-diagram) {
+    display: block;
+    position: relative;
+    min-height: 1px;
+  }
+  /* A theme set on the element paints its paper, so a dark diagram reads on a light page. */
+  :where(poney-diagram[data-poney-theme]) {
+    background: var(--poney-paper);
+  }
+  /* The text draws in the font the layout measured. */
+  :where(poney-diagram) > :where(.poney-diagram-svg) {
+    font-family: var(--poney-font-sans);
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  :where(poney-diagram) > :where(script) {
+    display: none;
+  }
+  :where(.poney-diagram-message) {
+    margin: 0;
+    padding: 12px 14px;
+    font: 13px/1.5 var(--poney-font-sans);
+    color: var(--poney-failure);
+    background: var(--poney-paper-raised);
+    border: 1px solid var(--poney-rule);
+    border-radius: 8px;
+  }
+}

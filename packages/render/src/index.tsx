@@ -12,11 +12,11 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import * as fontkit from 'fontkit'
-import { indexOf, marksOf, parseRef, plainText, type PoneyDocument, type Scene, type View } from '@hattoriai/poney-core'
+import { indexOf, marksOf, parseRef, plainText, type PoneyDocument } from '@hattoriai/poney-core'
 import { layoutView, setTextMeasurer, wrap, type FontFamily } from '@hattoriai/poney-layout'
 import {
   diagramFor,
-  findScene,
+  findTarget,
   fit,
   FONTS,
   RenderProvider,
@@ -27,14 +27,12 @@ import {
   stepLetter,
   StoryProvider,
   storyState,
+  STORY_TYPES,
   THEMES,
   toMarkup,
   type Mode,
   type ThemeName,
 } from '@hattoriai/poney-diagrams'
-
-/** View types drawn as walkthrough stories; the others draw with their diagram renderer. */
-const STORY_TYPES: string[] = ['map', 'sequence', 'state']
 
 const require = createRequire(import.meta.url)
 
@@ -113,33 +111,7 @@ function describeRef(idx: ReturnType<typeof indexOf>, key: string): string | und
 export async function renderScene(doc: PoneyDocument, options: RenderSceneOptions = {}): Promise<RenderedScene> {
   useNodeTextMeasurer()
   const idx = indexOf(doc)
-  let view: View | undefined
-  let focus: string[] = []
-  let callouts: string[] = []
-  let notes: string[] = []
-  let title = ''
-  let sceneData: Scene | undefined
-  let walkthrough = options.walkthrough ? doc.walkthroughs.find((w) => w.id === options.walkthrough) : doc.walkthroughs[0]
-  if (options.view) {
-    view = idx.views.get(options.view)
-    if (!view) throw new Error(`No view "${options.view}". Views: ${doc.views.map((v) => v.id).join(', ')}`)
-    title = view.title
-    walkthrough = options.walkthrough ? walkthrough : undefined
-  } else {
-    const found = findScene(doc, options.walkthrough, options.scene)
-    if (!found) {
-      const w = walkthrough
-      const ids = w ? ['overview', ...w.scenes.filter((s) => s.view).map((s) => s.id)].join(', ') : 'none'
-      throw new Error(`No scene "${options.scene ?? '(default)'}" with a view. Scenes: ${ids}`)
-    }
-    walkthrough = found.walkthrough
-    view = idx.views.get(found.viewId)!
-    focus = found.focus
-    callouts = found.callouts
-    notes = found.notes
-    title = found.title
-    sceneData = found.scene
-  }
+  const { view, walkthrough, focus, callouts, notes, title, scene: sceneData } = findTarget(doc, options)
   // Map, sequence and state views draw as stories (marks, focus, callouts); every other view type draws with its diagram renderer, still.
   const story = STORY_TYPES.includes(view.type)
   const module = story ? undefined : diagramFor(view)

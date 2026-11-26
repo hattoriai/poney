@@ -7,6 +7,7 @@ npm install @hattoriai/poney-core                 # read, check and change docum
 npm install @hattoriai/poney-layout               # position the elements in a diagram
 npm install @hattoriai/poney-diagrams             # draw scenes as SVG, with no framework
 npm install @hattoriai/poney-react                # draw scenes in React (React 18 or 19)
+npm install @hattoriai/poney-element              # <poney-diagram>, and poney.js for pages with no bundler
 npm install @hattoriai/poney-render               # export SVG or PNG in Node
 ```
 
@@ -30,7 +31,19 @@ if (result.ok) {
 
 Validation checks the document’s structure, its references and any rules from registered extensions. For example, if a view names a service, that service must exist in the model. See rules R1–R14 in the [specification](../spec/SPEC.md).
 
-## Draw a view in a web page
+## Draw a view with `<poney-diagram>`
+
+The quickest way, in any page, with or without a framework. Load `poney.js` and `poney.css` from `@hattoriai/poney-element` (in `dist/browser/`) and say what to draw:
+
+```html
+<poney-diagram walkthrough="payment-retry" scene="checkout">
+  <script type="application/json">…the document…</script>
+</poney-diagram>
+```
+
+The element lays out, draws and frames the scene, and sends `poney-select` and `poney-hover` events with the ref the reader clicks or points at. Its [README](../packages/element/README.md) lists the attributes and events.
+
+## Draw a view in a web page, yourself
 
 `@hattoriai/poney-diagrams` draws with no framework. Give `drawInto` an `<svg>`, a renderer, its scene and the host values.
 

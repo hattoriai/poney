@@ -94,6 +94,18 @@
         ]
       },
       {
+        "id": "element",
+        "kind": "library",
+        "name": "poney-element",
+        "summary": "<poney-diagram> for any web page, and poney.js for pages with no bundler.",
+        "technology": "Custom element",
+        "sourceRefs": [
+          {
+            "path": "packages/element"
+          }
+        ]
+      },
+      {
         "id": "layout",
         "kind": "library",
         "name": "poney-layout",
@@ -160,6 +172,27 @@
         "source": "cli",
         "target": "diagrams",
         "label": "Registers the team map"
+      },
+      {
+        "id": "d-element-diagrams",
+        "kind": "depends-on",
+        "source": "element",
+        "target": "diagrams",
+        "label": "Draws"
+      },
+      {
+        "id": "d-element-ext-ownership",
+        "kind": "depends-on",
+        "source": "element",
+        "target": "ext-ownership",
+        "label": "Team map"
+      },
+      {
+        "id": "d-element-ext-security",
+        "kind": "depends-on",
+        "source": "element",
+        "target": "ext-security",
+        "label": "Checks its data"
       },
       {
         "id": "d-cli-ext-ownership",
@@ -386,6 +419,7 @@
       "entities": [
         "studio",
         "cli",
+        "element",
         "ext-ownership",
         "ext-security",
         "react",
@@ -398,10 +432,11 @@
         {
           "id": "l-tools",
           "label": "Tools",
-          "description": "For people and agents.",
+          "description": "People, agents, pages.",
           "members": [
             "cli",
-            "studio"
+            "studio",
+            "element"
           ]
         },
         {

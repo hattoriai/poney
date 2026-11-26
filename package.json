@@ -13,12 +13,12 @@
     "build": "npm run build -w @hattoriai/poney-studio",
     "preview": "npm run preview -w @hattoriai/poney-studio",
     "test": "vitest run",
-    "typecheck": "tsc -p packages/core && tsc -p packages/layout && tsc -p packages/diagrams && tsc -p packages/react && tsc -p packages/render && tsc -p packages/ext-ownership && tsc -p packages/ext-security && tsc -p packages/examples && tsc -p packages/agent && tsc -p apps/studio",
+    "typecheck": "tsc -p packages/core && tsc -p packages/layout && tsc -p packages/diagrams && tsc -p packages/react && tsc -p packages/render && tsc -p packages/element && tsc -p packages/ext-ownership && tsc -p packages/ext-security && tsc -p packages/examples && tsc -p packages/agent && tsc -p apps/studio",
     "spec": "tsx --conditions=poney-source scripts/build-spec.ts",
     "poney": "node --conditions=poney-source --import tsx packages/agent/src/cli.ts",
     "mcp": "node --conditions=poney-source --import tsx packages/agent/src/mcp.ts",
     "studio": "node --conditions=poney-source --import tsx packages/agent/src/cli.ts studio",
-    "build:packages": "npm run build -w @hattoriai/poney-core -w @hattoriai/poney-layout -w @hattoriai/poney-diagrams -w @hattoriai/poney-react -w @hattoriai/poney-render -w @hattoriai/poney-ext-ownership -w @hattoriai/poney-ext-security && npm run build -w @hattoriai/poney-studio && npm run build -w @hattoriai/poney"
+    "build:packages": "npm run build -w @hattoriai/poney-core -w @hattoriai/poney-layout -w @hattoriai/poney-diagrams -w @hattoriai/poney-react -w @hattoriai/poney-render -w @hattoriai/poney-ext-ownership -w @hattoriai/poney-ext-security && npm run build -w @hattoriai/poney-element && npm run build -w @hattoriai/poney-studio && npm run build -w @hattoriai/poney"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

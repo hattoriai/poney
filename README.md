@@ -44,7 +44,7 @@ npx @hattoriai/poney studio
 npx @hattoriai/poney render shop.poney --view architecture --format svg
 ```
 
-**Draw a diagram in a web page.** Install the renderers and the packages they use. Add `@hattoriai/poney-react` for React.
+**Draw a diagram in a web page.** Load `poney.js` and `poney.css` from `@hattoriai/poney-element` and use `<poney-diagram>`. Or install the renderers and the packages they use; add `@hattoriai/poney-react` for React.
 
 ```sh
 npm install @hattoriai/poney-diagrams @hattoriai/poney-layout @hattoriai/poney-core
@@ -76,6 +76,7 @@ For work on Poney itself, follow the [repository instructions](AGENTS.md).
 | [`@hattoriai/poney-diagrams`](packages/diagrams) | Draws diagrams as SVG with no framework, and provides their stylesheet |
 | [`@hattoriai/poney-react`](packages/react) | Draws diagrams in React |
 | [`@hattoriai/poney-render`](packages/render) | Renders a view as SVG or PNG in Node |
+| [`@hattoriai/poney-element`](packages/element) | `<poney-diagram>` for any web page, and `poney.js` for pages with no bundler |
 | [`@hattoriai/poney-ext-ownership`](packages/ext-ownership), [`@hattoriai/poney-ext-security`](packages/ext-security) | Describe team ownership, trust zones and sensitive data |
 
 All packages have the same version. See the [changelog](CHANGELOG.md).
