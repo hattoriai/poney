@@ -44,8 +44,9 @@ export class ProjectAgent {
   private systemPrompt = false
   /** The agent message being written in this turn, and tool calls by their ACP id. */
   private writing?: Extract<Message, { from: 'agent' }>
-  /** In a replayed history, the person's message being written. */
+  /** In a replayed history, the person's message being written, and the prompt it was as sent. */
   private asking?: Question
+  private asked = ''
   /** True while the agent replays a loaded session. */
   private replaying = false
   /** The thread already has the session's history: a replay of it is not shown again. */
@@ -260,7 +261,7 @@ export class ProjectAgent {
     if (!this.briefed) {
       this.briefed = true
       parts.unshift(briefing(this.cwd))
-    } else if (!this.systemPrompt) parts.unshift(`[Poney Studio: explain the code in ${this.cwd}, with Poney documents when a picture helps. Say so briefly if the request is about something else.]`)
+    } else if (!this.systemPrompt) parts.unshift(reminder(this.cwd))
     return parts.join('\n\n')
   }
 
@@ -275,7 +276,9 @@ export class ProjectAgent {
         if (!this.replaying || u.content.type !== 'text') return
         if (this.writing) this.put({ ...this.writing, done: true })
         this.writing = undefined
-        const text = (this.asking?.text ?? '') + u.content.text
+        // The agent replays the prompt as sent: the person sees their own words.
+        this.asked = (this.asking ? this.asked : '') + u.content.text
+        const text = personWords(this.asked, this.cwd)
         this.asking = this.put(this.asking ? { ...this.asking, text } : { from: 'person', text }) as Question
         return
       }
@@ -327,6 +330,21 @@ export class ProjectAgent {
 
 /** Settings read again from the agent keep what each was at the start. */
 const keepInitial = (next: SessionSetting[], before: SessionSetting[]) => next.map((s) => ({ ...s, initial: before.find((b) => b.id === s.id)?.initial ?? s.initial }))
+
+/** What each request starts with when the agent did not take the briefing as system instructions. */
+const reminder = (cwd: string) => `[Poney Studio: explain the code in ${cwd}, with Poney documents when a picture helps. Say so briefly if the request is about something else.]`
+
+/** How the blocks start that say where the person is (see promptFor). */
+const WHERE = ['[They are reading ', '[They selected ', '[The question is about:']
+
+/** The person's words in a prompt that promptFor built: without the briefing, the reminder, or where they were. */
+export function personWords(sent: string, cwd: string): string {
+  let text = sent
+  for (const head of [briefing(cwd), reminder(cwd)]) if (text.startsWith(`${head}\n\n`)) text = text.slice(head.length + 2)
+  const end = text.indexOf(']\n\n')
+  if (WHERE.some((w) => text.startsWith(w)) && end >= 0) text = text.slice(end + 3)
+  return text
+}
 
 /**
  * What an agent started by the Studio is told: its system prompt when it

@@ -3,10 +3,13 @@
  * A tiny ACP agent for tests. It answers each prompt with words, one tool
  * call and one permission request, and echoes the MCP servers it was given.
  * --no-resume: it cannot continue a session. --load-only: it can load one, not resume it.
+ * --remember <file>: it keeps each prompt in the file, and a loaded session replays them as they were sent.
  */
+import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { Readable, Writable } from 'node:stream'
 import { agent, methods, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
 
+const remember = process.argv.includes('--remember') ? process.argv[process.argv.indexOf('--remember') + 1] : undefined
 let mcpServers = []
 let sessions = 0
 const settings = {
@@ -29,8 +32,14 @@ const app = agent({ name: 'fake' })
   })
   .onRequest(methods.agent.session.load, async ({ params, client }) => {
     mcpServers = params.mcpServers
-    await client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'Earlier question.' } } })
-    await client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'Earlier answer.' } } })
+    const chunk = (sessionUpdate, text) => client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate, content: { type: 'text', text } } })
+    const prompts = remember && existsSync(remember) ? readFileSync(remember, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : ['Earlier question.']
+    for (const p of prompts) {
+      // In two chunks, as real agents send long text.
+      await chunk('user_message_chunk', p.slice(0, 5))
+      await chunk('user_message_chunk', p.slice(5))
+      await chunk('agent_message_chunk', 'Earlier answer.')
+    }
     return { configOptions: Object.values(settings) }
   })
   .onRequest(methods.agent.session.setConfigOption, ({ params }) => {
@@ -40,6 +49,7 @@ const app = agent({ name: 'fake' })
   .onRequest(methods.agent.session.prompt, async ({ params, client }) => {
     const say = (text) => client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } } })
     const asked = params.prompt.map((b) => b.text).join(' ')
+    if (remember) appendFileSync(remember, `${JSON.stringify(params.prompt.map((b) => b.text).join(''))}\n`)
     await say('Reading ')
     await say('the code.')
     await client.notify(methods.client.session.update, { sessionId: params.sessionId, update: { sessionUpdate: 'tool_call', toolCallId: 't1', title: 'Read src/app.ts', status: 'in_progress', kind: 'read' } })

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LiveState } from '../live/state'
-import type { Message } from '../live/types'
+import type { Message, Place } from '../live/types'
 import { workspaceProject } from '../live/workspace-project'
 import { AgentPool } from './pool'
 import { SessionStore } from './sessions'
@@ -12,7 +12,7 @@ import type { ProviderSpec } from './providers'
 
 const fake = fileURLToPath(new URL('../../test/fake-acp-agent.mjs', import.meta.url))
 const spec = (id: string, args: string[] = [], available = true): ProviderSpec => ({ id, name: 'Fake agent', command: process.execPath, args: [fake, ...args], install: 'Install it.', available, signIn: '' })
-const providers = () => [spec('fake'), spec('stubborn', ['--no-resume']), spec('loader', ['--load-only']), spec('missing', [], false)]
+const providers = () => [spec('fake'), spec('stubborn', ['--no-resume']), spec('loader', ['--load-only']), spec('remember', ['--remember', join(home, 'prompts.jsonl')]), spec('missing', [], false)]
 const mcp = () => ({ command: process.execPath, args: [], hubUrl: 'http://127.0.0.1:1' })
 
 let home: string
@@ -55,10 +55,10 @@ const setup = (max?: number, autoStart = true) => {
 }
 const texts = (messages: Message[], from: Message['from']) => messages.filter((m) => m.from === from).map((m) => (m as { text: string }).text)
 /** Asks a question in the open project, allows the agent's tool call, and returns the answer. */
-const askAndAnswer = async (state: LiveState, pool: AgentPool, text: string) => {
+const askAndAnswer = async (state: LiveState, pool: AgentPool, text: string, place?: Place) => {
   const project = state.projectKey()
   const before = state.thread(project).length
-  state.ask(text)
+  state.ask(text, place)
   const fresh = () => state.thread(project).slice(before)
   await until(() => fresh().some((m) => m.from === 'permission'))
   pool.get(project)!.choose(fresh().find((m) => m.from === 'permission')!.id, 'yes')
@@ -124,6 +124,21 @@ describe('AgentPool', () => {
     ])
     expect(two.state.status().session).toMatchObject({ providerId: 'fake', cwd: a })
     expect(sessionOf(await askAndAnswer(two.state, two.pool, 'And then?'))).toBe(id)
+  })
+
+  it('shows the person\'s own words in a loaded history, not the prompt Poney sent', async () => {
+    const a = folder()
+    const one = setup()
+    await one.open(a)
+    await one.pool.connect({ providerId: 'remember' })
+    // The first prompt has the briefing and where the person is; the next, a reminder and what they pointed at.
+    await askAndAnswer(one.state, one.pool, 'Where does it start?', { walkthrough: 'w1', scene: 's1' })
+    await askAndAnswer(one.state, one.pool, 'And then?', { context: [{ ref: 'entity:api', title: 'API', kind: 'entity' }, { title: 'Quote', kind: 'text', quote: 'It starts [here].' }] })
+    one.pool.stopAll()
+
+    const two = setup()
+    await two.open(a)
+    expect(texts(two.state.thread(), 'person')).toEqual(['Where does it start?', 'And then?'])
   })
 
   it('finishes an answer in its own project', async () => {
