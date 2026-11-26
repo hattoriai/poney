@@ -1,8 +1,8 @@
-<img src="media/logo.svg" width="112" alt="Poney">
-
 # Poney
 
-**Explain software in pictures that agents can write and people can read.**
+![Poney — Software, explained in diagrams](media/banner.png)
+
+**Explain software in diagrams that agents can write and people can read.**
 
 A walkthrough explains software in scenes. A **change** explains one change: what changes for a person, a verdict, then focused scenes with new, changed and removed parts marked, numbered notes, the proof and the code. A **tour** teaches a codebase as it is: its parts as maps with groups that open and close, the main flows, excerpts of the code — and then the reader asks the agent questions in the Studio.
 

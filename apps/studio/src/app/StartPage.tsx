@@ -176,7 +176,7 @@ export function StartPage() {
       <main className="mx-auto grid max-w-[1080px] gap-x-14 gap-y-12 px-6 pb-20 pt-14 sm:px-10 sm:pt-20 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div>
           <p className="text-[14px] font-semibold text-poney">Poney Studio</p>
-          <h1 className="mt-3 max-w-[18ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] sm:text-[44px]">Pictures that explain software.</h1>
+          <h1 className="mt-3 max-w-[18ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] sm:text-[44px]">Software, explained in diagrams.</h1>
           <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-ink-2">An agent writes walkthroughs of a change, or tours of a codebase. You read them here, explore the system, and ask the agent questions.</p>
 
           {hasOpen && (
