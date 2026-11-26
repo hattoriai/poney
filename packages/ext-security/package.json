@@ -1,0 +1,14 @@
+{
+  "name": "@poney/ext-security",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Poney extension: trust zones, sensitive data, and how connections are protected.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@poney/core": "0.1.0",
+    "zod": "^3.25.76"
+  }
+}

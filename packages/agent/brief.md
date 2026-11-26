@@ -118,6 +118,13 @@ Three scene fields say what the reader must **see**, by meaning. You never choos
 
 `tone` is optional: `lapis`, `malachite`, `ochre`, `umber`, `tyrian`, `slate`, `poney`, `verdigris`, or `#rrggbb`. Leave it out unless a colour carries meaning the effect does not.
 
+### Extensions
+
+An extension adds kinds and data under its own name. Declare it in `extensions`, then use it only where the code proves it.
+
+- **security** — trust zones and sensitive data. Add a zone as an entity of kind `security/zone` (`ext.security.trust`: `public`, `internal` or `restricted`), and put parts in it with `ext.security.zone` (a part without one takes its parent's zone). Mark data types with `ext.security.classes`: `personal`, `secret`, `payment`, `health`. On a relationship that crosses zones, say how it is protected: `ext.security.encrypted` (TLS counts) and `ext.security.auth` (`"mTLS"`, `"OAuth token"`, `"none"`). `poney_check` then warns where sensitive data crosses a zone unprotected.
+- **ownership** — teams (`ownership/team`) and `ext.ownership.team` on the parts they own.
+
 ## What good looks like
 
 - **Small pictures.** A map shows at most twelve boxes (a closed group counts as one); a sequence at most sixteen messages (focus on fewer). If a picture needs more, it is two scenes.

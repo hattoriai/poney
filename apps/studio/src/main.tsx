@@ -4,6 +4,7 @@ import './app/styles.css'
 import { registerBuiltInDiagrams } from './renderers'
 import { registerStudioExtension } from './features/extensions'
 import { ownershipStudio } from './extensions/ownership'
+import { securityStudio } from './extensions/security'
 import { useStudio } from './features/store'
 import { App } from './app/App'
 import { START_HASH, StartPage } from './app/StartPage'
@@ -22,6 +23,7 @@ import { openExample, restoreLast, trackRecent } from './features/recent'
 
 registerBuiltInDiagrams()
 registerStudioExtension(ownershipStudio)
+registerStudioExtension(securityStudio)
 
 /** Nothing opens by itself: a new tab shows the start page. A reload keeps this tab's document; ?example=kestrel opens the example. */
 async function start() {

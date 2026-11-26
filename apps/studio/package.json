@@ -14,6 +14,7 @@
     "@poney/core": "0.1.0",
     "@poney/examples": "0.1.0",
     "@poney/ext-ownership": "0.1.0",
+    "@poney/ext-security": "0.1.0",
     "@poney/react": "0.1.0",
     "@radix-ui/react-dialog": "^1.3.1",
     "@radix-ui/react-tooltip": "^1.4.1",
