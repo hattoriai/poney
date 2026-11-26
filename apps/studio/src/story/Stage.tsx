@@ -6,9 +6,8 @@ import { expandFocus, fit, SceneStory, StoryProvider, sceneFrame, sceneLayoutOpt
 import { parseRef } from '@poney/core'
 import { union } from '@poney/layout'
 import { useDoc, useIndex, useStudio } from '@/features/store'
-import { diagramFor } from '@/renderers/registry'
-import { StudioRender } from './StudioRender'
-import { focusNextElement } from '@/renderers/shared/interaction'
+import { diagramFor } from '@poney/react'
+import { focusNextElement } from '@/features/interaction'
 import { onDiagramContextMenu } from '@/features/context'
 import { PointButton } from '@/components/agent/PointButton'
 
@@ -307,15 +306,13 @@ export function SceneView({ view, walkthrough, marks, mode, focus, callouts, hot
 
   if (!scene || !frame) return <div className="grid h-full place-items-center text-ink-3">Drawing…</div>
   return (
-    <StudioRender>
-      <StoryProvider value={story}>
+    <StoryProvider value={story}>
         <div className="h-full" onContextMenu={onDiagramContextMenu(view.id)}>
         <Stage frame={frame} label={view.title} maxScale={maxScale}>
           {view.type === 'map' || view.type === 'sequence' || view.type === 'state' ? <SceneStory view={view} scene={scene} extra={walkthrough?.removed.entities} /> : <Fallback view={view} scene={scene} />}
         </Stage>
         </div>
-      </StoryProvider>
-    </StudioRender>
+    </StoryProvider>
   )
 }
 

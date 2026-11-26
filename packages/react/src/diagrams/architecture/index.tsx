@@ -1,31 +1,28 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, Network } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import { clip, labelPoint, type ArchitectureScene, type ArchitectureSceneNode } from '@poney/layout'
-import { useIndex, useStudio } from '@/features/store'
-import { useZoom } from '@/components/canvas/Canvas'
-import { ToolbarButton } from '@/components/shared/Toolbar'
-import { useBind, useSubject } from '../shared/interaction'
 import { EdgeLabel, EdgeLine, type Head } from '../shared/Edge'
 import { EntityNode, Rings, useReadableSize } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor } from '../shared/tone'
 import type { DiagramModule } from '../types'
 import { LegendRow, LegendShape } from '../shared/Legend'
+import { useRenderBind, useRenderIndex, useRenderStill, useRenderSubject, useRenderZoom, useViewState } from '../../render'
 
 type View = ViewOf<'architecture'>
 
 function useCollapsed(view: View) {
-  const ui = useStudio((s) => s.viewUi[view.id])
-  const update = useStudio((s) => s.updateViewUi)
-  const collapsed = ui?.collapsed ?? view.collapsed
-  const toggle = (id: string) =>
-    update(view.id, { collapsed: collapsed.includes(id) ? collapsed.filter((c) => c !== id) : [...collapsed, id] })
-  return { collapsed, toggle, set: (next: string[]) => update(view.id, { collapsed: next }) }
+  const [ui, update] = useViewState(view.id)
+  const collapsed = ui.collapsed ?? view.collapsed
+  const toggle = (id: string) => update({ collapsed: collapsed.includes(id) ? collapsed.filter((c) => c !== id) : [...collapsed, id] })
+  return { collapsed, toggle }
 }
 
 /** A small open/close button drawn inside a node. */
 function Toggle({ x, y, open, label, onToggle }: { x: number; y: number; open: boolean; label: string; onToggle: () => void }) {
+  if (useRenderStill()) return null
   return (
     <g
       transform={`translate(${x} ${y})`}
@@ -58,10 +55,10 @@ function Toggle({ x, y, open, label, onToggle }: { x: number; y: number; open: b
 }
 
 function Renderer({ scene, view }: { scene: ArchitectureScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const zoom = useZoom()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const zoom = useRenderZoom()
+  const { subject, selection } = useRenderSubject()
   const { toggle } = useCollapsed(view)
   const relStyles = idx.doc.presentation.relationships
   const groupSize = useReadableSize(12.5, 11, 26)
@@ -253,24 +250,8 @@ function isInside(n: ArchitectureSceneNode, ancestor: string, byId: Map<string, 
   return false
 }
 
-function Tools({ view }: { view: View }) {
-  const { collapsed, set } = useCollapsed(view)
-  const idx = useIndex()
-  const systems = view.entities.filter((id) => idx.children(id).some((c) => view.entities.includes(c.id)))
-  return (
-    <>
-      <ToolbarButton label="Open everything" onClick={() => set([])} disabled={collapsed.length === 0}>
-        <ChevronsUpDown size={15} />
-      </ToolbarButton>
-      <ToolbarButton label="Show as one system" onClick={() => set([...systems])} disabled={systems.every((s) => collapsed.includes(s))}>
-        <ChevronsDownUp size={15} />
-      </ToolbarButton>
-    </>
-  )
-}
-
 function Legend({ view }: { view: View }) {
-  const idx = useIndex()
+  const idx = useRenderIndex()
   const kinds = [...new Set(view.entities.map((id) => idx.entities.get(id)?.kind).filter(Boolean))] as string[]
   return (
     <div className="space-y-1.5">
@@ -291,6 +272,5 @@ export const architecture: DiagramModule<View, ArchitectureScene> = {
   howToRead:
     'Boxes are the running parts of the system; lines show who calls whom. Select a part to see what it talks to. Open or close a group with its corner button.',
   Renderer,
-  Tools,
   Legend,
 }

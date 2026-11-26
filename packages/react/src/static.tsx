@@ -18,6 +18,10 @@ import { findScene, fit, sceneFrame, sceneLayoutOptions, storyState } from './sc
 import { THEMES, type ThemeName } from './theme'
 import { SceneStory } from './SceneStory'
 import { stepLetter } from './emphasis'
+import { diagramFor } from './diagrams/registry'
+
+/** View types drawn as walkthrough stories; the others draw with their diagram renderer. */
+const STORY_TYPES: string[] = ['map', 'sequence', 'state']
 
 const require = createRequire(import.meta.url)
 
@@ -123,16 +127,18 @@ export async function renderScene(doc: PoneyDocument, options: RenderSceneOption
     title = found.title
     sceneData = found.scene
   }
-  if (!['map', 'sequence', 'state'].includes(view.type)) throw new Error(`Headless rendering draws map, sequence and state views; "${view.id}" is a ${view.type} view`)
-
-  const scene = await layoutView(doc, view, sceneLayoutOptions(view, walkthrough, focus))
-  const frame = sceneFrame(scene, view, focus, idx, walkthrough)
+  // Map, sequence and state views draw as stories (marks, focus, callouts); every other view type draws with its diagram renderer, still.
+  const story = STORY_TYPES.includes(view.type)
+  const module = story ? undefined : diagramFor(view)
+  if (!story && !module) throw new Error(`No renderer for "${view.id}", a ${view.type === 'extension' ? view.extension : view.type} view. Register one with registerDiagram.`)
+  const scene = await layoutView(doc, view, story ? sceneLayoutOptions(view, walkthrough, focus) : {})
+  const frame = story ? sceneFrame(scene, view, focus, idx, walkthrough) : { x: 0, y: 0, w: scene.width, h: scene.height }
   const natural = { w: frame.w + PAD * 2, h: frame.h + PAD * 2 }
   const width = Math.round(options.width ?? Math.min(1600, Math.max(720, natural.w)))
   const height = Math.round((width * natural.h) / natural.w)
   const vb = fit(frame, width, height, PAD, 10)
   const theme = options.theme ?? 'light'
-  const story = storyState({
+  const storyValue = storyState({
     marks: walkthrough ? marksOf(walkthrough) : new Map(),
     mode: options.mode ?? 'change',
     view,
@@ -148,10 +154,14 @@ export async function renderScene(doc: PoneyDocument, options: RenderSceneOption
   })
 
   const body = renderToStaticMarkup(
-    <RenderProvider value={{ idx }}>
-      <StoryProvider value={story}>
-        <SceneStory view={view} scene={scene} extra={walkthrough?.removed.entities} />
-      </StoryProvider>
+    <RenderProvider value={{ idx, still: true }}>
+      {module ? (
+        <module.Renderer scene={scene} view={view} />
+      ) : (
+        <StoryProvider value={storyValue}>
+          <SceneStory view={view} scene={scene} extra={walkthrough?.removed.entities} />
+        </StoryProvider>
+      )}
     </RenderProvider>,
   )
 
@@ -223,10 +233,24 @@ function flatten(markup: string, colors: Record<string, string>): string {
   return markup
     .replace(/<rect[^>]*class="dg-focus"[^>]*?(?:\/>|><\/rect>)/g, '')
     .replace(/var\(--([a-z0-9-]+)\)/g, (_, name: string) => colors[name] ?? '#888888')
+    // Tints are CSS color-mix(); a picture gets the mixed color itself.
+    .replace(/color-mix\(in srgb,\s*(#[0-9a-fA-F]{6})\s+([\d.]+)%,\s*(#[0-9a-fA-F]{6}|transparent)\s*\)/g, (_, a: string, pct: string, b: string) => mix(a, Number(pct) / 100, b))
     .replace(/<(\w+)([^>]*?) class="([^"]*)"/g, (all, tag: string, attrs: string, cls: string) => {
       const opacity = cls.includes('st-hidden') ? '0' : cls.includes('st-dim') ? '0.16' : cls.includes('dg-dim') ? '0.3' : undefined
-      return opacity ? `<${tag}${attrs} opacity="${opacity}"` : all
+      // A line that carries data flows in the Studio; a still picture draws it dashed.
+      const dashed = cls.includes('dg-flowing') ? ' stroke-dasharray="6 4"' : ''
+      return opacity || dashed ? `<${tag}${attrs}${opacity ? ` opacity="${opacity}"` : ''}${dashed}` : all
     })
+}
+
+/** `a` at `share` over `b` (or, over transparent, `a` with that alpha). */
+function mix(a: string, share: number, b: string): string {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+  const [r, g, bl] = rgb(a)
+  if (b === 'transparent') return `rgba(${r},${g},${bl},${share})`
+  const [r2, g2, b2] = rgb(b)
+  const c = (x: number, y: number) => Math.round(x * share + y * (1 - share)).toString(16).padStart(2, '0')
+  return `#${c(r, r2)}${c(g, g2)}${c(bl, b2)}`
 }
 
 const escapeXml = (s: string) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]!)

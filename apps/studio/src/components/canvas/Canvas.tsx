@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Maximize, Minus, Plus, Scan } from 'lucide-react'
 import { useStudio } from '@/features/store'
 import { parseRef, refKey, type Ref } from '@poney/core'
-import { focusNextElement } from '@/renderers/shared/interaction'
-import type { Rect, SceneBase } from '@/renderers/types'
+import { focusNextElement } from '@/features/interaction'
+import type { Rect, SceneBase } from '@poney/layout'
 import { Tooltip } from './Tooltip'
+import { useRenderZoom, ZoomProvider } from '@poney/react'
 import { PointButton } from '@/components/agent/PointButton'
 import { ToolbarButton, ToolbarDivider } from '@/components/shared/Toolbar'
 
@@ -19,9 +20,8 @@ const MAX_ZOOM = 3
 const PADDING = 56
 const remembered = new Map<string, Transform>()
 
-const ZoomContext = createContext(1)
-/** The current zoom level, for level-of-detail rendering. */
-export const useZoom = () => useContext(ZoomContext)
+/** The current zoom level, for level-of-detail rendering (the renderers read it from @poney/react). */
+export const useZoom = useRenderZoom
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -254,7 +254,7 @@ export function Canvas({ viewId, scene, label, children, tools, overlay, initial
   const gridSize = 22 * t.k
 
   return (
-    <ZoomContext.Provider value={t.k}>
+    <ZoomProvider value={t.k}>
       <div
         ref={host}
         className="relative h-full w-full touch-none select-none overflow-hidden outline-none"
@@ -322,6 +322,6 @@ export function Canvas({ viewId, scene, label, children, tools, overlay, initial
           )}
         </div>
       </div>
-    </ZoomContext.Provider>
+    </ZoomProvider>
   )
 }

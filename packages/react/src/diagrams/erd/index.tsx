@@ -1,15 +1,14 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, KeyRound, Link2, Table2 } from 'lucide-react'
+import { KeyRound, Link2, Table2 } from 'lucide-react'
 import type { Cardinality, ViewOf } from '@poney/core'
 import { clip, ERD, measure, roundedPath, type ErdScene, type Point } from '@poney/layout'
-import { useIndex, useStudio } from '@/features/store'
-import { ToolbarButton } from '@/components/shared/Toolbar'
-import { useBind, useSubject } from '../shared/interaction'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor, toneWash } from '../shared/tone'
 import { LegendRow } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject, useViewState } from '../../render'
 
 type View = ViewOf<'erd'>
 
@@ -73,12 +72,11 @@ const unit = (a: Point, b: Point) => {
 }
 
 function Renderer({ scene, view }: { scene: ErdScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
-  const ui = useStudio((s) => s.viewUi[view.id])
-  const update = useStudio((s) => s.updateViewUi)
-  const expanded = ui?.expandedTables ?? []
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
+  const [ui, update] = useViewState(view.id)
+  const expanded = ui.expandedTables ?? []
 
   const focus = useMemo(() => {
     if (!subject) return null
@@ -121,7 +119,7 @@ function Renderer({ scene, view }: { scene: ErdScene; view: View }) {
     return { tables, rels, rows }
   }, [subject, scene])
 
-  const toggle = (id: string) => update(view.id, { expandedTables: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] })
+  const toggle = (id: string) => update({ expandedTables: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] })
 
   return (
     <g>
@@ -245,17 +243,6 @@ function Renderer({ scene, view }: { scene: ErdScene; view: View }) {
   )
 }
 
-function Tools({ view }: { view: View }) {
-  const ui = useStudio((s) => s.viewUi[view.id])
-  const update = useStudio((s) => s.updateViewUi)
-  const all = ui?.expandedTables?.length === view.dataTypes.length
-  return (
-    <ToolbarButton label={all ? 'Show key fields only' : 'Show every field'} onClick={() => update(view.id, { expandedTables: all ? [] : [...view.dataTypes] })} active={all}>
-      {all ? <ChevronsDownUp size={15} /> : <ChevronsUpDown size={15} />}
-    </ToolbarButton>
-  )
-}
-
 function Legend() {
   const row = (card: Cardinality, label: string) => (
     <div className="flex items-center gap-2.5 text-[12px] text-ink-2">
@@ -287,6 +274,5 @@ export const erd: DiagramModule<View, ErdScene> = {
   icon: Table2,
   howToRead: 'Each box is a table; the symbols at the line ends say how many rows can be on each side. Tables show their keys first. Select a field to see what it links to.',
   Renderer,
-  Tools,
   Legend,
 }

@@ -3,11 +3,27 @@ import { describe, expect, it } from 'vitest'
 import { parseDocument } from '@poney/core'
 import { commerce } from '@poney/examples'
 import { ownership } from '@poney/ext-ownership'
+import { teamMap } from '@poney/ext-ownership/diagram'
+import { layoutTeamMap } from '@poney/ext-ownership/layout'
+import { registerExtensionLayout } from '@poney/layout'
 import { renderScene, renderScenePng } from './static'
+import { registerDiagram } from './diagrams'
 
 const doc = parseDocument(commerce, { extensions: [ownership] })
 
 describe('headless rendering', () => {
+  // Every view of every type, like a Mermaid CLI: the extension's own view too, once registered.
+  registerDiagram(teamMap)
+  registerExtensionLayout('ownership/team-map', layoutTeamMap)
+  for (const view of doc.views.map((v) => v.id)) {
+    it(`renders the view ${view}, with no CSS a picture cannot read`, async () => {
+      const r = await renderScene(doc, { view })
+      expect(r.svg).toMatch(/^<svg xmlns/)
+      expect(r.svg).not.toMatch(/var\(--|color-mix|class="dg-focus"/)
+      expect(r.svg).not.toMatch(/aria-label="(Open|Close) /)
+    })
+  }
+
   for (const scene of ['overview', 'lifecycle', 'checkout', 'retry', 'window']) {
     it(`renders ${scene} to a self-contained SVG`, async () => {
       const r = await renderScene(doc, { scene })

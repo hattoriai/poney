@@ -7,8 +7,8 @@ export type { Rect, Point, SceneBase } from '@poney/layout'
 
 /**
  * A renderer draws one kind of view from a positioned scene. It never
- * computes layout and never changes the model; it reads the scene and the
- * studio's selection, and reports clicks and hovers.
+ * computes layout and never changes the model; it reads the scene, and from
+ * its host (RenderProvider) the selection, the hover and the view's state.
  */
 export interface DiagramModule<V extends View = View, S extends SceneBase = SceneBase> {
   /** "architecture", "sequence"… or "<extension>/<view>" for extension views. */
@@ -18,11 +18,9 @@ export interface DiagramModule<V extends View = View, S extends SceneBase = Scen
   /** How to read this kind of diagram, in one or two sentences. */
   howToRead: string
   Renderer: FC<{ scene: S; view: V }>
-  /** Diagram-specific controls for the floating toolbar. */
-  Tools?: FC<{ view: V }>
-  /** How the canvas first frames this diagram. Defaults to fitting it all. */
+  /** How a host should first frame this diagram: all of it, or its start (e.g. the top of a long sequence). */
   initialView?: 'fit' | 'start'
-  /** Key to the symbols, shown in the inspector when nothing is selected. */
+  /** Key to the symbols, for a host to show next to the diagram. */
   Legend?: FC<{ view: V }>
 }
 

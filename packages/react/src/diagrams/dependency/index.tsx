@@ -1,14 +1,13 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
-import { Blocks, Share2 } from 'lucide-react'
+import { Blocks } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import { clip, type DependencyScene } from '@poney/layout'
-import { useIndex, useStudio } from '@/features/store'
-import { ToolbarButton } from '@/components/shared/Toolbar'
-import { useBind, useSubject } from '../shared/interaction'
 import { ArrowHead } from '../shared/Edge'
 import { EntityNode, Rings, useReadableSize } from '../shared/EntityNode'
 import { LegendRow } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject, useViewState } from '../../render'
 
 type View = ViewOf<'dependency'>
 
@@ -16,10 +15,10 @@ const DOWN = 'var(--lapis)' // what the subject depends on
 const UP = 'var(--ochre)' // what depends on the subject
 
 function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
-  const transitive = useStudio((s) => s.viewUi[view.id]?.transitive ?? false)
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
+  const transitive = useViewState(view.id)[0].transitive ?? false
   const relStyles = idx.doc.presentation.relationships
   const bandSize = useReadableSize(13, 11, 22)
 
@@ -134,16 +133,6 @@ function Renderer({ scene, view }: { scene: DependencyScene; view: View }) {
   )
 }
 
-function Tools({ view }: { view: View }) {
-  const transitive = useStudio((s) => s.viewUi[view.id]?.transitive ?? false)
-  const update = useStudio((s) => s.updateViewUi)
-  return (
-    <ToolbarButton label={transitive ? 'Show direct dependencies only' : 'Follow dependencies all the way'} onClick={() => update(view.id, { transitive: !transitive })} active={transitive}>
-      <Share2 size={15} />
-    </ToolbarButton>
-  )
-}
-
 function Legend() {
   return (
     <div className="space-y-1.5">
@@ -162,6 +151,5 @@ export const dependency: DiagramModule<View, DependencyScene> = {
   icon: Blocks,
   howToRead: 'Layers run from the outside in, top to bottom. Select a part: blue shows what it needs, amber shows what needs it. Turn on “follow all the way” to see the full chain.',
   Renderer,
-  Tools,
   Legend,
 }

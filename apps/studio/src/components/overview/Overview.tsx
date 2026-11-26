@@ -5,7 +5,7 @@ import { useIndex, useStudio } from '@/features/store'
 import { Prose } from '@/components/text/Prose'
 import { ask, STARTERS } from '@/features/agent'
 import { knownExtensions } from '@/features/extensions'
-import { diagramFor } from '@/renderers/registry'
+import { diagramFor } from '@poney/react'
 import { categoryLabel, orderCategories } from '../navigation/categories'
 
 /** The first page of a project: what the software is and where to start. */

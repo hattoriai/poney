@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './app/styles.css'
-import { registerBuiltInDiagrams } from './renderers'
 import { registerStudioExtension } from './features/extensions'
 import { ownershipStudio } from './extensions/ownership'
 import { securityStudio } from './extensions/security'
@@ -12,6 +11,7 @@ import { AgentPanel } from './components/agent/AgentPanel'
 import { ConnectDialog } from './components/agent/ConnectDialog'
 import { OpenFileDialog } from './components/dialogs/OpenFileDialog'
 import { OpenProjectDialog } from './components/dialogs/OpenProjectDialog'
+import { StudioRender } from './story/StudioRender'
 import { ImportCodeDialog } from './components/dialogs/ImportCodeDialog'
 import { RenameField } from './components/canvas/RenameField'
 import { ContextMenu } from './components/canvas/ContextMenu'
@@ -22,7 +22,6 @@ import { readLocation } from './features/location'
 import { installLive } from './features/live'
 import { openExample, restoreLast, trackRecent } from './features/recent'
 
-registerBuiltInDiagrams()
 registerStudioExtension(ownershipStudio)
 registerStudioExtension(securityStudio)
 
@@ -48,7 +47,13 @@ function Root() {
   const start = useStudio((s) => !s.history || s.startOpen)
   return (
     <>
-      {start ? <StartPage /> : <App />}
+      {start ? (
+        <StartPage />
+      ) : (
+        <StudioRender>
+          <App />
+        </StudioRender>
+      )}
       <AgentPanel />
       <ConnectDialog />
       <OpenFileDialog />

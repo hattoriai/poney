@@ -1,3 +1,4 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { toneColor, toneWash } from './tone'
 
 /** A miniature of a node shape with its label, for diagram keys. */

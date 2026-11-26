@@ -20,7 +20,7 @@ import {
 import { OVERVIEW, useIndex, useStudio, walkId } from '@/features/store'
 import { copyDocument, downloadDocument } from '@/features/io'
 import { ToolbarButton } from '@/components/shared/Toolbar'
-import { diagramFor } from '@/renderers/registry'
+import { diagramFor } from '@poney/react'
 import { categoryLabel } from './categories'
 import { FactsMenu } from './FactsMenu'
 

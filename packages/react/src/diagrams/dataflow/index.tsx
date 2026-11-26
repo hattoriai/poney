@@ -1,23 +1,22 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
-import { ArrowRightLeft, Waypoints } from 'lucide-react'
+import { Waypoints } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import { clip, type DataFlowScene } from '@poney/layout'
-import { useIndex, useStudio } from '@/features/store'
-import { ToolbarButton } from '@/components/shared/Toolbar'
-import { useBind, useSubject } from '../shared/interaction'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor, toneWash } from '../shared/tone'
 import { LegendRow, LegendShape } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject } from '../../render'
 
 type View = ViewOf<'dataflow'>
 
 function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
 
   const focus = useMemo(() => {
     if (!subject) return null
@@ -106,17 +105,6 @@ function Renderer({ scene }: { scene: DataFlowScene; view: View }) {
   )
 }
 
-function Tools({ view }: { view: View }) {
-  const ui = useStudio((s) => s.viewUi[view.id])
-  const update = useStudio((s) => s.updateViewUi)
-  const on = ui?.controlFlow ?? view.showControlFlow
-  return (
-    <ToolbarButton label={on ? 'Hide calls that carry no data' : 'Show calls that carry no data'} onClick={() => update(view.id, { controlFlow: !on })} active={on}>
-      <ArrowRightLeft size={15} />
-    </ToolbarButton>
-  )
-}
-
 function Legend() {
   return (
     <div className="space-y-1.5">
@@ -135,6 +123,5 @@ export const dataflow: DiagramModule<View, DataFlowScene> = {
   icon: Waypoints,
   howToRead: 'Arrows follow the data, not the calls: each one says what moves and in which direction. Select a flow to see its fields.',
   Renderer,
-  Tools,
   Legend,
 }

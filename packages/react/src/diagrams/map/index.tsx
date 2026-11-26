@@ -1,21 +1,22 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo, useState } from 'react'
 import { Map as MapIcon } from 'lucide-react'
 import { marksOf, walkthroughsShowing, type ViewOf } from '@poney/core'
 import type { MapScene } from '@poney/layout'
-import { useDoc, useStudio } from '@/features/store'
-import { MapStory, StoryProvider } from '@poney/react'
-import { StudioRender } from '@/story/StudioRender'
+import { MapStory } from '../../MapStory'
+import { StoryProvider } from '../../context'
+import { useRenderIndex, useViewState } from '../../render'
 import type { DiagramModule } from '../types'
 
 type View = ViewOf<'map'>
 
 /** In the explorer a map shows the system after its latest change, with nothing dimmed. */
 function Renderer({ scene, view }: { scene: MapScene; view: View }) {
-  const doc = useDoc()
+  const doc = useRenderIndex().doc
   const [hot, setHot] = useState<string | null>(null)
   const w = walkthroughsShowing(doc, view.id)[0]
-  const collapsed = useStudio((s) => s.viewUi[view.id]?.collapsed)
-  const updateViewUi = useStudio((s) => s.updateViewUi)
+  const [ui, update] = useViewState(view.id)
+  const collapsed = ui.collapsed
   const value = useMemo(
     () => ({
       marks: w ? marksOf(w) : new Map(),
@@ -26,17 +27,15 @@ function Renderer({ scene, view }: { scene: MapScene; view: View }) {
       setHot,
       toggleGroup: (id: string) => {
         const base = collapsed ?? view.collapsed
-        updateViewUi(view.id, { collapsed: base.includes(id) ? base.filter((x) => x !== id) : [...base, id] })
+        update({ collapsed: base.includes(id) ? base.filter((x) => x !== id) : [...base, id] })
       },
     }),
-    [w, hot, collapsed, view, updateViewUi],
+    [w, hot, collapsed, view, update],
   )
   return (
-    <StudioRender>
-      <StoryProvider value={value}>
-        <MapStory scene={scene} />
-      </StoryProvider>
-    </StudioRender>
+    <StoryProvider value={value}>
+      <MapStory scene={scene} />
+    </StoryProvider>
   )
 }
 

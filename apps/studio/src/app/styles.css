@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+/* The renderers live in packages (any app can use them); their class names are generated here too. */
+@source '../../../../packages/react/src';
+@source '../../../../packages/ext-ownership/src';
 @import '@fontsource-variable/hanken-grotesk';
 @import '@fontsource-variable/jetbrains-mono';
 

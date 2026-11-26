@@ -1,22 +1,22 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { GitBranch } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import { measure, type ActivityScene } from '@poney/layout'
-import { useIndex } from '@/features/store'
-import { useBind, useSubject } from '../shared/interaction'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor } from '../shared/tone'
 import { LegendShape } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject } from '../../render'
 
 type View = ViewOf<'activity'>
 
 function Renderer({ scene }: { scene: ActivityScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
   const behavior = scene.processId
 
   const focus = useMemo(() => {

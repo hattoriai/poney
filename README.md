@@ -48,6 +48,7 @@ An agent learns the format from the guide, writes a `.poney` file, checks it, lo
 poney brief                                   # the guide and a complete example
 poney check lockout.poney                     # errors and warnings, each with a fix hint
 poney render lockout.poney --scene states     # PNG (or --format svg), exactly as the Studio draws it
+poney render shop.poney --view architecture --format svg   # any view of any type, like a Mermaid CLI
 poney schema                                  # JSON Schema, for structured output
 poney import diagram.mmd --out diagram.poney  # Mermaid to Poney
 poney import                                  # importers, and what each would read here
@@ -94,8 +95,9 @@ packages/
   core/      @poney/core    Schema, validation and lints, model queries, commands, extensions,
                             projections, JSON and Mermaid adapters. Depends only on Zod.
   layout/    @poney/layout  Diagram graph → positioned scene. ELK and custom layouts. No UI framework.
-  react/     @poney/react   Story renderers (map, sequence, state) for the Studio and headless:
-                            @poney/react/static renders SVG and PNG in Node, with the real fonts.
+  react/     @poney/react   Renderers for every diagram type and for walkthrough stories, for any
+                            React app (the host passes selection and interaction); and
+                            @poney/react/static renders any view to SVG and PNG in Node.
   agent/     @poney/agent   The guide, the CLI and the MCP server (src/), and:
                               src/live/    the live hub: state, HTTP server, and the API MCP tools use
                                            (in this process, or a hub in another one)
@@ -189,22 +191,47 @@ document ─▶ validate ─▶ model ─▶ projection ─▶ layout ─▶ sce
 
 ## How rendering works
 
-Every diagram type is a **diagram module** (`apps/studio/src/renderers/<type>/index.tsx`):
+The renderers are in **`@poney/react`**, not in the Studio, so any app can draw a Poney document its own way, as with Mermaid. The Studio is one host among others. Every diagram type is a **diagram module** (`packages/react/src/diagrams/<type>/index.tsx`):
 
 ```ts
 interface DiagramModule {
   key: string            // 'sequence', or 'ownership/team-map' for extension views
   label: string
   icon: LucideIcon
-  howToRead: string      // shown in the inspector
+  howToRead: string      // one or two sentences on how to read it
   Renderer: FC<{ scene; view }>
-  Tools?: FC<{ view }>   // controls in the floating toolbar
-  Legend?: FC<{ view }>  // the key, shown in the inspector
+  Legend?: FC<{ view }>  // the key to the symbols
   initialView?: 'fit' | 'start'
 }
 ```
 
-Renderers draw SVG from the scene. They do not compute layout and do not change the model. They read the selection and hover from the store, and report clicks through `useBind()`, which gives every element the same mouse, keyboard and screen-reader behavior. The shared `Canvas` owns zoom, pan, fit, focus requests, the tooltip and semantic zoom (names grow when you zoom out, so the overview stays readable).
+Renderers draw SVG from a scene that `@poney/layout` computed. They do not compute layout and do not change the model. Everything else comes from the **host**, through `RenderProvider`:
+
+| | What it gives | Without it |
+|---|---|---|
+| `idx` | The model index (required) | — |
+| `bind(ref, label)` | Click, hover and keyboard behavior for an element | Plain SVG with `data-ref` |
+| `selection`, `hover` | What to light up | Nothing dims |
+| `viewState`, `setViewState` | Open groups, expanded tables | Each view keeps its own while shown |
+| `still` | A picture: no controls | Controls are drawn |
+| `ZoomProvider` | The zoom level, for level of detail | 1 |
+
+```tsx
+import { RenderProvider, diagramFor } from '@poney/react'
+import { indexOf } from '@poney/core'
+import { layoutView } from '@poney/layout'
+
+const view = doc.views[0]
+const scene = await layoutView(doc, view)
+const { Renderer } = diagramFor(view)!
+<RenderProvider value={{ idx: indexOf(doc) }}>
+  <svg viewBox={`0 0 ${scene.width} ${scene.height}`}><Renderer scene={scene} view={view} /></svg>
+</RenderProvider>
+```
+
+The Studio's host (`apps/studio/src/story/StudioRender.tsx`) passes its store's selection and view state, and a `bind` with its own behavior: rename on double-click, the context menu, pointing for the agent. The Studio also adds its chrome: the `Canvas` (zoom, pan, fit, the tooltip), and toolbar buttons per diagram type (`apps/studio/src/renderers/tools.tsx`).
+
+**Headless.** `@poney/react/static` draws any view to SVG or PNG in Node, with the real fonts: `poney render doc.poney --view <id> [--format svg]`. A test renders every view of the Kestrel example.
 
 React Flow is not used. With a custom SVG canvas, every diagram type gets its own interaction model, and the model never has to look like a node-and-edge list. A Canvas or WebGL renderer can draw the same scenes.
 
@@ -213,14 +240,14 @@ React Flow is not used. With a custom SVG canvas, every diagram type gets its ow
 1. **Format.** Add the view shape to `packages/core/src/schema/views.ts` and the referential checks to `validation/validate.ts`. Add `viewShows` cases to `model/query.ts` so search and navigation can find elements in it. Document it in `spec/SPEC.md`.
 2. **Projection** (optional). Add a pure function under `packages/core/src/projections`.
 3. **Layout.** Add `layoutX(doc, view, options): SceneBase` in `packages/layout/src` and a case in `layoutView`. Put an anchor in the scene for every element a person can select.
-4. **Renderer.** Add `apps/studio/src/renderers/x/index.tsx` exporting a `DiagramModule`, and register it in `renderers/index.ts`.
+4. **Renderer.** Add `packages/react/src/diagrams/x/index.tsx` exporting a `DiagramModule`, and add it to `BUILT_IN_DIAGRAMS` in `diagrams/registry.ts`. Take everything app-specific from the host (`useRenderIndex`, `useRenderBind`, `useRenderSubject`, `useViewState`). If it needs a toolbar button in the Studio, add it to `apps/studio/src/renderers/tools.tsx`.
 5. **Inspector.** If the diagram introduces a new kind of element reference, add a body for it in `components/inspector/bodies.tsx`.
 
 To add a diagram type **without changing the format**, write an extension instead.
 
 ## How to write an extension
 
-`packages/ext-ownership` is a complete example. It has two halves.
+`packages/ext-ownership` is a complete example. It has three parts.
 
 **Format half** (no UI, any runtime):
 
@@ -238,7 +265,9 @@ export const ownership = defineExtension({
 
 `validate` reports errors (the document is invalid); `lint` gives warnings with a stable code and a hint, like the core lints. `packages/ext-security` uses `lint` to warn where personal data or secrets cross a trust zone without encryption or a named authentication. It needs no view type of its own: zones are drawn with an architecture view's groups.
 
-**Studio half** (`apps/studio/src/extensions/ownership`): a layout for the view type, a renderer, and an inspector section. Register both with `registerStudioExtension(...)`.
+**Drawing part** (`@poney/ext-ownership/layout` and `/diagram`): a layout and a renderer for the view type, for any app. Register them with `registerExtensionLayout(...)` (`@poney/layout`) and `registerDiagram(...)` (`@poney/react`); the CLI does, so `poney render` draws the team map too.
+
+**Studio part** (`apps/studio/src/extensions/ownership`): an inspector section, registered with `registerStudioExtension(...)`.
 
 A document declares the extensions it uses. Readers that do not know an optional extension keep its data and still work; readers that do not know a *required* one refuse the document (SPEC section 8).
 
@@ -291,7 +320,11 @@ A first editing feature would be: drag a node → `dispatch({ type: 'layout.move
 ```ts
 import { parseDocument, applyCommand, toJSON, fromMermaid } from '@poney/core'
 import { layoutView } from '@poney/layout'
+import { RenderProvider, diagramFor } from '@poney/react'            // any view, in your React app
+import { renderScene, renderScenePng } from '@poney/react/static'    // any view, to SVG or PNG in Node
 ```
+
+Or from a terminal: `poney render doc.poney --view <id> --format svg --out view.svg`.
 
 From another language: read [`spec/SPEC.md`](spec/SPEC.md), check shape with [`spec/poney.schema.json`](spec/poney.schema.json), implement rules R1–R14, and run the suite in [`spec/conformance`](spec/conformance).
 

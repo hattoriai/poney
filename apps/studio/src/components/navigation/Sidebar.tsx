@@ -4,9 +4,9 @@ import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight
 import type { Entity, View } from '@poney/core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
-import { diagramFor } from '@/renderers/registry'
-import { iconFor } from '@/renderers/shared/icons'
-import { toneColor } from '@/renderers/shared/tone'
+import { diagramFor } from '@poney/react'
+import { iconFor } from '@poney/react'
+import { toneColor } from '@poney/react'
 import { categoryLabel, orderCategories } from './categories'
 
 export function Sidebar() {

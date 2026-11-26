@@ -1,20 +1,20 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { CircleDot } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import type { StateScene } from '@poney/layout'
-import { useIndex } from '@/features/store'
-import { useBind, useSubject } from '../shared/interaction'
 import { EdgeLine } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { LegendShape } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject } from '../../render'
 
 type View = ViewOf<'state'>
 
 function Renderer({ scene }: { scene: StateScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
   const behavior = scene.machineId
   const sm = idx.stateMachine(behavior)!
 
