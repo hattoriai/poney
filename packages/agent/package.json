@@ -10,7 +10,8 @@
   },
   "exports": {
     ".": "./src/ops.ts",
-    "./live": "./src/live/types.ts"
+    "./live": "./src/live/types.ts",
+    "./plugins": "./src/plugins/index.ts"
   },
   "dependencies": {
     "@agentclientprotocol/claude-agent-acp": "^0.112.0",
@@ -19,6 +20,7 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@poney/core": "0.1.0",
     "@poney/ext-ownership": "0.1.0",
+    "@poney/ext-security": "0.1.0",
     "@poney/react": "0.1.0",
     "tsx": "^4.23.15",
     "zod": "^4.0.0",

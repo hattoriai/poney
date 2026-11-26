@@ -13,7 +13,7 @@
     "build": "npm run build -w @poney/studio",
     "preview": "npm run preview -w @poney/studio",
     "test": "vitest run",
-    "typecheck": "tsc -p packages/core && tsc -p packages/layout && tsc -p packages/react && tsc -p packages/ext-ownership && tsc -p packages/examples && tsc -p packages/agent && tsc -p apps/studio",
+    "typecheck": "tsc -p packages/core && tsc -p packages/layout && tsc -p packages/react && tsc -p packages/ext-ownership && tsc -p packages/ext-security && tsc -p packages/examples && tsc -p packages/agent && tsc -p apps/studio",
     "spec": "tsx scripts/build-spec.ts",
     "poney": "node packages/agent/bin/poney.mjs",
     "mcp": "node packages/agent/bin/poney-mcp.mjs",

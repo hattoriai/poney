@@ -50,6 +50,9 @@ poney check lockout.poney                     # errors and warnings, each with a
 poney render lockout.poney --scene states     # PNG (or --format svg), exactly as the Studio draws it
 poney schema                                  # JSON Schema, for structured output
 poney import diagram.mmd --out diagram.poney  # Mermaid to Poney
+poney import                                  # importers, and what each would read here
+poney import schema . --into app.poney        # add tables and foreign keys from the database schema
+poney overlay coverage app.poney .            # live facts on the parts: test coverage, recent changes
 ```
 
 **MCP server** (`packages/agent/bin/poney-mcp.mjs`, stdio). This repository's `.mcp.json` registers it for Claude Code. In another project:
@@ -69,6 +72,8 @@ claude mcp add poney -- node /path/to/poney/packages/agent/bin/poney-mcp.mjs
 | `poney_wait` | Waits for the next question the person asks in the Studio ("Ask the agent"), with the scene they were on. |
 | `poney_reply` | Answers in the Studio thread; a reply can link to a scene. |
 | `poney_excerpt` | A code block copied exactly from a file, for a scene's `code`. |
+| `poney_import` | Adds what an importer reads in the repository (a database schema, the module imports) to the open document. It only adds. |
+| `poney_overlay` | Live facts about the parts, through their source paths: test coverage, recent changes. |
 
 **Live Studio.** The MCP server runs a small local hub (port 5319 and up, or `PONEY_PORT`). After `npm run build`, the hub also serves the Studio, so the person opens the address `poney_open` gives. With `npm run dev`, open the Studio with `?live=http://127.0.0.1:5319`. The top bar shows **Live** when linked. Each scene has "Add a note for the agent"; answers and notes reach `poney_read`.
 
@@ -96,7 +101,9 @@ packages/
                                            (in this process, or a hub in another one)
                               src/agents/  agents the Studio starts over ACP: providers, the bridge,
                                            workspaces (folders and Git clones)
+                              src/plugins/ importers, overlays, and the plugin loader
   ext-ownership/            Example extension: teams, ownership, on-call, team map.
+  ext-security/             Extension: trust zones, sensitive data, protected connections; lints.
   examples/                 The Kestrel Commerce sample model.
 
 apps/
@@ -225,12 +232,41 @@ export const ownership = defineExtension({
   facets: { entity: OwnershipFacet },                   // ext.ownership on entities
   views: { 'team-map': { label: 'Team map', schema: TeamMapData } },
   validate(doc, { index, report }) { /* teams must exist */ },
+  lint(doc, { index, warn }) { /* optional: warnings in the extension's own terms */ },
 })
 ```
+
+`validate` reports errors (the document is invalid); `lint` gives warnings with a stable code and a hint, like the core lints. `packages/ext-security` uses `lint` to warn where personal data or secrets cross a trust zone without encryption or a named authentication. It needs no view type of its own: zones are drawn with an architecture view's groups.
 
 **Studio half** (`apps/studio/src/extensions/ownership`): a layout for the view type, a renderer, and an inspector section. Register both with `registerStudioExtension(...)`.
 
 A document declares the extensions it uses. Readers that do not know an optional extension keep its data and still work; readers that do not know a *required* one refuse the document (SPEC section 8).
+
+## Plugins: importers and overlays
+
+Plugins run in the local hub, next to the code, and the Studio shows what they return.
+
+- **Importers** read a source and add what they find to a document. They only add: what the document already has keeps its words. Built in: `schema` (tables, columns and foreign keys from `db/schema.rb`, SQL DDL or `schema.prisma`) and `js-modules` (modules and who imports whom, from JavaScript and TypeScript imports, across npm workspaces and tsconfig paths). In the Studio: **Import from the code…** in the project menu.
+- **Overlays** read live facts and mark the parts they concern, through each part's `sourceRefs`, without changing the document. Built in: `coverage` (from the last lcov, Istanbul, SimpleCov or ExCoveralls report) and `churn` (commits in the last 90 days). In the Studio: **Facts** in the top bar; scenes show the facts as badges, and mark the parts that need a look.
+
+Agents use both through `poney_import` and `poney_overlay`, and people through `poney import` and `poney overlay`.
+
+**Your own plugins.** A plugin is a module whose default export comes from `definePlugin` (`@poney/agent/plugins`), with `importers`, `overlays` and format `extensions`:
+
+```js
+import { definePlugin } from '@poney/agent/plugins'
+
+export default definePlugin({
+  name: 'sentry',
+  overlays: [{
+    id: 'sentry', name: 'Errors', description: 'Unresolved errors per part, from Sentry.',
+    detect: () => (process.env.SENTRY_AUTH_TOKEN ? ['SENTRY_AUTH_TOKEN'] : []),
+    async read(dir, doc) { /* … */ return { title: 'Errors', at: new Date().toISOString(), marks: [], notes: [] } },
+  }],
+})
+```
+
+List it in `~/.poney/plugins.json` (or the file `PONEY_PLUGINS` names): `{ "plugins": ["/path/to/sentry.mjs"] }`. A plugin runs code on your computer, so the list lives in your home folder, never in a project: opening or cloning a repository does not load its code. A plugin with the same id as a built-in one replaces it.
 
 ## How visual editing fits in
 

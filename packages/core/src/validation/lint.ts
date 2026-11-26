@@ -219,10 +219,21 @@ export interface CheckResult {
   warnings: ValidationIssue[]
 }
 
+/** The lints of the extensions the reader knows and the document declares. */
+export function lintExtensions(doc: PoneyDocument, options: ValidateOptions = {}): ValidationIssue[] {
+  const declared = new Set(doc.extensions.map((e) => e.name))
+  const known = (options.extensions ?? []).filter((e) => e.lint && declared.has(e.name))
+  if (!known.length) return []
+  const index = indexOf(doc)
+  const out: ValidationIssue[] = []
+  for (const ext of known) ext.lint!(doc, { index, warn: (path, code, message, hint) => out.push({ path, code, message, hint, severity: 'warning' }) })
+  return out
+}
+
 /** Validates and lints in one call: what a person or an agent runs on a file. */
 export function checkDocument(input: unknown, options: ValidateOptions = {}): CheckResult {
   const result = validateDocument(input, options)
-  const issues = [...result.issues, ...(result.document && result.ok ? lintDocument(result.document) : [])].map((i) => withScene(i, result.document))
+  const issues = [...result.issues, ...(result.document && result.ok ? [...lintDocument(result.document), ...lintExtensions(result.document, options)] : [])].map((i) => withScene(i, result.document))
   return { ok: result.ok, document: result.document, errors: issues.filter((i) => i.severity === 'error'), warnings: issues.filter((i) => i.severity === 'warning') }
 }
 

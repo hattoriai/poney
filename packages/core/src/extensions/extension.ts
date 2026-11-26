@@ -39,6 +39,16 @@ export interface ExtensionContext {
   report(path: string, message: string): void
 }
 
+/** What an extension's lints get: the model, and a way to warn. */
+export interface ExtensionLintContext {
+  index: ModelIndex
+  /**
+   * A warning. `code` is stable and starts with the extension's name, e.g.
+   * "security-unencrypted-crossing"; `hint` says how to fix it.
+   */
+  warn(path: string, code: string, message: string, hint: string): void
+}
+
 export interface PoneyExtension {
   /** Lowercase namespace, e.g. "ownership". */
   name: string
@@ -50,6 +60,12 @@ export interface PoneyExtension {
   views?: Record<string, ViewTypeDefinition>
   /** Extra checks, such as references from facets to entities. */
   validate?(doc: PoneyDocument, ctx: ExtensionContext): void
+  /**
+   * Warnings about a valid document, in the extension's own terms, e.g.
+   * "personal data leaves a trust zone without encryption". They never make
+   * a document invalid.
+   */
+  lint?(doc: PoneyDocument, ctx: ExtensionLintContext): void
 }
 
 /** Identity function that keeps the extension's literal types. */

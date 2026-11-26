@@ -4,6 +4,9 @@ import { useStudio, walkId, type AgentStatus, type Message } from './store'
 import { listRecent } from './recent'
 import { agentFor, connectHere } from './agent'
 
+/** The document the address named when the page opened (?doc=<id>); the start page may remove it from the address. */
+const REQUESTED = new URLSearchParams(window.location.search).get('doc')
+
 /**
  * The live link to an agent session (see @poney/agent).
  *
@@ -45,8 +48,9 @@ function connect(base: string) {
       st.setLive({ state: 'on', url: base, revision })
       return st.notify(`“${result.document.project.name}” from Poney on this computer is in the project menu.`)
     }
-    // The start page, asked for by its address, stays; the document waits in its list.
-    if (opening && st.startOpen) {
+    // The start page stays, and the document waits in its list, unless the address names this document (?doc=<id>).
+    const named = REQUESTED === result.document.project.id
+    if (opening && st.startOpen && !named) {
       st.keepProject(result.document, 'live')
       return st.setLive({ state: 'on', url: base, revision })
     }
@@ -79,6 +83,7 @@ function connect(base: string) {
     const p = JSON.parse((e as MessageEvent).data) as { root: string | null; name: string | null }
     useStudio.getState().setProject(p.root ? { root: p.root, name: p.name ?? p.root } : null)
   })
+  events.addEventListener('overlays', (e) => useStudio.getState().setOverlays(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('file', (e) => useStudio.getState().setLiveFile((JSON.parse((e as MessageEvent).data) as { path: string | null }).path))
 
   // Report what the person does, a moment after they do it.
@@ -160,7 +165,7 @@ async function giveBack(base: string) {
   if (!doc || origin === 'example' || s.startOpen) return
   const info = (await fetch(`${base}/api/live`).then((r) => r.json()).catch(() => ({}))) as { revision?: number }
   if (info.revision !== 0) return
-  const path = listRecent().find((r) => r.id === doc.project.id)?.path
+  const path = s.liveFile ?? listRecent().find((r) => r.id === doc.project.id)?.path
   const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   const opened = path ? await post('/api/files/open', { path }).then((r) => r.ok).catch(() => false) : false
   if (!opened) await post('/api/live/open', { document: doc }).catch(() => undefined)

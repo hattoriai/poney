@@ -24,6 +24,7 @@ import type { AgentBridge } from '../agents/bridge'
 import { builtInProviders, customProvider, describeProvider, type ProviderSpec } from '../agents/providers'
 import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agents/workspace'
 import { checkProvider } from '../agents/check'
+import { check } from '../ops'
 import type { DocumentFiles } from './files'
 
 /** The Poney MCP server of this install, for the Studio to show how to add it to an agent. */
@@ -70,6 +71,7 @@ export class LiveServer {
     state.on('agent', (status) => send('agent', status))
     state.on('file', (path) => send('file', { path: path ?? null }))
     state.on('workspace', (w) => send('project', { root: w?.cwd ?? null, name: w?.name ?? null }))
+    state.on('overlays', (o) => send('overlays', o))
   }
 
   get url() {
@@ -227,6 +229,36 @@ export class LiveServer {
       }
 
       /* The project folder */
+      case 'GET /api/plugins': {
+        // Importers and overlays, and what each would read in the project's folder.
+        const { available } = await import('../plugins/run')
+        const dir = s.project?.cwd
+        if (!dir) return json(res, 200, { root: null, importers: [], overlays: [], problems: [] })
+        return json(res, 200, { root: dir, ...(await available(dir)) })
+      }
+      case 'POST /api/import': {
+        const { runImport } = await import('../plugins/run')
+        const r = (await body(req)) as { importer?: string; path?: string; store?: string }
+        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
+        const { document, summary } = await runImport(r.importer ?? '', s.project.cwd, { into: s.current(), path: r.path, store: r.store })
+        const checked = check({ document })
+        if (!checked.result?.ok) return json(res, 400, { error: `The document has errors after the import.\n${checked.report}` })
+        s.open(document, 'agent')
+        return json(res, 200, { summary })
+      }
+      case 'POST /api/overlays/run': {
+        const { runOverlay } = await import('../plugins/run')
+        const r = (await body(req)) as { id?: string }
+        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
+        const result = await runOverlay(r.id ?? '', s.project.cwd, s.current())
+        s.setOverlay(r.id!, result)
+        return json(res, 200, result)
+      }
+      case 'POST /api/overlays/clear': {
+        const r = (await body(req)) as { id?: string }
+        s.setOverlay(r.id ?? '', null)
+        return json(res, 200, {})
+      }
       case 'POST /api/project/open': {
         const r = (await body(req)) as { path?: string }
         s.setWorkspace(workspaceProject(checkFolder(r.path ?? '')))
@@ -282,6 +314,7 @@ export class LiveServer {
     res.write(`event: agent\ndata: ${JSON.stringify(this.state.status())}\n\n`)
     res.write(`event: file\ndata: ${JSON.stringify({ path: this.state.file ?? null })}\n\n`)
     res.write(`event: project\ndata: ${JSON.stringify({ root: this.state.project?.cwd ?? null, name: this.state.project?.name ?? null })}\n\n`)
+    res.write(`event: overlays\ndata: ${JSON.stringify(this.state.overlays)}\n\n`)
     this.clients.add(res)
     const beat = setInterval(() => res.write(': beat\n\n'), 20_000)
     req.on('close', () => {

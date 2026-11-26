@@ -7,10 +7,15 @@
  *   poney brief [--tour]   the guide for agents, with a complete example
  *   poney schema           the JSON Schema of a document
  *   poney import <file.mmd> [--out path]   Mermaid to Poney JSON
+ *   poney import [<importer> [folder]] [--into file.poney] [--path file] [--store id] [--out path]
+ *                  adds what an importer reads (a database schema, a module graph) to a document;
+ *                  with no importer, lists the importers and what each would read here
+ *   poney overlay [<overlay> <file.poney> [folder]]   live facts on a document's parts (test coverage, recent changes)
  *   poney excerpt <repo> <path> <from>-<to> [--rev <commit|working>]   a code block, copied from the file
  *   poney studio [--port n]   runs Poney Studio here: open folders, start agents, and let MCP agents attach
  */
 import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { toJSON } from '@poney/core'
 import { renderScene, renderScenePng } from '@poney/react/static'
@@ -34,6 +39,9 @@ const { values, positionals } = parseArgs({
     tour: { type: 'boolean' },
     rev: { type: 'string' },
     port: { type: 'string' },
+    into: { type: 'string' },
+    path: { type: 'string' },
+    store: { type: 'string' },
   },
 })
 const file = positionals[0]
@@ -77,7 +85,30 @@ async function main(): Promise<number> {
       console.log(JSON.stringify(schema(), null, 2))
       return 0
     case 'import': {
-      if (!file) return usage()
+      const p = await import('./plugins')
+      const ids = (await p.plugins()).importers.map((i) => i.id)
+      if (!file || ids.includes(file)) {
+        const dir = resolve(positionals[1] ?? '.')
+        if (!file) {
+          const { importers, problems } = await p.available(dir)
+          for (const i of importers) console.log(`${i.id.padEnd(12)} ${i.name}: ${i.description}\n${''.padEnd(13)}${i.files.length ? `reads ${i.files.join(', ')}` : 'nothing to read here'}`)
+          problems.forEach((x) => console.error(x))
+          return 0
+        }
+        const into = values.into ? JSON.parse(readFileSync(values.into, 'utf8')) : undefined
+        const { document, summary } = await p.runImport(file, dir, { into, path: values.path, store: values.store })
+        const checked = check({ document })
+        if (!checked.result?.ok) {
+          console.error(`The document has errors after the import:\n${checked.report}`)
+          return 1
+        }
+        const json = `${JSON.stringify(document, null, 2)}\n`
+        const out = values.out ?? values.into
+        if (out) writeFileSync(out, json)
+        else process.stdout.write(json)
+        console.error(summary)
+        return 0
+      }
       const read = readInput({ path: file })
       if (read.error || !read.converted) {
         console.error(read.error ?? 'Not a Mermaid diagram.')
@@ -103,6 +134,20 @@ async function main(): Promise<number> {
       process.on('SIGTERM', stop)
       return new Promise<number>(() => {})
     }
+    case 'overlay': {
+      const p = await import('./plugins')
+      const dir = resolve(positionals[2] ?? '.')
+      if (!file) {
+        const { overlays } = await p.available(dir)
+        for (const o of overlays) console.log(`${o.id.padEnd(12)} ${o.name}: ${o.description}\n${''.padEnd(13)}${o.files.length ? `reads ${o.files.join(', ')}` : 'nothing to read here'}`)
+        return 0
+      }
+      const docPath = positionals[1]
+      if (!docPath) return usage()
+      const result = await p.runOverlay(file, dir, JSON.parse(readFileSync(docPath, 'utf8')))
+      console.log(values.json ? JSON.stringify(result, null, 2) : p.describeOverlay(result))
+      return 0
+    }
     case 'excerpt': {
       const [repo, path, range] = positionals
       const m = range ? /^(\d+)(?:-(\d+))?$/.exec(range) : null
@@ -127,6 +172,8 @@ function usage() {
   poney brief [--tour]
   poney schema
   poney import <file.mmd> [--out path]
+  poney import [<importer> [folder]] [--into file.poney] [--path file] [--store id] [--out path]
+  poney overlay [<overlay> <file.poney> [folder]] [--json]
   poney excerpt <repo> <path> <from>-<to> [--rev <commit|working>]
   poney studio [--port n]`)
   return 2

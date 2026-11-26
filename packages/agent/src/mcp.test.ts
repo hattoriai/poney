@@ -21,7 +21,7 @@ afterAll(async () => client.close())
 describe('poney MCP server', () => {
   it('lists its tools', async () => {
     const { tools } = await client.listTools()
-    expect(tools.map((t) => t.name).sort()).toEqual(['poney_check', 'poney_excerpt', 'poney_guide', 'poney_open', 'poney_read', 'poney_render', 'poney_reply', 'poney_schema', 'poney_wait'])
+    expect(tools.map((t) => t.name).sort()).toEqual(['poney_check', 'poney_excerpt', 'poney_guide', 'poney_import', 'poney_open', 'poney_overlay', 'poney_read', 'poney_render', 'poney_reply', 'poney_schema', 'poney_wait'])
   })
 
   it('teaches the format', async () => {
@@ -84,5 +84,21 @@ describe('poney MCP server', () => {
     expect(textOf(refused)).toMatch(/leaves them out.*poney_read/s)
     expect(textOf(await call('poney_open', { document: { ...doc, walkthroughs: [...doc.walkthroughs, fewer.walkthroughs[0]] } }))).toMatch(/Opened revision/)
     expect(textOf(await call('poney_open', { document: fewer, replace: true }))).toMatch(/Opened revision/)
+  }, 30_000)
+
+  it('imports a database schema into the open document, adding to it', async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const repo = mkdtempSync(join(tmpdir(), 'poney-mcp-import-'))
+    mkdirSync(join(repo, 'db'))
+    writeFileSync(join(repo, 'db', 'schema.rb'), 'create_table "accounts", force: :cascade do |t|\n  t.string "email", null: false\nend\n')
+    expect(textOf(await call('poney_import', { repo }))).toMatch(/- schema: .*Would read db\/schema.rb/)
+    const before = JSON.parse(textOf(await call('poney_read', { includeDocument: true }))).document
+    const r = await call('poney_import', { repo, importer: 'schema' })
+    expect(textOf(r)).toMatch(/Added 1 table, 1 view\.[\s\S]*Opened revision/)
+    const after = JSON.parse(textOf(await call('poney_read', { includeDocument: true }))).document
+    expect(after.walkthroughs.map((w: { id: string }) => w.id)).toEqual(before.walkthroughs.map((w: { id: string }) => w.id))
+    expect(after.model.dataTypes.map((d: { id: string }) => d.id)).toContain('accounts')
   }, 30_000)
 })

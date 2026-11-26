@@ -22,6 +22,7 @@ import { copyDocument, downloadDocument } from '@/features/io'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 import { diagramFor } from '@/renderers/registry'
 import { categoryLabel } from './categories'
+import { FactsMenu } from './FactsMenu'
 
 export function TopBar() {
   const idx = useIndex()
@@ -102,6 +103,7 @@ export function TopBar() {
       </ToolbarButton>
       <span className="mx-1 h-5 w-px bg-rule" aria-hidden />
       <LivePill />
+      <FactsMenu />
 
       <button
         type="button"

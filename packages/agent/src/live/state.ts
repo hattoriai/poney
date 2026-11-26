@@ -7,6 +7,7 @@
  * the ACP bridge answers the person's questions through it.
  */
 import { EventEmitter } from 'node:events'
+import type { OverlayResult } from '../plugins/types'
 import type { AgentStatus, Message, MessageInput, Place, StudioState } from './types'
 import { intoWorkspace, type WorkspaceProject } from './workspace-project'
 
@@ -25,6 +26,8 @@ interface Events {
   workspace: [workspace: WorkspaceProject | undefined, keep: boolean]
   message: [message: Message]
   agent: [status: AgentStatus]
+  /** Overlay results the Studio shows, by overlay id. */
+  overlays: [overlays: Record<string, OverlayResult>]
 }
 
 export class LiveState extends EventEmitter<Events> {
@@ -40,6 +43,7 @@ export class LiveState extends EventEmitter<Events> {
   private workspace?: WorkspaceProject
   private path?: string
   studio?: StudioState
+  private shownOverlays: Record<string, OverlayResult> = {}
 
   /* ─── The document ──────────────────────────────────────────────────── */
 
@@ -52,6 +56,17 @@ export class LiveState extends EventEmitter<Events> {
     this.studio = undefined
     this.emit('document', this.revision, this.document, source)
     return this.revision
+  }
+
+  /** Overlay results shown in the Studio, by id. */
+  get overlays() {
+    return this.shownOverlays
+  }
+  /** Shows an overlay's result, or with null, stops showing it. */
+  setOverlay(id: string, result: OverlayResult | null) {
+    const { [id]: _, ...rest } = this.shownOverlays
+    this.shownOverlays = result ? { ...rest, [id]: result } : rest
+    this.emit('overlays', this.shownOverlays)
   }
 
   /** The file the open document is saved to. */

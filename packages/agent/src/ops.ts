@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { checkDocument, detectMermaid, formatCheck, fromMermaid, PoneyDocument, toJSON, type CheckResult } from '@poney/core'
 import { ownership } from '@poney/ext-ownership'
+import { security } from '@poney/ext-security'
 import { diffFromGit, filesAt, verifyCode, verifyExcerpts, verifySources } from './verify'
 
-export const EXTENSIONS = [ownership]
+export const EXTENSIONS = [ownership, security]
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url))
 
