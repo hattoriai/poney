@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Folder as FolderIcon, Loader2, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useStudio } from '@/features/store'
 import { checkAgent, connectAgent, customAgents, lastFolder, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
@@ -6,6 +6,8 @@ import { Modal } from '@/components/dialogs/Modal'
 import { FileBrowser } from './FileBrowser'
 
 type Choice = { kind: 'provider'; id: string } | { kind: 'custom'; name: string; command: string }
+const sameAgent = (a: AgentChoice, b: AgentChoice) =>
+  'providerId' in a ? 'providerId' in b && a.providerId === b.providerId : 'custom' in b && a.custom.name === b.custom.name && a.custom.command === b.custom.command
 const keyOf = (c: Choice) => (c.kind === 'provider' ? c.id : `custom:${c.name}`)
 const asAgent = (c: Choice): AgentChoice => (c.kind === 'provider' ? { providerId: c.id } : { custom: { name: c.name, command: c.command } })
 type Check = SignInStatus | 'checking'
@@ -18,7 +20,12 @@ type Check = SignInStatus | 'checking'
 export function ConnectDialog() {
   const open = useStudio((s) => s.connectOpen)
   const setOpen = useStudio((s) => s.setConnectOpen)
-  const project = useProjectRoot()
+  const projectRoot = useProjectRoot()
+  // From the start page, or with no document on screen, no project is open: the person picks the folder.
+  const onStart = useStudio((s) => s.startOpen || !s.history)
+  const project = onStart ? null : projectRoot
+  // Set when the person picks an agent, so a default arriving later does not replace it.
+  const touched = useRef(false)
   const [providers, setProviders] = useState<Provider[]>([])
   const [custom, setCustom] = useState(() => customAgents())
   const [choice, setChoice] = useState<Choice | null>(null)
@@ -37,8 +44,8 @@ export function ConnectDialog() {
       .then((status) => {
         setChecks((m) => ({ ...m, [keyOf(c)]: status }))
         if (status.state === 'ready') {
-          const isDefault = !!preferred && JSON.stringify(asAgent(c)) === JSON.stringify(preferred)
-          setChoice((cur) => (isDefault || !cur ? c : cur))
+          const isDefault = !!preferred && sameAgent(asAgent(c), preferred)
+          setChoice((cur) => (!cur || (isDefault && !touched.current) ? c : cur))
         }
         return status
       })
@@ -47,6 +54,7 @@ export function ConnectDialog() {
   useEffect(() => {
     if (!open) return
     setError(null)
+    touched.current = false
     // With a project open its folder is shown; otherwise the person picks one, starting from the last one used.
     const known = project?.root ?? lastFolder() ?? null
     setFolder(known)
@@ -125,7 +133,7 @@ export function ConnectDialog() {
               return (
                 <li key={p.id}>
                   <label className={`flex items-start gap-3 px-3.5 py-3 ${usable ? 'cursor-pointer' : 'cursor-default'}`}>
-                    <input type="radio" name="agent" className="mt-1 accent-[var(--accent)]" checked={on} disabled={!usable} onChange={() => setChoice(c)} />
+                    <input type="radio" name="agent" className="mt-1 accent-[var(--accent)]" checked={on} disabled={!usable} onChange={() => (touched.current = true, setChoice(c))} />
                     <span className={`min-w-0 flex-1 ${p.available ? '' : 'opacity-70'}`}>
                       <span className="block text-[14px] font-medium">{p.name}</span>
                       {p.available ? <Status status={status} signIn={p.signIn} onRetry={() => void check(c, true)} /> : <span className="block text-[12.5px] text-ink-3">{p.install}</span>}
@@ -138,7 +146,7 @@ export function ConnectDialog() {
               const on = choice?.kind === 'custom' && choice.name === c.name
               return (
                 <li key={c.name} className="flex items-start gap-3 px-3.5 py-3">
-                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--accent)]" checked={on} onChange={() => setChoice({ kind: 'custom', ...c })} />
+                  <input type="radio" name="agent" aria-label={c.name} className="mt-1 accent-[var(--accent)]" checked={on} onChange={() => (touched.current = true, setChoice({ kind: 'custom', ...c }))} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[14px] font-medium">{c.name}</span>
                     <code className="block truncate font-mono text-[11.5px] text-ink-3">{c.command}</code>
@@ -166,6 +174,7 @@ export function ConnectDialog() {
               const next = [...custom.filter((x) => x.name !== a.name), a]
               setCustom(next)
               saveCustomAgents(next)
+              touched.current = true
               setChoice({ kind: 'custom', ...a })
               void check({ kind: 'custom', ...a }, true)
             }}
