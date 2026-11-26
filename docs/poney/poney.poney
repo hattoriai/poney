@@ -1,0 +1,426 @@
+{
+  "poneyVersion": "0.2.0",
+  "project": {
+    "id": "poney",
+    "name": "Poney",
+    "description": "An open format for explaining software in diagrams, with renderers anyone can use, and tools for agents and people.",
+    "repository": "github.com/hattoriai/poney",
+    "defaultView": "packages"
+  },
+  "model": {
+    "entities": [
+      {
+        "id": "studio",
+        "kind": "web-app",
+        "name": "Poney Studio",
+        "summary": "Where people read walkthroughs, explore diagrams and talk to the agent.",
+        "technology": "React app",
+        "sourceRefs": [
+          {
+            "path": "apps/studio"
+          }
+        ]
+      },
+      {
+        "id": "cli",
+        "kind": "library",
+        "name": "@hattoriai/poney",
+        "summary": "The CLI, the MCP server and the local hub. Ships the built Studio.",
+        "technology": "CLI \u00b7 MCP \u00b7 ACP",
+        "sourceRefs": [
+          {
+            "path": "packages/agent"
+          }
+        ]
+      },
+      {
+        "id": "ext-ownership",
+        "kind": "library",
+        "name": "poney-ext-ownership",
+        "summary": "Teams, on-call contacts and the team map.",
+        "technology": "Extension",
+        "sourceRefs": [
+          {
+            "path": "packages/ext-ownership"
+          }
+        ]
+      },
+      {
+        "id": "ext-security",
+        "kind": "library",
+        "name": "poney-ext-security",
+        "summary": "Trust zones, sensitive data and protected connections.",
+        "technology": "Extension",
+        "sourceRefs": [
+          {
+            "path": "packages/ext-security"
+          }
+        ]
+      },
+      {
+        "id": "react",
+        "kind": "library",
+        "name": "poney-react",
+        "summary": "Renderers for every diagram type, and the stylesheet.",
+        "technology": "React",
+        "sourceRefs": [
+          {
+            "path": "packages/react"
+          }
+        ]
+      },
+      {
+        "id": "render",
+        "kind": "library",
+        "name": "poney-render",
+        "summary": "Any view or scene to SVG or PNG, in Node.",
+        "technology": "Node \u00b7 resvg",
+        "sourceRefs": [
+          {
+            "path": "packages/render"
+          }
+        ]
+      },
+      {
+        "id": "layout",
+        "kind": "library",
+        "name": "poney-layout",
+        "summary": "Lays a view out into a scene: boxes, lines and labels.",
+        "technology": "ELK and custom layouts",
+        "sourceRefs": [
+          {
+            "path": "packages/layout"
+          }
+        ]
+      },
+      {
+        "id": "core",
+        "kind": "library",
+        "name": "poney-core",
+        "summary": "The format: schema, upgrades, validation, queries, commands.",
+        "technology": "Zod",
+        "sourceRefs": [
+          {
+            "path": "packages/core"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "d-studio-react",
+        "kind": "depends-on",
+        "source": "studio",
+        "target": "react",
+        "label": "Draws diagrams"
+      },
+      {
+        "id": "d-studio-ext-ownership",
+        "kind": "depends-on",
+        "source": "studio",
+        "target": "ext-ownership",
+        "label": "Team map"
+      },
+      {
+        "id": "d-studio-ext-security",
+        "kind": "depends-on",
+        "source": "studio",
+        "target": "ext-security",
+        "label": "Security lints"
+      },
+      {
+        "id": "d-cli-studio",
+        "kind": "depends-on",
+        "source": "cli",
+        "target": "studio",
+        "label": "Ships it built"
+      },
+      {
+        "id": "d-cli-render",
+        "kind": "depends-on",
+        "source": "cli",
+        "target": "render",
+        "label": "Renders PNGs"
+      },
+      {
+        "id": "d-cli-ext-ownership",
+        "kind": "depends-on",
+        "source": "cli",
+        "target": "ext-ownership",
+        "label": "Registers it"
+      },
+      {
+        "id": "d-cli-ext-security",
+        "kind": "depends-on",
+        "source": "cli",
+        "target": "ext-security",
+        "label": "Registers it"
+      },
+      {
+        "id": "d-ext-ownership-react",
+        "kind": "depends-on",
+        "source": "ext-ownership",
+        "target": "react",
+        "label": "Team map renderer"
+      },
+      {
+        "id": "d-ext-security-core",
+        "kind": "depends-on",
+        "source": "ext-security",
+        "target": "core",
+        "label": "Defines the extension"
+      },
+      {
+        "id": "d-render-react",
+        "kind": "depends-on",
+        "source": "render",
+        "target": "react",
+        "label": "Same renderers"
+      },
+      {
+        "id": "d-react-layout",
+        "kind": "depends-on",
+        "source": "react",
+        "target": "layout",
+        "label": "Draws its scenes"
+      },
+      {
+        "id": "d-layout-core",
+        "kind": "depends-on",
+        "source": "layout",
+        "target": "core",
+        "label": "Reads views"
+      }
+    ],
+    "behaviors": [
+      {
+        "kind": "activity",
+        "id": "document-to-picture",
+        "name": "From document to picture",
+        "summary": "What happens to a .poney file before a person sees a diagram.",
+        "nodes": [
+          {
+            "id": "n-file",
+            "kind": "initial",
+            "label": "A .poney file arrives",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-upgrade",
+            "kind": "action",
+            "label": "Upgrade it if an older version wrote it",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-check",
+            "kind": "action",
+            "label": "Check shape, references and extensions",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-valid",
+            "kind": "decision",
+            "label": "Valid?",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-issues",
+            "kind": "action",
+            "label": "Report each problem with a fix hint",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-stop",
+            "kind": "final",
+            "label": "Not drawn",
+            "performedBy": "core",
+            "outcome": "failure"
+          },
+          {
+            "id": "n-project",
+            "kind": "action",
+            "label": "Select and group what the view shows",
+            "performedBy": "core"
+          },
+          {
+            "id": "n-layout",
+            "kind": "action",
+            "label": "Place boxes, route lines, place labels",
+            "performedBy": "layout"
+          },
+          {
+            "id": "n-where",
+            "kind": "decision",
+            "label": "Where is it drawn?",
+            "performedBy": "layout"
+          },
+          {
+            "id": "n-react",
+            "kind": "action",
+            "label": "Draw SVG; the app adds selection and hover",
+            "performedBy": "react"
+          },
+          {
+            "id": "n-app",
+            "kind": "final",
+            "label": "A diagram in the app",
+            "performedBy": "react",
+            "outcome": "success"
+          },
+          {
+            "id": "n-node",
+            "kind": "action",
+            "label": "Draw SVG with the real fonts, then PNG",
+            "performedBy": "render"
+          },
+          {
+            "id": "n-image",
+            "kind": "final",
+            "label": "An SVG or PNG file",
+            "performedBy": "render",
+            "outcome": "success"
+          }
+        ],
+        "flows": [
+          {
+            "id": "f1",
+            "from": "n-file",
+            "to": "n-upgrade"
+          },
+          {
+            "id": "f2",
+            "from": "n-upgrade",
+            "to": "n-check"
+          },
+          {
+            "id": "f3",
+            "from": "n-check",
+            "to": "n-valid"
+          },
+          {
+            "id": "f4",
+            "from": "n-valid",
+            "to": "n-issues",
+            "guard": "No"
+          },
+          {
+            "id": "f5",
+            "from": "n-issues",
+            "to": "n-stop"
+          },
+          {
+            "id": "f6",
+            "from": "n-valid",
+            "to": "n-project",
+            "guard": "Yes"
+          },
+          {
+            "id": "f7",
+            "from": "n-project",
+            "to": "n-layout"
+          },
+          {
+            "id": "f8",
+            "from": "n-layout",
+            "to": "n-where"
+          },
+          {
+            "id": "f9",
+            "from": "n-where",
+            "to": "n-react",
+            "guard": "In an app"
+          },
+          {
+            "id": "f10",
+            "from": "n-react",
+            "to": "n-app"
+          },
+          {
+            "id": "f11",
+            "from": "n-where",
+            "to": "n-node",
+            "guard": "In Node"
+          },
+          {
+            "id": "f12",
+            "from": "n-node",
+            "to": "n-image"
+          }
+        ]
+      }
+    ]
+  },
+  "views": [
+    {
+      "id": "packages",
+      "type": "dependency",
+      "title": "The packages",
+      "description": "What each package uses directly; the rest comes through it. Below each name, the main library it builds on.",
+      "category": "structure",
+      "entities": [
+        "studio",
+        "cli",
+        "ext-ownership",
+        "ext-security",
+        "react",
+        "render",
+        "layout",
+        "core"
+      ],
+      "layers": [
+        {
+          "id": "l-tools",
+          "label": "Tools",
+          "description": "For people and agents.",
+          "members": [
+            "cli",
+            "studio"
+          ]
+        },
+        {
+          "id": "l-ext",
+          "label": "Extensions",
+          "description": "Add to the format.",
+          "members": [
+            "ext-ownership",
+            "ext-security"
+          ]
+        },
+        {
+          "id": "l-draw",
+          "label": "Drawing",
+          "description": "Scenes to pictures.",
+          "members": [
+            "react",
+            "render"
+          ]
+        },
+        {
+          "id": "l-layout",
+          "label": "Layout",
+          "description": "Views to scenes.",
+          "members": [
+            "layout"
+          ]
+        },
+        {
+          "id": "l-format",
+          "label": "Format",
+          "description": "No UI.",
+          "members": [
+            "core"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pipeline",
+      "type": "activity",
+      "title": "From document to picture",
+      "description": "What each package does to a .poney file, one lane per package.",
+      "category": "behavior",
+      "activity": "document-to-picture",
+      "swimlanes": true
+    }
+  ]
+}

@@ -1,5 +1,16 @@
 # Architecture
 
+Poney draws the diagrams on this page from its own document, [`docs/poney/poney.poney`](poney/poney.poney). To explore it, open that file in Poney Studio. To render one view again, run `npm run poney -- render docs/poney/poney.poney --view packages`.
+
+## The packages
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../media/architecture-packages-dark.png">
+  <img alt="The packages in layers. Tools: @hattoriai/poney uses Poney Studio, poney-render and both extensions; Poney Studio uses poney-react and both extensions. Extensions: poney-ext-ownership uses poney-react; poney-ext-security uses poney-core. Drawing: poney-react and poney-render. Layout: poney-layout. Format: poney-core" src="../media/architecture-packages-light.png">
+</picture>
+
+Each arrow shows what a package uses directly; it gets the rest through that package. Under each name is the main library that the package builds on.
+
 ## The repository
 
 ```
@@ -47,11 +58,10 @@ The app keeps track of the reader’s selection, hover and zoom level.
 
 ## From document to picture
 
-```
-document ─▶ upgrade + validate ─▶ model ─▶ projection ─▶ layout ─▶ scene ─▶ renderer
-            @hattoriai/poney-core                       @hattoriai/poney-layout   @hattoriai/poney-react
-                                                                                @hattoriai/poney-render
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../media/architecture-pipeline-dark.png">
+  <img alt="An activity diagram with one lane per package. poney-core upgrades the file, checks it and, if it is not valid, reports each problem with a fix hint; if it is valid, it selects and groups what the view shows. poney-layout places boxes, routes lines and places labels. In an app, poney-react draws SVG and the app adds selection and hover; in Node, poney-render draws SVG with the real fonts, then PNG" src="../media/architecture-pipeline-light.png">
+</picture>
 
 - A **projection** selects and groups the elements a view needs. For example, when you collapse a group in an architecture view, its connections move to the nearest visible container. See `packages/core/src/projections`.
 - A **layout** calculates positions for boxes, connecting lines and labels. The result is a **scene**. Its `anchors` give the bounds of each element so the canvas can zoom to it. Architecture, data flow, entity relationship and state machine diagrams use ELK to route lines around boxes. Sequence, activity, use case and dependency diagrams have their own layouts in `packages/layout/src`.
