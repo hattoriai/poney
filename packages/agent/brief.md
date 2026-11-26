@@ -20,7 +20,7 @@ You write the content as one JSON document (a `.poney` file). You never write co
 ## The document
 
 ```
-poneyVersion   "0.1.0"
+poneyVersion   "0.2.0"
 project          { id, name, description }
 model            what the walkthrough talks about — only that
   entities       parts of the system: { id, kind, name, summary, parent?, technology?, sourceRefs? }
@@ -34,7 +34,7 @@ Model **only what the story needs**. A walkthrough of a sign-in change needs the
 
 ### Entities and relationships
 
-- `kind` of an entity: `person`, `web-app`, `service`, `gateway`, `database`, `cache`, `queue`, `external`, `module`, `interface`, `library`, `system`.
+- `kind` of an entity: `person`, `web-app`, `service`, `gateway`, `database`, `cache`, `message-broker`, `external`, `component`, `interface`, `library`, `system`. A `component` is a part of the code inside a running program (C4); give it a `technology` such as "Ruby class" or "Elixir module", so readers see what it is in this codebase.
 - `kind` of a relationship: `uses`, `calls`, `reads`, `writes`, `reads-writes`, `publishes`, `subscribes`, `depends-on`, `implements`.
 - `name`: what a person calls it ("Payment service"), not a class path. Under 32 characters.
 - `summary`: one line on what it is for.
@@ -46,7 +46,7 @@ Model **only what the story needs**. A walkthrough of a sign-in change needs the
 
 - **Interaction** (a sequence): `participants` in left-to-right order, then `steps`. A step is a message `{ type: "message", id, kind: call|return|async|self, from, to, label }` or a fragment `{ type: "fragment", id, kind: alt|opt|loop|par, label, branches: [{ guard, steps }] }`. Message labels under 48 characters, and under 40 when the message is marked (a "New" tag follows the label). A `call` label says what is asked ("Find user by email"); a `return` label says what comes back ("User row", "401 Unauthorized").
 - **State machine**: `states` (exactly one `initial` — it is drawn as a start dot with no name, so make it its own state, e.g. `{ "id": "start", "kind": "initial", "name": "Start" }`, with a transition to the first real state; `final` for end states; `outcome: success|failure` where it helps) and `transitions` `{ id, from, to, event, guard?, actions?, triggeredBy? }`. Events under 32 characters; conditions go in `guard`.
-- **Process** (a flowchart): `nodes` `{ id, kind: start|end|action|decision|merge|fork|join, label, performedBy?, outcome?: success|failure }` (exactly one `start`; note `label`, not `name`) and `flows` `{ id, from, to, guard? }`, with `guard` on the branches of a decision.
+- **Activity** (a flowchart, `"kind": "activity"`): `nodes` `{ id, kind: initial|final|action|decision|merge|fork|join, label, performedBy?, outcome?: success|failure }` (exactly one `initial`; note `label`, not `name`) and `flows` `{ id, from, to, guard? }`, with `guard` on the branches of a decision.
 
 Ids are lowercase: letters, digits, `-`, `_`, `.`. Keep them short and readable: `s-locked`, `t-lock`, `r-api-db`.
 
@@ -116,7 +116,7 @@ Three scene fields say what the reader must **see**, by meaning. You never choos
   Use one or two per scene. An effect on everything is an effect on nothing.
 - `badges`: `[{ target, text, tone? }]` — a short fact on a box or a line (a relationship, a message in a sequence, a transition): `"p95 840 ms"`, `"3 retries"`, `"120 k rows"`. Under 18 characters. Give only numbers you read in the code, the config or the tests; never invent one.
 
-`tone` is optional: `lapis`, `malachite`, `ochre`, `umber`, `tyrian`, `slate`, `poney`, `verdigris`, or `#rrggbb`. Leave it out unless a colour carries meaning the effect does not.
+`tone` is optional: `lapis`, `malachite`, `ochre`, `umber`, `tyrian`, `slate`, `accent`, `verdigris`, or `#rrggbb`. Leave it out unless a colour carries meaning the effect does not.
 
 ### Extensions
 

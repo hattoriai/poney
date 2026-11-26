@@ -1,6 +1,6 @@
 import type {
   Behavior,
-  Capability,
+  UseCase,
   DataFlow,
   DataRelation,
   DataType,
@@ -8,7 +8,7 @@ import type {
   Interaction,
   KindStyle,
   Message,
-  Process,
+  Activity,
   Relationship,
   PoneyDocument,
   StateMachine,
@@ -42,7 +42,7 @@ export class ModelIndex {
   readonly dataRelations = new Map<string, DataRelation>()
   readonly dataFlows = new Map<string, DataFlow>()
   readonly behaviors = new Map<string, Behavior>()
-  readonly capabilities = new Map<string, Capability>()
+  readonly useCases = new Map<string, UseCase>()
   readonly views = new Map<string, View>()
   private readonly out = new Map<string, Relationship[]>()
   private readonly in = new Map<string, Relationship[]>()
@@ -61,7 +61,7 @@ export class ModelIndex {
     m.dataRelations.forEach((d) => this.dataRelations.set(d.id, d))
     m.dataFlows.forEach((d) => this.dataFlows.set(d.id, d))
     m.behaviors.forEach((b) => this.behaviors.set(b.id, b))
-    m.capabilities.forEach((c) => this.capabilities.set(c.id, c))
+    m.useCases.forEach((c) => this.useCases.set(c.id, c))
     m.entities.forEach((e) => e.parent && push(this.kids, e.parent, e))
     doc.views.forEach((v) => this.views.set(v.id, v))
   }
@@ -101,9 +101,9 @@ export class ModelIndex {
     const b = this.behaviors.get(id)
     return b?.kind === 'interaction' ? b : undefined
   }
-  process(id: string): Process | undefined {
+  activity(id: string): Activity | undefined {
     const b = this.behaviors.get(id)
-    return b?.kind === 'process' ? b : undefined
+    return b?.kind === 'activity' ? b : undefined
   }
   stateMachine(id: string): StateMachine | undefined {
     const b = this.behaviors.get(id)
@@ -144,7 +144,7 @@ export class ModelIndex {
   behaviorsInvolving(entityId: string): Behavior[] {
     return this.doc.model.behaviors.filter((b) => {
       if (b.kind === 'interaction') return b.participants.includes(entityId)
-      if (b.kind === 'process') return b.nodes.some((n) => n.performedBy === entityId)
+      if (b.kind === 'activity') return b.nodes.some((n) => n.performedBy === entityId)
       return b.owner === entityId || b.transitions.some((t) => t.triggeredBy === entityId)
     })
   }
@@ -161,8 +161,8 @@ export class ModelIndex {
     return { consumed, produced, owned }
   }
 
-  capabilitiesOf(entityId: string) {
-    return this.doc.model.capabilities.filter(
+  useCasesOf(entityId: string) {
+    return this.doc.model.useCases.filter(
       (c) => c.actors.includes(entityId) || c.supporting.includes(entityId) || c.realizedBy.includes(entityId),
     )
   }
@@ -226,10 +226,10 @@ export class ModelIndex {
         return false
       }
       case 'activity': {
-        const p = this.process(view.process)
+        const p = this.activity(view.activity)
         if (ref.kind === 'entity') return !!p?.nodes.some((n) => n.performedBy === ref.id)
-        if (ref.kind === 'behavior') return ref.id === view.process
-        if (ref.kind === 'activityNode' || ref.kind === 'activityFlow') return ref.behavior === view.process
+        if (ref.kind === 'behavior') return ref.id === view.activity
+        if (ref.kind === 'activityNode' || ref.kind === 'activityFlow') return ref.behavior === view.activity
         return false
       }
       case 'erd': {
@@ -253,8 +253,8 @@ export class ModelIndex {
       case 'extension':
         return ref.kind === 'entity' && view.entities.includes(ref.id)
       case 'usecase': {
-        const caps = view.capabilities.map((id) => this.capabilities.get(id)).filter(isDefined)
-        if (ref.kind === 'capability') return view.capabilities.includes(ref.id)
+        const caps = view.useCases.map((id) => this.useCases.get(id)).filter(isDefined)
+        if (ref.kind === 'useCase') return view.useCases.includes(ref.id)
         if (ref.kind === 'entity') return caps.some((c) => c.actors.includes(ref.id) || c.supporting.includes(ref.id))
         return false
       }
@@ -286,7 +286,7 @@ export class ModelIndex {
     return this.doc.views.filter(
       (v) =>
         (v.type === 'sequence' && v.interaction === behaviorId) ||
-        (v.type === 'activity' && v.process === behaviorId) ||
+        (v.type === 'activity' && v.activity === behaviorId) ||
         (v.type === 'state' && v.stateMachine === behaviorId),
     )
   }
@@ -306,8 +306,8 @@ export class ModelIndex {
         return this.dataRelations.has(ref.id)
       case 'dataFlow':
         return this.dataFlows.has(ref.id)
-      case 'capability':
-        return this.capabilities.has(ref.id)
+      case 'useCase':
+        return this.useCases.has(ref.id)
       case 'behavior':
         return this.behaviors.has(ref.id)
       case 'message':
@@ -315,9 +315,9 @@ export class ModelIndex {
       case 'fragment':
         return !!this.findFragment(ref.behavior, ref.id)
       case 'activityNode':
-        return !!this.process(ref.behavior)?.nodes.some((n) => n.id === ref.id)
+        return !!this.activity(ref.behavior)?.nodes.some((n) => n.id === ref.id)
       case 'activityFlow':
-        return !!this.process(ref.behavior)?.flows.some((f) => f.id === ref.id)
+        return !!this.activity(ref.behavior)?.flows.some((f) => f.id === ref.id)
       case 'state':
         return !!this.stateMachine(ref.behavior)?.states.some((s) => s.id === ref.id)
       case 'transition':
@@ -387,11 +387,11 @@ export class ModelIndex {
         return { title: f?.label ?? ref.id, kind: f ? fragmentLabel(f.kind) : 'Fragment', summary: f?.branches.map((b) => b.guard).join(' · ') }
       }
       case 'activityNode': {
-        const n = this.process(ref.behavior)?.nodes.find((x) => x.id === ref.id)
+        const n = this.activity(ref.behavior)?.nodes.find((x) => x.id === ref.id)
         return { title: n?.label ?? ref.id, kind: n ? activityKindLabel(n.kind) : 'Step', summary: n?.description }
       }
       case 'activityFlow': {
-        const p = this.process(ref.behavior)
+        const p = this.activity(ref.behavior)
         const f = p?.flows.find((x) => x.id === ref.id)
         const from = p?.nodes.find((n) => n.id === f?.from)?.label
         const to = p?.nodes.find((n) => n.id === f?.to)?.label
@@ -405,8 +405,8 @@ export class ModelIndex {
         const t = this.stateMachine(ref.behavior)?.transitions.find((x) => x.id === ref.id)
         return { title: t?.event ?? ref.id, kind: 'Transition', summary: t?.guard ? `Only when ${t.guard}` : t?.description }
       }
-      case 'capability': {
-        const c = this.capabilities.get(ref.id)
+      case 'useCase': {
+        const c = this.useCases.get(ref.id)
         return { title: c?.name ?? ref.id, kind: `Use case · ${c?.area ?? ''}`, summary: c?.summary }
       }
       case 'behavior': {
@@ -443,9 +443,9 @@ export function dataKindLabel(kind: DataType['kind']) {
 export function fragmentLabel(kind: 'alt' | 'opt' | 'loop' | 'par') {
   return { alt: 'Alternatives', opt: 'Optional', loop: 'Loop', par: 'In parallel' }[kind]
 }
-export function activityKindLabel(kind: Process['nodes'][number]['kind']) {
-  return { start: 'Start', end: 'End', action: 'Action', decision: 'Decision', merge: 'Merge', fork: 'Parallel split', join: 'Parallel join' }[kind]
+export function activityKindLabel(kind: Activity['nodes'][number]['kind']) {
+  return { initial: 'Initial node', final: 'Final node', action: 'Action', decision: 'Decision', merge: 'Merge', fork: 'Fork', join: 'Join' }[kind]
 }
 export function behaviorKindLabel(kind: Behavior['kind']) {
-  return { interaction: 'Interaction', process: 'Process', 'state-machine': 'Lifecycle' }[kind]
+  return { interaction: 'Interaction', activity: 'Activity', 'state-machine': 'State machine' }[kind]
 }

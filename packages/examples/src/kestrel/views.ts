@@ -2,7 +2,7 @@ import type { PoneyDocumentInput } from '@hattoriai/poney-core'
 
 type M = NonNullable<PoneyDocumentInput['model']>
 
-export const capabilities: NonNullable<M['capabilities']> = [
+export const useCases: NonNullable<M['useCases']> = [
   { id: 'cap-browse', name: 'Browse and search products', summary: 'Find products by category or search.', area: 'Shopping', actors: ['customer'], realizedBy: ['storefront', 'catalog-service'] },
   { id: 'cap-cart', name: 'Keep a cart', summary: 'Add, change and remove items. The cart survives for 30 days.', area: 'Shopping', actors: ['customer'], realizedBy: ['storefront', 'cart-service'] },
   { id: 'cap-signup', name: 'Create an account', summary: 'Register with an email and password.', area: 'Account', actors: ['customer'], realizedBy: ['auth-service'] },
@@ -169,7 +169,7 @@ export const views: NonNullable<PoneyDocumentInput['views']> = [
     category: 'behavior',
     title: 'Checkout activity',
     description: 'Checkout as a flowchart, with one lane per participant, decisions and retries.',
-    process: 'checkout-process',
+    activity: 'checkout-process',
   },
   {
     id: 'order-lifecycle',
@@ -305,10 +305,10 @@ export const views: NonNullable<PoneyDocumentInput['views']> = [
   {
     id: 'use-cases',
     type: 'usecase',
-    category: 'capabilities',
+    category: 'use-cases',
     title: 'What people can do',
     description: 'Each actor and the things Kestrel lets them do.',
-    capabilities: [
+    useCases: [
       'cap-browse',
       'cap-cart',
       'cap-signup',

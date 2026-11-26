@@ -108,10 +108,10 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
         const outcome = n.outcome === 'failure' ? 'var(--poney-failure)' : n.outcome === 'success' ? 'var(--poney-success)' : 'var(--poney-ink)'
         let body: React.ReactNode
         switch (n.kind) {
-          case 'start':
+          case 'initial':
             body = <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--poney-ink)" />
             break
-          case 'end':
+          case 'final':
             body = (
               <>
                 <circle cx={w / 2} cy={h / 2} r={w / 2} fill="var(--poney-paper-raised)" stroke={outcome} strokeWidth={1.6} />
@@ -154,7 +154,7 @@ function Renderer({ scene }: { scene: ActivityScene; view: View }) {
           <g key={n.id} transform={`translate(${x} ${y})`} {...bind(ref, label)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             {pad > 0 && <rect x={0} y={-pad} width={w} height={h + pad * 2} fill="transparent" />}
             {body}
-            <Rings w={w} h={h} rx={n.kind === 'start' || n.kind === 'end' ? w / 2 : 10} selected={selected} />
+            <Rings w={w} h={h} rx={n.kind === 'initial' || n.kind === 'final' ? w / 2 : 10} selected={selected} />
           </g>
         )
       })}

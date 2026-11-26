@@ -50,8 +50,8 @@ const CELL = 212
 
 export function layoutActivity(doc: PoneyDocument, view: ViewOf<'activity'>): ActivityScene {
   const idx = indexOf(doc)
-  const process = idx.process(view.process)
-  if (!process) throw new Error(`Unknown process "${view.process}"`)
+  const process = idx.activity(view.activity)
+  if (!process) throw new Error(`Unknown activity "${view.activity}"`)
   const nodes = process.nodes
   const out = new Map<string, string[]>()
   const incoming = new Map<string, string[]>()
@@ -61,7 +61,7 @@ export function layoutActivity(doc: PoneyDocument, view: ViewOf<'activity'>): Ac
   }
 
   // ── Back edges by depth-first search from the start. ───────────────────
-  const start = nodes.find((n) => n.kind === 'start') ?? nodes[0]
+  const start = nodes.find((n) => n.kind === 'initial') ?? nodes[0]
   const back = new Set<string>()
   const state = new Map<string, 'open' | 'done'>()
   const dfs = (id: string) => {
@@ -122,10 +122,10 @@ export function layoutActivity(doc: PoneyDocument, view: ViewOf<'activity'>): Ac
     let h = 0
     let lines = [n.label]
     switch (n.kind) {
-      case 'start':
+      case 'initial':
         w = h = 22
         break
-      case 'end':
+      case 'final':
         w = h = 26
         break
       case 'fork':

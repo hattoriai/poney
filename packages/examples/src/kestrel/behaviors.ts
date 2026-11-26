@@ -212,12 +212,12 @@ export const behaviors: NonNullable<M['behaviors']> = [
 
   // ── Checkout as an activity ──────────────────────────────────────────────
   {
-    kind: 'process',
+    kind: 'activity',
     id: 'checkout-process',
     name: 'Checkout, step by step',
     summary: 'Who does what during checkout, including retries and failures.',
     nodes: [
-      { id: 'a-start', kind: 'start', label: 'Customer opens checkout', performedBy: 'customer' },
+      { id: 'a-start', kind: 'initial', label: 'Customer opens checkout', performedBy: 'customer' },
       { id: 'a-review', kind: 'action', label: 'Review cart and address', performedBy: 'customer' },
       { id: 'a-place', kind: 'action', label: 'Place order', performedBy: 'customer' },
       { id: 'a-validate', kind: 'action', label: 'Validate cart', performedBy: 'order-service', description: 'Checks that every product is live and prices have not changed since the cart was read.' },
@@ -231,11 +231,11 @@ export const behaviors: NonNullable<M['behaviors']> = [
       { id: 'a-authorized', kind: 'decision', label: 'Authorized?', performedBy: 'payment-service' },
       { id: 'a-confirm', kind: 'action', label: 'Confirm order', performedBy: 'order-service' },
       { id: 'a-email', kind: 'action', label: 'Send confirmation email', performedBy: 'order-service', description: 'Through the event bus and the notification service.' },
-      { id: 'a-done', kind: 'end', label: 'Order placed', performedBy: 'order-service', outcome: 'success' },
+      { id: 'a-done', kind: 'final', label: 'Order placed', performedBy: 'order-service', outcome: 'success' },
       { id: 'a-attempts', kind: 'decision', label: 'Attempts left?', performedBy: 'order-service', description: 'A customer gets three payment attempts per order.' },
       { id: 'a-method', kind: 'action', label: 'Choose another payment method', performedBy: 'customer' },
       { id: 'a-release', kind: 'action', label: 'Release reservations', performedBy: 'inventory-service' },
-      { id: 'a-failed', kind: 'end', label: 'Checkout failed', performedBy: 'inventory-service', outcome: 'failure' },
+      { id: 'a-failed', kind: 'final', label: 'Checkout failed', performedBy: 'inventory-service', outcome: 'failure' },
     ],
     flows: [
       { id: 'af1', from: 'a-start', to: 'a-review' },
@@ -273,12 +273,12 @@ export const behaviors: NonNullable<M['behaviors']> = [
     owner: 'order-service',
     states: [
       { id: 's-initial', kind: 'initial', name: 'Start' },
-      { id: 's-created', kind: 'normal', name: 'Created', description: 'Cart validated and prices frozen. Stock is being reserved.', entryActions: ['Snapshot cart lines', 'Calculate totals'] },
-      { id: 's-awaiting', kind: 'normal', name: 'Awaiting payment', description: 'Stock is held. Waiting for the payment provider.', entryActions: ['Request authorization'] },
-      { id: 's-failed', kind: 'normal', name: 'Payment failed', description: 'The last attempt was declined. The customer may retry.', outcome: 'failure', entryActions: ['Record decline reason'] },
-      { id: 's-paid', kind: 'normal', name: 'Paid', description: 'Payment authorized. The customer has been told.', outcome: 'success', entryActions: ['Publish OrderConfirmed'] },
-      { id: 's-processing', kind: 'normal', name: 'Processing', description: 'The warehouse is picking and packing.' },
-      { id: 's-shipped', kind: 'normal', name: 'Shipped', description: 'With the carrier.', entryActions: ['Capture payment', 'Send shipping email'] },
+      { id: 's-created', kind: 'state', name: 'Created', description: 'Cart validated and prices frozen. Stock is being reserved.', entryActions: ['Snapshot cart lines', 'Calculate totals'] },
+      { id: 's-awaiting', kind: 'state', name: 'Awaiting payment', description: 'Stock is held. Waiting for the payment provider.', entryActions: ['Request authorization'] },
+      { id: 's-failed', kind: 'state', name: 'Payment failed', description: 'The last attempt was declined. The customer may retry.', outcome: 'failure', entryActions: ['Record decline reason'] },
+      { id: 's-paid', kind: 'state', name: 'Paid', description: 'Payment authorized. The customer has been told.', outcome: 'success', entryActions: ['Publish OrderConfirmed'] },
+      { id: 's-processing', kind: 'state', name: 'Processing', description: 'The warehouse is picking and packing.' },
+      { id: 's-shipped', kind: 'state', name: 'Shipped', description: 'With the carrier.', entryActions: ['Capture payment', 'Send shipping email'] },
       { id: 's-delivered', kind: 'final', name: 'Delivered', description: 'The carrier confirmed delivery.', outcome: 'success' },
       { id: 's-cancelled', kind: 'final', name: 'Cancelled', description: 'Stopped before shipping. Stock released and any payment voided or refunded.', outcome: 'failure', entryActions: ['Release reservations'] },
     ],

@@ -9,7 +9,7 @@ import { z } from 'zod'
  */
 
 /** Named pigments. Renderers map tones to theme-aware colors. */
-export const NamedTone = z.enum(['lapis', 'malachite', 'ochre', 'umber', 'tyrian', 'slate', 'poney', 'verdigris'])
+export const NamedTone = z.enum(['lapis', 'malachite', 'ochre', 'umber', 'tyrian', 'slate', 'accent', 'verdigris'])
 /** A named pigment, or a hex color for anything the palette does not cover. */
 export const Tone = z.union([NamedTone, z.string().regex(/^#[0-9a-fA-F]{6}$/)])
 export type Tone = z.infer<typeof NamedTone> | (string & {})

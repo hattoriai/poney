@@ -29,7 +29,7 @@ export function Overview() {
     [doc.model.relationships.length, 'connections'],
     [doc.model.dataTypes.length, 'data types'],
     [doc.model.behaviors.length, 'behaviors'],
-    [doc.model.capabilities.length, 'use cases'],
+    [doc.model.useCases.length, 'use cases'],
   ].filter(([n]) => (n as number) > 0) as [number, string][]
 
   if (doc.views.length === 0 && doc.walkthroughs.length === 0) return <EmptyProject name={doc.project.name} description={doc.project.description} />

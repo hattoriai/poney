@@ -6,7 +6,7 @@
       "properties": {
         "poneyVersion": {
           "type": "string",
-          "const": "0.1.0"
+          "const": "0.2.0"
         },
         "project": {
           "type": "object",
@@ -83,9 +83,9 @@
                           "gateway",
                           "database",
                           "cache",
-                          "queue",
+                          "message-broker",
                           "external",
-                          "module",
+                          "component",
                           "interface",
                           "library"
                         ]
@@ -365,10 +365,10 @@
                   "fromCardinality": {
                     "type": "string",
                     "enum": [
-                      "one",
+                      "exactly-one",
                       "zero-or-one",
-                      "many",
-                      "one-or-many"
+                      "one-or-many",
+                      "zero-or-many"
                     ]
                   },
                   "toCardinality": {
@@ -600,7 +600,7 @@
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "const": "process"
+                        "const": "activity"
                       },
                       "id": {
                         "$ref": "#/definitions/PoneyDocument/properties/project/properties/id"
@@ -625,8 +625,8 @@
                             "kind": {
                               "type": "string",
                               "enum": [
-                                "start",
-                                "end",
+                                "initial",
+                                "final",
                                 "action",
                                 "decision",
                                 "merge",
@@ -735,7 +735,7 @@
                               "type": "string",
                               "enum": [
                                 "initial",
-                                "normal",
+                                "state",
                                 "final"
                               ]
                             },
@@ -830,7 +830,7 @@
               },
               "default": []
             },
-            "capabilities": {
+            "useCases": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1211,7 +1211,7 @@
                     "type": "string",
                     "const": "activity"
                   },
-                  "process": {
+                  "activity": {
                     "$ref": "#/definitions/PoneyDocument/properties/project/properties/id"
                   },
                   "swimlanes": {
@@ -1225,7 +1225,7 @@
                   "description",
                   "category",
                   "type",
-                  "process"
+                  "activity"
                 ],
                 "additionalProperties": false
               },
@@ -1345,7 +1345,7 @@
                     "type": "string",
                     "const": "usecase"
                   },
-                  "capabilities": {
+                  "useCases": {
                     "type": "array",
                     "items": {
                       "$ref": "#/definitions/PoneyDocument/properties/project/properties/id"
@@ -1359,7 +1359,7 @@
                   "description",
                   "category",
                   "type",
-                  "capabilities"
+                  "useCases"
                 ],
                 "additionalProperties": false
               },
@@ -1701,7 +1701,7 @@
                           "type": {
                             "$ref": "#/definitions/PoneyDocument/properties/views/items/anyOf/4/properties/type"
                           },
-                          "process": {
+                          "activity": {
                             "$ref": "#/definitions/PoneyDocument/properties/project/properties/id"
                           },
                           "swimlanes": {
@@ -1710,7 +1710,7 @@
                         },
                         "required": [
                           "type",
-                          "process"
+                          "activity"
                         ],
                         "additionalProperties": false
                       },
@@ -1861,13 +1861,13 @@
                           "type": {
                             "$ref": "#/definitions/PoneyDocument/properties/views/items/anyOf/7/properties/type"
                           },
-                          "capabilities": {
-                            "$ref": "#/definitions/PoneyDocument/properties/views/items/anyOf/7/properties/capabilities"
+                          "useCases": {
+                            "$ref": "#/definitions/PoneyDocument/properties/views/items/anyOf/7/properties/useCases"
                           }
                         },
                         "required": [
                           "type",
-                          "capabilities"
+                          "useCases"
                         ],
                         "additionalProperties": false
                       },
@@ -2308,7 +2308,7 @@
                                   "umber",
                                   "tyrian",
                                   "slate",
-                                  "poney",
+                                  "accent",
                                   "verdigris"
                                 ]
                               },
@@ -2528,11 +2528,11 @@
                 "icon": "zap",
                 "label": "Cache"
               },
-              "queue": {
+              "message-broker": {
                 "shape": "stack",
                 "tone": "ochre",
                 "icon": "waypoints",
-                "label": "Event bus"
+                "label": "Message broker"
               },
               "external": {
                 "shape": "card",
@@ -2540,11 +2540,11 @@
                 "icon": "globe",
                 "label": "External system"
               },
-              "module": {
+              "component": {
                 "shape": "chip",
                 "tone": "lapis",
                 "icon": "box",
-                "label": "Module"
+                "label": "Component"
               },
               "interface": {
                 "shape": "chip",
@@ -2610,7 +2610,7 @@
     }
   },
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "urn:poney:schema:0.1.0",
-  "title": "Poney document 0.1.0",
+  "$id": "urn:poney:schema:0.2.0",
+  "title": "Poney document 0.2.0",
   "description": "Shape of a Poney document. Shape only: identifier references, extension rules and the other checks in SPEC.md section 9 are not expressible in JSON Schema and must be applied by the reader."
 }

@@ -77,26 +77,26 @@ function reduce(doc: PoneyDocument, c: Command): PoneyDocument {
       const usedBy = indexOfBehaviorsUsing(doc, c.id)
       if (usedBy) throw new CommandError(`"${c.id}" takes part in "${usedBy}". Change that behavior first`)
       // Removing an entity removes the relationships and data flows that end at
-      // it, its place in capabilities, and its place in views.
+      // it, its place in use cases, and its place in views.
       const relationships = model.relationships.filter((r) => r.source !== c.id && r.target !== c.id)
       const removedRels = new Set(model.relationships.filter((r) => !relationships.includes(r)).map((r) => r.id))
       const dataFlows = model.dataFlows
         .filter((f) => f.source !== c.id && f.target !== c.id)
         .map((f) => (f.via && removedRels.has(f.via) ? { ...f, via: undefined } : f))
       const removedFlows = new Set(model.dataFlows.filter((f) => !dataFlows.some((k) => k.id === f.id)).map((f) => f.id))
-      const capabilities = model.capabilities.map((cap) => ({
+      const useCases = model.useCases.map((cap) => ({
         ...cap,
         supporting: cap.supporting.filter((x) => x !== c.id),
         realizedBy: cap.realizedBy.filter((x) => x !== c.id),
       }))
-      if (capabilities.some((cap) => cap.actors.includes(c.id)))
-        throw new CommandError(`"${c.id}" is the actor of a capability. Change the capability first`)
+      if (useCases.some((cap) => cap.actors.includes(c.id)))
+        throw new CommandError(`"${c.id}" is an actor of a use case. Change the use case first`)
       const views = doc.views.map((v) =>
         v.type === 'dataflow' ? { ...v, flows: v.flows.filter((f) => !removedFlows.has(f)) } : withoutEntity(v, c.id, removedRels),
       )
       return {
         ...doc,
-        model: { ...model, entities: model.entities.filter((e) => e.id !== c.id), relationships, dataFlows, capabilities },
+        model: { ...model, entities: model.entities.filter((e) => e.id !== c.id), relationships, dataFlows, useCases },
         views,
       }
     }
@@ -176,7 +176,7 @@ function reduce(doc: PoneyDocument, c: Command): PoneyDocument {
           return { ...b, states: b.states.map((st) => (st.id === c.id ? ((found = true), { ...st, name: value }) : st)) }
         if (b.kind === 'state-machine' && c.element === 'transition')
           return { ...b, transitions: b.transitions.map((t) => (t.id === c.id ? ((found = true), { ...t, event: value }) : t)) }
-        if (b.kind === 'process' && c.element === 'activityNode')
+        if (b.kind === 'activity' && c.element === 'activityNode')
           return { ...b, nodes: b.nodes.map((n) => (n.id === c.id ? ((found = true), { ...n, label: value }) : n)) }
         return b
       })
@@ -213,7 +213,7 @@ function requireEntity(doc: PoneyDocument, id: string) {
 function indexOfBehaviorsUsing(doc: PoneyDocument, id: string): string | undefined {
   return doc.model.behaviors.find((b) => {
     if (b.kind === 'interaction') return b.participants.includes(id)
-    if (b.kind === 'process') return b.nodes.some((n) => n.performedBy === id)
+    if (b.kind === 'activity') return b.nodes.some((n) => n.performedBy === id)
     return b.owner === id || b.transitions.some((t) => t.triggeredBy === id)
   })?.id
 }

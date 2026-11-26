@@ -4,15 +4,15 @@ import type { Point, Rect, SceneBase } from './types'
 
 /**
  * Use case layout: people on the left, supporting systems on the right, the
- * system boundary in the middle with capabilities grouped by area. Each actor
- * sits level with the capabilities it uses, so lines stay short.
+ * system boundary in the middle with use cases grouped by area. Each actor
+ * sits level with the use cases it uses, so lines stay short.
  */
 export interface UseCaseScene extends SceneBase {
   boundary: Rect & { title: string }
   areas: (Rect & { label: string })[]
-  capabilities: (Rect & { id: string; name: string })[]
+  useCases: (Rect & { id: string; name: string })[]
   actors: (Rect & { entityId: string; side: 'left' | 'right' })[]
-  associations: { id: string; actor: string; capability: string; side: 'left' | 'right'; from: Point; to: Point }[]
+  associations: { id: string; actor: string; useCase: string; side: 'left' | 'right'; from: Point; to: Point }[]
   includes: { id: string; from: string; to: string; a: Point; b: Point; bulge: number }[]
 }
 
@@ -22,7 +22,7 @@ const ROW = 52
 
 export function layoutUseCase(doc: PoneyDocument, view: ViewOf<'usecase'>): UseCaseScene {
   const idx = indexOf(doc)
-  const caps = view.capabilities.map((id) => idx.capabilities.get(id)).filter(isDefined)
+  const caps = view.useCases.map((id) => idx.useCases.get(id)).filter(isDefined)
   const areaNames: string[] = []
   for (const c of caps) if (!areaNames.includes(c.area)) areaNames.push(c.area)
 
@@ -32,12 +32,12 @@ export function layoutUseCase(doc: PoneyDocument, view: ViewOf<'usecase'>): UseC
   const capX = boundaryX + (boundaryW - pillW) / 2
   let y = 76
   const areas: UseCaseScene['areas'] = []
-  const capabilities: UseCaseScene['capabilities'] = []
+  const useCases: UseCaseScene['useCases'] = []
   for (const area of areaNames) {
     const top = y
     y += 34
     for (const c of caps.filter((x) => x.area === area)) {
-      capabilities.push({ id: c.id, name: c.name, x: capX, y, w: pillW, h: PILL_H })
+      useCases.push({ id: c.id, name: c.name, x: capX, y, w: pillW, h: PILL_H })
       y += ROW
     }
     y += 6
@@ -45,7 +45,7 @@ export function layoutUseCase(doc: PoneyDocument, view: ViewOf<'usecase'>): UseC
     y += 14
   }
   const boundary = { x: boundaryX, y: 24, w: boundaryW, h: y + 4 - 24, title: doc.project.name }
-  const capById = new Map(capabilities.map((c) => [c.id, c]))
+  const capById = new Map(useCases.map((c) => [c.id, c]))
 
   const place = (ids: string[], side: 'left' | 'right') => {
     const x = side === 'left' ? 24 : boundaryX + boundaryW + 176
@@ -72,11 +72,11 @@ export function layoutUseCase(doc: PoneyDocument, view: ViewOf<'usecase'>): UseC
     const r = capById.get(c.id)!
     for (const a of c.actors) {
       const box = actorById.get(a)
-      if (box) associations.push({ id: `${a}->${c.id}`, actor: a, capability: c.id, side: 'left', from: { x: box.x + box.w - 22, y: box.y + 30 }, to: { x: r.x, y: r.y + r.h / 2 } })
+      if (box) associations.push({ id: `${a}->${c.id}`, actor: a, useCase: c.id, side: 'left', from: { x: box.x + box.w - 22, y: box.y + 30 }, to: { x: r.x, y: r.y + r.h / 2 } })
     }
     for (const a of c.supporting) {
       const box = actorById.get(a)
-      if (box?.side === 'right') associations.push({ id: `${a}->${c.id}`, actor: a, capability: c.id, side: 'right', from: { x: box.x + 22, y: box.y + 30 }, to: { x: r.x + r.w, y: r.y + r.h / 2 } })
+      if (box?.side === 'right') associations.push({ id: `${a}->${c.id}`, actor: a, useCase: c.id, side: 'right', from: { x: box.x + 22, y: box.y + 30 }, to: { x: r.x + r.w, y: r.y + r.h / 2 } })
     }
   }
   const includes: UseCaseScene['includes'] = []
@@ -91,7 +91,7 @@ export function layoutUseCase(doc: PoneyDocument, view: ViewOf<'usecase'>): UseC
   const width = Math.max(...actors.map((a) => a.x + a.w), boundary.x + boundary.w) + 32
   const height = Math.max(boundary.y + boundary.h, ...actors.map((a) => a.y + a.h)) + 32
   const anchors: Record<string, Rect> = {}
-  for (const c of capabilities) anchors[refKey({ kind: 'capability', id: c.id })] = c
+  for (const c of useCases) anchors[refKey({ kind: 'useCase', id: c.id })] = c
   for (const a of actors) anchors[refKey({ kind: 'entity', id: a.entityId })] = a
-  return { width, height, boundary, areas, capabilities, actors, associations, includes, anchors }
+  return { width, height, boundary, areas, useCases, actors, associations, includes, anchors }
 }

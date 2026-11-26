@@ -103,7 +103,7 @@ export const jsModulesImporter: Importer = {
       ...usedPackages.map((p) => ({ id: pkgId(p), kind: 'library', name: p.name || p.dir || 'root', summary: `The package in ${p.dir || 'the root folder'}.`, tags: [], sourceRefs: [{ path: p.dir || '.' }], metadata: {}, ext: {} })),
       ...[...modules.values()].map((m) => ({
         id: modId(m),
-        kind: 'module',
+        kind: 'component',
         name: m.folder,
         summary: `${m.files} file${m.files === 1 ? '' : 's'} in ${m.path || 'the root folder'}.`,
         ...(workspace ? { parent: pkgId(m.pkg) } : {}),

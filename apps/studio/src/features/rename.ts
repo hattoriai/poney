@@ -26,7 +26,7 @@ export function nameOf(idx: ModelIndex, ref: Ref): string | undefined {
       return idx.stateMachine(ref.behavior)?.transitions.find((t) => t.id === ref.id)?.event
     case 'activityNode': {
       const b = idx.behaviors.get(ref.behavior)
-      return b?.kind === 'process' ? b.nodes.find((n) => n.id === ref.id)?.label : undefined
+      return b?.kind === 'activity' ? b.nodes.find((n) => n.id === ref.id)?.label : undefined
     }
     default:
       return undefined

@@ -43,9 +43,9 @@ export const CoreEntityKind = z.enum([
   'gateway', // an edge proxy or API gateway
   'database', // a relational or document store
   'cache', // an in-memory key-value store
-  'queue', // a message broker or event bus
+  'message-broker', // a message queue, broker or event bus (RabbitMQ, Kafka, NATS…)
   'external', // a system outside our ownership
-  'module', // an internal code module or package
+  'component', // a part of the code inside a running program (C4's component): a module, class or package
   'interface', // a contract implemented by modules
   'library', // a shared library
 ])
@@ -132,8 +132,8 @@ export const DataType = z.object({
 })
 export type DataType = z.infer<typeof DataType>
 
-/** Ends of a relationship between tables. */
-export const Cardinality = z.enum(['one', 'zero-or-one', 'many', 'one-or-many'])
+/** Ends of a relationship between tables, as crow's foot notation names them. */
+export const Cardinality = z.enum(['exactly-one', 'zero-or-one', 'one-or-many', 'zero-or-many'])
 export type Cardinality = z.infer<typeof Cardinality>
 
 export const DataRelation = z.object({
@@ -216,7 +216,7 @@ export type Interaction = z.infer<typeof Interaction>
 
 export const ActivityNode = z.object({
   id: Id,
-  kind: z.enum(['start', 'end', 'action', 'decision', 'merge', 'fork', 'join']),
+  kind: z.enum(['initial', 'final', 'action', 'decision', 'merge', 'fork', 'join']),
   label: z.string(),
   description: z.string().optional(),
   /** The entity that performs this step — becomes a swimlane. */
@@ -234,8 +234,9 @@ export const ActivityFlow = z.object({
 })
 export type ActivityFlow = z.infer<typeof ActivityFlow>
 
-export const Process = z.object({
-  kind: z.literal('process'),
+/** A UML activity: actions, decisions and the flows between them. */
+export const Activity = z.object({
+  kind: z.literal('activity'),
   id: Id,
   name: z.string(),
   summary: z.string(),
@@ -243,11 +244,11 @@ export const Process = z.object({
   nodes: z.array(ActivityNode).min(2),
   flows: z.array(ActivityFlow).min(1),
 })
-export type Process = z.infer<typeof Process>
+export type Activity = z.infer<typeof Activity>
 
 export const State = z.object({
   id: Id,
-  kind: z.enum(['initial', 'normal', 'final']),
+  kind: z.enum(['initial', 'state', 'final']),
   name: z.string(),
   description: z.string().optional(),
   entryActions: z.array(z.string()).default([]),
@@ -283,11 +284,11 @@ export const StateMachine = z.object({
 })
 export type StateMachine = z.infer<typeof StateMachine>
 
-export const Behavior = z.discriminatedUnion('kind', [Interaction, Process, StateMachine])
+export const Behavior = z.discriminatedUnion('kind', [Interaction, Activity, StateMachine])
 export type Behavior = z.infer<typeof Behavior>
 
-/** A thing a person can do with the system — a use case. */
-export const Capability = z.object({
+/** A use case (UML): something an actor does with the system. */
+export const UseCase = z.object({
   id: Id,
   name: z.string(),
   summary: z.string(),
@@ -300,7 +301,7 @@ export const Capability = z.object({
   includes: z.array(Id).default([]),
   ext: Ext.default({}),
 })
-export type Capability = z.infer<typeof Capability>
+export type UseCase = z.infer<typeof UseCase>
 
 export const SemanticModel = z.object({
   entities: z.array(Entity).default([]),
@@ -309,6 +310,6 @@ export const SemanticModel = z.object({
   dataRelations: z.array(DataRelation).default([]),
   dataFlows: z.array(DataFlow).default([]),
   behaviors: z.array(Behavior).default([]),
-  capabilities: z.array(Capability).default([]),
+  useCases: z.array(UseCase).default([]),
 })
 export type SemanticModel = z.infer<typeof SemanticModel>

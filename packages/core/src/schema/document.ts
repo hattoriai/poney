@@ -6,7 +6,7 @@ import { Walkthrough } from './walkthrough'
 import type { InlineView } from './views'
 import { DEFAULT_PRESENTATION } from '../defaults'
 
-export const PONEY_VERSION = '0.1.0'
+export const PONEY_VERSION = '0.2.0'
 
 export const Project = z.object({
   id: Id,

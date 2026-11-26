@@ -299,24 +299,24 @@ function flowchart(lines: Line[], title?: string): Draft {
   const list = [...nodes.values()]
   const kindOf = (n: (typeof list)[number]) => {
     if (n.shape === 'diamond') return 'decision' as const
-    if ((n.shape === 'circle' || n.shape === 'stadium') && !incoming.has(n.id)) return 'start' as const
-    if ((n.shape === 'circle' || n.shape === 'stadium') && !outgoing.has(n.id)) return 'end' as const
+    if ((n.shape === 'circle' || n.shape === 'stadium') && !incoming.has(n.id)) return 'initial' as const
+    if ((n.shape === 'circle' || n.shape === 'stadium') && !outgoing.has(n.id)) return 'final' as const
     return 'action' as const
   }
   const activity = list.map((n) => ({ id: n.id, kind: kindOf(n), label: n.label, performedBy: n.lane }))
-  const starts = activity.filter((n) => n.kind === 'start')
+  const starts = activity.filter((n) => n.kind === 'initial')
   if (starts.length !== 1) {
     starts.forEach((s) => (s.kind = 'action'))
     const roots = activity.filter((n) => !incoming.has(n.id))
-    const start = { id: newId('start'), kind: 'start' as const, label: 'Start', performedBy: (roots[0] ?? activity[0]).performedBy }
+    const start = { id: newId('start'), kind: 'initial' as const, label: 'Start', performedBy: (roots[0] ?? activity[0]).performedBy }
     activity.unshift(start)
     for (const r of roots.length ? roots : [activity[1]]) flows.push({ from: start.id, to: r.id })
   }
-  doc.model.entities = lanes.map((l) => ({ id: l.id, kind: 'module', name: l.name, summary: '' }))
+  doc.model.entities = lanes.map((l) => ({ id: l.id, kind: 'component', name: l.name, summary: '' }))
   doc.model.behaviors = [
-    { kind: 'process', id: 'flow', name, summary: '', nodes: activity, flows: flows.map((f, i) => ({ id: `e${i + 1}`, ...f })) },
+    { kind: 'activity', id: 'flow', name, summary: '', nodes: activity, flows: flows.map((f, i) => ({ id: `e${i + 1}`, ...f })) },
   ]
-  doc.views = [{ id: 'flow', type: 'activity', category: 'behavior', title: name, description: 'Imported from Mermaid.', process: 'flow', swimlanes: lanes.length > 0 }]
+  doc.views = [{ id: 'flow', type: 'activity', category: 'behavior', title: name, description: 'Imported from Mermaid.', activity: 'flow', swimlanes: lanes.length > 0 }]
   doc.project.defaultView = 'flow'
   return doc
 }
@@ -399,7 +399,7 @@ function state(lines: Line[], title?: string): Draft {
       summary: '',
       states: [...states.entries()].map(([key, s]) => ({
         id: s.id,
-        kind: key === INITIAL ? 'initial' : key === FINAL || finals.has(key) ? 'final' : 'normal',
+        kind: key === INITIAL ? 'initial' : key === FINAL || finals.has(key) ? 'final' : 'state',
         name: s.name,
         description: s.description,
       })),
@@ -417,10 +417,10 @@ const CARD = '(\\|\\||\\|o|o\\||\\}\\||\\|\\{|\\}o|o\\{)'
 const REL = new RegExp(`^([\\w-]+)\\s*${CARD}(--|\\.\\.)${CARD}\\s*([\\w-]+)\\s*:\\s*(.+)$`)
 
 function cardinality(token: string): Cardinality {
-  if (token === '||') return 'one'
+  if (token === '||') return 'exactly-one'
   if (token === '|o' || token === 'o|') return 'zero-or-one'
   if (token === '}|' || token === '|{') return 'one-or-many'
-  return 'many'
+  return 'zero-or-many'
 }
 
 function er(lines: Line[], title?: string): Draft {

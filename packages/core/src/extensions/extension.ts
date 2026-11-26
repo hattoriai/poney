@@ -20,7 +20,7 @@ import type { ModelIndex } from '../model/query'
  * any language can keep, pass through or interpret it. See spec/SPEC.md.
  */
 
-export type FacetTarget = 'entity' | 'relationship' | 'dataType' | 'capability' | 'view'
+export type FacetTarget = 'entity' | 'relationship' | 'dataType' | 'useCase' | 'view'
 
 export interface KindDefinition {
   label: string

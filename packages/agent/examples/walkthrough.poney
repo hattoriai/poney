@@ -1,5 +1,5 @@
 {
-  "poneyVersion": "0.1.0",
+  "poneyVersion": "0.2.0",
   "project": {
     "id": "acme-notes",
     "name": "Acme Notes",
@@ -287,13 +287,13 @@
           },
           {
             "id": "active",
-            "kind": "normal",
+            "kind": "state",
             "name": "Active",
             "description": "The account can sign in."
           },
           {
             "id": "locked",
-            "kind": "normal",
+            "kind": "state",
             "name": "Locked",
             "description": "Sign-in is refused until the lock ends.",
             "outcome": "failure",
@@ -349,8 +349,8 @@
       },
       "story": {
         "text": "Today anyone can try passwords on an account without limit. After this change, the fifth wrong password in 15 minutes locks the account for 15 minutes. The owner gets an email with a link that unlocks it at once, so a real user is never stuck.",
-        "before": "Wrong password \u2192 try again, forever.",
-        "after": "Fifth wrong password \u2192 locked 15 minutes, unlock link by email."
+        "before": "Wrong password → try again, forever.",
+        "after": "Fifth wrong password → locked 15 minutes, unlock link by email."
       },
       "overview": {
         "type": "map",
