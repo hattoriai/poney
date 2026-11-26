@@ -24,10 +24,14 @@
 | `selection` | A ref key to show as selected |
 | `trace-step` | The trace step to show (from 0); the camera follows it. Empty: not playing |
 | `theme` | `light` or `dark`; the element then paints its own background |
-| `still` | A picture: no controls and no interaction |
+| `still` | A picture: no controls, no interaction, no zoom |
 | `fill` | Fill the element's box. Without it, the element is as wide as its container and as high as the scene |
 
 Set the document with the `document` property (an object or JSON text), or put it in a `<script type="application/json">` child.
+
+## Zoom and pan
+
+As in Poney Studio: pinch or ⌘/Ctrl + scroll zooms around the pointer, dragging with a mouse pans, and a double click on empty space zooms in. The controls in the corner zoom out, zoom in, show the zoom level, and "Reset view" glides back to the scene's frame. Plain scrolling scrolls the page, and a touch drag scrolls it too. A new scene, a new trace step or a new size frames the scene again.
 
 ## Events
 

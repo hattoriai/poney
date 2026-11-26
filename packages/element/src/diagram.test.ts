@@ -87,4 +87,69 @@ describe('<poney-diagram>', () => {
     expect(el.querySelector('[role="alert"]')?.textContent).toMatch(/Scenes: overview/)
     el.remove()
   })
+
+  describe('zoom and pan', () => {
+    async function drawn(attrs: Record<string, string> = {}) {
+      const el = element({ view: 'system-map', ...attrs })
+      const ready = once(el, 'poney-ready')
+      document.body.append(el)
+      el.document = commerce
+      await ready
+      const svg = el.querySelector('svg.poney-diagram-svg')!
+      return { el, svg, box: () => svg.getAttribute('viewBox')!.split(' ').map(Number) }
+    }
+    // The test DOM leaves `ctrlKey` out of a WheelEvent, so the test sets it.
+    const wheel = (deltaY: number, ctrlKey: boolean) => Object.defineProperty(new WheelEvent('wheel', { deltaY, cancelable: true }), 'ctrlKey', { value: ctrlKey })
+    const control = (el: Element, label: string) => el.querySelector(`.poney-diagram-controls [aria-label="${label}"]`) as HTMLButtonElement
+
+    it('zooms with ⌘/Ctrl + scroll and the buttons, and resets to the frame', async () => {
+      const { el, box } = await drawn()
+      const home = box()
+      const reset = control(el, 'Reset view')
+      expect(reset.hidden).toBe(true)
+      el.dispatchEvent(wheel(-20, true))
+      expect(box()[2]).toBeLessThan(home[2])
+      expect(reset.hidden).toBe(false)
+      const closer = box()[2]
+      control(el, 'Zoom out').click()
+      expect(box()[2]).toBeGreaterThan(closer)
+      reset.click()
+      for (let i = 0; i < 60 && box()[2] !== home[2]; i++) await settle()
+      expect(box()).toEqual(home)
+      expect(reset.hidden).toBe(true)
+      el.dispatchEvent(wheel(-20, false))
+      expect(box()).toEqual(home)
+      el.remove()
+    })
+
+    it('pans with a mouse drag, and the drag does not select the part under it', async () => {
+      const { el, svg, box } = await drawn()
+      const home = box()
+      const node = el.querySelector('[data-ref="entity:customer"]')!
+      let selected = false
+      el.addEventListener('poney-select', () => (selected = true))
+      node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', clientX: 100, clientY: 100 }))
+      svg.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 160, clientY: 120 }))
+      svg.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'mouse', clientX: 160, clientY: 120 }))
+      node.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(box()[0]).toBeLessThan(home[0])
+      expect(selected).toBe(false)
+      el.remove()
+    })
+
+    it('leaves touch drags to the page, and a still picture has no camera', async () => {
+      const { el, svg, box } = await drawn({ still: '' })
+      const home = box()
+      expect((el.querySelector('.poney-diagram-controls') as HTMLElement).hidden).toBe(true)
+      el.dispatchEvent(wheel(-20, true))
+      svg.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerType: 'mouse', clientX: 0, clientY: 0 }))
+      svg.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 90, clientY: 0 }))
+      expect(box()).toEqual(home)
+      el.removeAttribute('still')
+      svg.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerType: 'touch', clientX: 0, clientY: 0 }))
+      svg.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'touch', clientX: 90, clientY: 0 }))
+      expect(box()).toEqual(home)
+      el.remove()
+    })
+  })
 })
