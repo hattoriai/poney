@@ -38,10 +38,10 @@ describe('fromMermaid', () => {
       C -->|Yes| D[Deploy]
       C -- No --> E[Notify]
       D --> F([Done])`)
-    const p = indexOf(document).process('flow')!
-    expect(p.nodes.find((n) => n.id === 'a')?.kind).toBe('start')
+    const p = indexOf(document).activity('flow')!
+    expect(p.nodes.find((n) => n.id === 'a')?.kind).toBe('initial')
     expect(p.nodes.find((n) => n.id === 'c')?.kind).toBe('decision')
-    expect(p.nodes.find((n) => n.id === 'f')?.kind).toBe('end')
+    expect(p.nodes.find((n) => n.id === 'f')?.kind).toBe('final')
     expect(p.flows.filter((f) => f.from === 'c').map((f) => f.guard).sort()).toEqual(['No', 'Yes'])
     expect(p.nodes.find((n) => n.id === 'a')?.performedBy).toBe('lane-ci')
   })
@@ -74,7 +74,7 @@ describe('fromMermaid', () => {
     expect(idx.dataTypes.get('customer')?.fields[0]).toMatchObject({ name: 'id', primaryKey: true })
     expect(idx.dataTypes.get('customer')?.fields[1]).toMatchObject({ unique: true, description: 'Sign-in email' })
     const rel = document.model.dataRelations.find((r) => r.label === 'places')!
-    expect([rel.fromCardinality, rel.toCardinality]).toEqual(['one', 'many'])
+    expect([rel.fromCardinality, rel.toCardinality]).toEqual(['exactly-one', 'zero-or-many'])
     expect(document.model.dataRelations.find((r) => r.label === 'is tagged')?.logical).toBe(true)
   })
 

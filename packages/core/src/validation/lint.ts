@@ -60,7 +60,7 @@ export function lintDocument(doc: PoneyDocument): ValidationIssue[] {
   doc.walkthroughs.forEach((w, wi) => lintWalkthrough(w, `walkthroughs.${wi}`, idx, warn))
 
   // Behaviours that no view shows are left over from an earlier draft.
-  const shown = new Set(doc.views.flatMap((v) => (v.type === 'sequence' ? [v.interaction] : v.type === 'activity' ? [v.process] : v.type === 'state' ? [v.stateMachine] : [])))
+  const shown = new Set(doc.views.flatMap((v) => (v.type === 'sequence' ? [v.interaction] : v.type === 'activity' ? [v.activity] : v.type === 'state' ? [v.stateMachine] : [])))
   doc.model.behaviors.forEach((b, i) => {
     if (!shown.has(b.id)) warn(`model.behaviors.${i}`, 'unused-behavior', `No view shows the behavior "${b.id}"`, 'Show it in a scene, or remove it from the model.')
   })

@@ -54,7 +54,7 @@ export function EntityBody({ id }: { id: string }) {
   const dependents = idx.incoming(id).filter((r) => r.kind === 'depends-on' || r.kind === 'implements')
   const behaviors = idx.behaviorsInvolving(id)
   const data = idx.dataOf(id)
-  const caps = idx.capabilitiesOf(id)
+  const caps = idx.useCasesOf(id)
   const kids = idx.children(id)
   const parent = e.parent ? idx.entities.get(e.parent) : undefined
   return (
@@ -123,7 +123,7 @@ export function EntityBody({ id }: { id: string }) {
 
       {caps.length > 0 && (
         <Section title={e.kind === 'person' ? 'Can' : 'Makes possible'} count={caps.length}>
-          {caps.map((c) => <RefLink key={c.id} to={{ kind: 'capability', id: c.id }} label={c.name} secondary={c.summary} icon={<Workflow size={14} />} tone="var(--tyrian)" />)}
+          {caps.map((c) => <RefLink key={c.id} to={{ kind: 'useCase', id: c.id }} label={c.name} secondary={c.summary} icon={<Workflow size={14} />} tone="var(--tyrian)" />)}
         </Section>
       )}
       <RelatedViews refValue={{ kind: 'entity', id }} title="Also seen in" exclude={behaviors.flatMap((b) => idx.viewsForBehavior(b.id).map((v) => v.id))} />
@@ -278,7 +278,7 @@ export function DataRelationBody({ id }: { id: string }) {
     <>
       <Section title="Reads as">
         <Prose>
-          Each <code className="font-mono">{from?.name}</code> row {r.label} {card(r.toCardinality)} <code className="font-mono">{to?.name}</code> row{r.toCardinality === 'one' || r.toCardinality === 'zero-or-one' ? '' : 's'}. Each <code className="font-mono">{to?.name}</code> row belongs to {card(r.fromCardinality)} <code className="font-mono">{from?.name}</code> row{r.fromCardinality === 'one' || r.fromCardinality === 'zero-or-one' ? '' : 's'}.
+          Each <code className="font-mono">{from?.name}</code> row {r.label} {card(r.toCardinality)} <code className="font-mono">{to?.name}</code> row{r.toCardinality === 'exactly-one' || r.toCardinality === 'zero-or-one' ? '' : 's'}. Each <code className="font-mono">{to?.name}</code> row belongs to {card(r.fromCardinality)} <code className="font-mono">{from?.name}</code> row{r.fromCardinality === 'exactly-one' || r.fromCardinality === 'zero-or-one' ? '' : 's'}.
         </Prose>
         <div className="mt-3">
           <Facts items={[['Through', r.via ? <code className="font-mono text-[12px]">{r.via}</code> : undefined], ['Enforced', r.logical ? 'No. The tables live in different databases; the services keep it consistent.' : 'Yes, by a foreign key']]} />
@@ -391,7 +391,7 @@ export function FragmentBody({ behavior, id }: { behavior: string; id: string })
 
 export function ActivityNodeBody({ behavior, id }: { behavior: string; id: string }) {
   const idx = useIndex()
-  const p = idx.process(behavior)
+  const p = idx.activity(behavior)
   const n = p?.nodes.find((x) => x.id === id)
   if (!p || !n) return null
   const outs = p.flows.filter((f) => f.from === id)
@@ -426,7 +426,7 @@ export function ActivityNodeBody({ behavior, id }: { behavior: string; id: strin
 
 export function ActivityFlowBody({ behavior, id }: { behavior: string; id: string }) {
   const idx = useIndex()
-  const p = idx.process(behavior)
+  const p = idx.activity(behavior)
   const f = p?.flows.find((x) => x.id === id)
   if (!p || !f) return null
   return (
@@ -512,9 +512,9 @@ export function TransitionBody({ behavior, id }: { behavior: string; id: string 
   )
 }
 
-export function CapabilityBody({ id }: { id: string }) {
+export function UseCaseBody({ id }: { id: string }) {
   const idx = useIndex()
-  const c = idx.capabilities.get(id)
+  const c = idx.useCases.get(id)
   if (!c) return null
   const views = c.behaviors.flatMap((b) => idx.viewsForBehavior(b))
   return (
@@ -541,7 +541,7 @@ export function CapabilityBody({ id }: { id: string }) {
       )}
       {c.includes.length > 0 && (
         <Section title="Includes">
-          {c.includes.map((i) => <RefLink key={i} to={{ kind: 'capability', id: i }} label={idx.capabilities.get(i)?.name} secondary={idx.capabilities.get(i)?.summary} icon={<Workflow size={14} />} tone="var(--tyrian)" />)}
+          {c.includes.map((i) => <RefLink key={i} to={{ kind: 'useCase', id: i }} label={idx.useCases.get(i)?.name} secondary={idx.useCases.get(i)?.summary} icon={<Workflow size={14} />} tone="var(--tyrian)" />)}
         </Section>
       )}
     </>
@@ -608,8 +608,8 @@ export function bodyFor(ref: Ref) {
       return <StateBody behavior={ref.behavior} id={ref.id} />
     case 'transition':
       return <TransitionBody behavior={ref.behavior} id={ref.id} />
-    case 'capability':
-      return <CapabilityBody id={ref.id} />
+    case 'useCase':
+      return <UseCaseBody id={ref.id} />
     case 'group':
       return <GroupBody view={ref.view} id={ref.id} />
     case 'behavior':

@@ -3,7 +3,7 @@ import { entities } from './entities'
 import { relationships } from './relationships'
 import { dataTypes, dataRelations, dataFlows } from './data'
 import { behaviors } from './behaviors'
-import { capabilities, views } from './views'
+import { useCases, views } from './views'
 import { teams } from './teams'
 import { retryWalkthrough, tourWalkthrough } from './walkthroughs'
 
@@ -19,7 +19,7 @@ export const commerce: PoneyDocumentInput = {
     defaultView: 'architecture',
   },
   extensions: [{ name: 'ownership', version: '0.1.0' }],
-  model: { entities: [...entities, ...teams], relationships, dataTypes, dataRelations, dataFlows, behaviors, capabilities },
+  model: { entities: [...entities, ...teams], relationships, dataTypes, dataRelations, dataFlows, behaviors, useCases },
   views: [
     ...views,
     {
@@ -44,9 +44,9 @@ export const commerce: PoneyDocumentInput = {
       service: { shape: 'card', tone: 'lapis', icon: 'server', label: 'Service' },
       database: { shape: 'cylinder', tone: 'malachite', icon: 'database', label: 'Database' },
       cache: { shape: 'cylinder', tone: 'verdigris', icon: 'zap', label: 'Cache' },
-      queue: { shape: 'stack', tone: 'ochre', icon: 'waypoints', label: 'Event bus' },
+      'message-broker': { shape: 'stack', tone: 'ochre', icon: 'waypoints', label: 'Message broker' },
       external: { shape: 'card', tone: 'umber', icon: 'globe', label: 'External system' },
-      module: { shape: 'chip', tone: 'lapis', icon: 'box', label: 'Module' },
+      component: { shape: 'chip', tone: 'lapis', icon: 'box', label: 'Component' },
       interface: { shape: 'chip', tone: 'tyrian', icon: 'plug', label: 'Interface' },
       library: { shape: 'chip', tone: 'slate', icon: 'library', label: 'Library' },
     },

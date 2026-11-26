@@ -21,7 +21,7 @@ export interface DataFlowDiagram {
 
 export function roleOf(kind: string): DataFlowRole {
   if (kind === 'person' || kind === 'external') return 'terminator'
-  if (kind === 'database' || kind === 'cache' || kind === 'queue') return 'store'
+  if (kind === 'database' || kind === 'cache' || kind === 'message-broker') return 'store'
   return 'process'
 }
 

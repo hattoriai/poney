@@ -16,7 +16,7 @@ export type Ref =
   | { kind: 'activityFlow'; behavior: string; id: string }
   | { kind: 'state'; behavior: string; id: string }
   | { kind: 'transition'; behavior: string; id: string }
-  | { kind: 'capability'; id: string }
+  | { kind: 'useCase'; id: string }
   | { kind: 'behavior'; id: string }
 
 export type RefKind = Ref['kind']
@@ -58,7 +58,7 @@ export function parseRef(text: string): Ref | null {
   switch (kind) {
     case 'entity':
     case 'relationship':
-    case 'capability':
+    case 'useCase':
     case 'dataFlow':
     case 'dataRelation':
     case 'behavior':

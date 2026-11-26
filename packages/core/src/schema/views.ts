@@ -25,7 +25,7 @@ export const DiagramType = z.enum([
 export type DiagramType = z.infer<typeof DiagramType>
 
 /** Core categories. Extensions may use their own category names. */
-export const CORE_CATEGORIES = ['overview', 'behavior', 'data', 'structure', 'capabilities'] as const
+export const CORE_CATEGORIES = ['overview', 'behavior', 'data', 'structure', 'use-cases'] as const
 export const Category = z.string().min(1)
 export type Category = (typeof CORE_CATEGORIES)[number] | (string & {})
 
@@ -103,7 +103,7 @@ export const DataFlowView = ViewBase.extend({
 
 export const ActivityView = ViewBase.extend({
   type: z.literal('activity'),
-  process: Id,
+  activity: Id,
   swimlanes: z.boolean().default(true),
 })
 
@@ -123,7 +123,7 @@ export const StateView = ViewBase.extend({
 
 export const UseCaseView = ViewBase.extend({
   type: z.literal('usecase'),
-  capabilities: z.array(Id).min(1),
+  useCases: z.array(Id).min(1),
 })
 
 export const DependencyView = ViewBase.extend({

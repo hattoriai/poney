@@ -42,7 +42,7 @@ export function expandFocus(refs: string[], idx?: ModelIndex, walkthrough?: Walk
 }
 
 /** Boxes that a frame must never cut in half. Lines may leave the frame. */
-const BOX = /^(entity|state|dataType|activityNode|capability):/
+const BOX = /^(entity|state|dataType|activityNode|useCase):/
 
 /**
  * The part of a scene to frame: the focus, or everything. A focused sequence

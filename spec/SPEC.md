@@ -1,6 +1,6 @@
 # The Poney format
 
-**Version 0.1.0 — internal draft.** This is the working description of the format that the Poney tools read and write. It is not a public standard and makes no compatibility promise: it changes without notice until a party outside this project needs to read or write it.
+**Version 0.2.0 — internal draft.** This is the working description of the format that the Poney tools read and write. It is not a public standard and makes no compatibility promise: it changes without notice until a party outside this project needs to read or write it.
 
 Poney describes software: its parts, how they connect, what data they hold and move, how they behave, and what people can do with them. A Poney document holds one model of a system and any number of views of that model. The format does not depend on any renderer, programming language or UI library.
 
@@ -41,7 +41,7 @@ A document is a JSON object with these members:
 
 | Member | Type | Required | Meaning |
 |---|---|---|---|
-| `poneyVersion` | string | yes | Format version. For this specification: `"0.1.0"`. |
+| `poneyVersion` | string | yes | Format version. For this specification: `"0.2.0"`. A reader MUST also accept `"0.1.0"` documents and upgrade them (section 11). |
 | `project` | Project | yes | What the document describes. |
 | `extensions` | ExtensionUse[] | no, default `[]` | Extensions the document uses (section 8). |
 | `model` | Model | no, default empty | The semantic model (section 5). |
@@ -87,7 +87,7 @@ An entity is a part of the system or of its surroundings.
 | `metadata` | object | String, number or boolean values. Default `{}`. |
 | `ext` | object | Extension data by extension name (section 8). Default `{}`. |
 
-Core kinds: `person`, `system`, `web-app`, `service`, `gateway`, `database`, `cache`, `queue`, `external`, `module`, `interface`, `library`.
+Core kinds: `person`, `system`, `web-app`, `service`, `gateway`, `database`, `cache`, `message-broker`, `external`, `component`, `interface`, `library`. They follow the C4 model where it names them: a `component` is a part of the code inside a running program (a module, class or package), and a `message-broker` is a message queue, broker or event bus.
 
 **SourceRef:** `path` (repository-relative), optional `line` (positive integer), `symbol`, `repository`.
 
@@ -117,7 +117,7 @@ A data relation connects two data types, usually two tables.
 
 `id`, `from`, `to`, `fromCardinality`, `toCardinality`, `label`, optional `via` (the field that implements it), `logical` (default `false`).
 
-Cardinality values: `one`, `zero-or-one`, `many` (zero or more), `one-or-many`.
+Cardinality values, as crow's foot notation names them: `exactly-one`, `zero-or-one`, `one-or-many`, `zero-or-many`.
 
 Read a relation as: each `from` row *label* `toCardinality` `to` rows; each `to` row belongs to `fromCardinality` `from` rows. `logical: true` means the relation crosses a storage boundary and no database constraint enforces it.
 
@@ -144,13 +144,13 @@ A **Step** is a Message or a Fragment, in reading order.
 
 Fragments nest. Message order is the depth-first order of steps. Message and fragment identifiers are unique within the interaction.
 
-#### 5.6.2 Process (`"kind": "process"`)
+#### 5.6.2 Activity (`"kind": "activity"`)
 
 A flow of activities: a flowchart or activity diagram.
 
 `id`, `name`, `summary`, optional `description`, `nodes` (at least two), `flows` (at least one).
 
-**Node:** `id`, `kind` (`start`, `end`, `action`, `decision`, `merge`, `fork`, `join`), `label`, optional `description`, optional `performedBy` (an entity; renderers use it for swimlanes), optional `outcome` (`success` or `failure`, for end nodes).
+**Node:** `id`, `kind` (`initial`, `final`, `action`, `decision`, `merge`, `fork`, `join`, as in UML activity diagrams), `label`, optional `description`, optional `performedBy` (an entity; renderers use it for swimlanes), optional `outcome` (`success` or `failure`, for end nodes).
 
 **Flow:** `id`, `from`, `to`, optional `guard` (the answer that takes this flow, for flows out of a decision). Flows MAY form loops.
 
@@ -160,15 +160,15 @@ The lifecycle of one thing.
 
 `id`, `name`, `summary`, optional `description`, optional `subject` (the data type whose lifecycle this is), optional `owner` (the entity that owns the lifecycle), `states` (at least two), `transitions` (at least one).
 
-**State:** `id`, `kind` (`initial`, `normal`, `final`), `name`, optional `description`, `entryActions` (default `[]`), `outcome` (`success`, `failure`, `neutral`; default `neutral`).
+**State:** `id`, `kind` (`initial`, `state`, `final`), `name`, optional `description`, `entryActions` (default `[]`), `outcome` (`success`, `failure`, `neutral`; default `neutral`).
 
 **Transition:** `id`, `from`, `to`, `event` (what happens), optional `guard` (what must be true), `actions` (what is done, in order; default `[]`), optional `description`, optional `triggeredBy` (the entity that raises the event).
 
-### 5.7 Capabilities
+### 5.7 Use cases
 
-A capability is something a person can do with the system: a use case.
+A use case (UML) is something an actor does with the system.
 
-`id`, `name`, `summary`, `area` (a grouping, e.g. "Orders"), `actors` (at least one entity who does it), `supporting` (entities that help, usually external; default `[]`), `realizedBy` (entities that implement it; default `[]`), `behaviors` (behaviors that show how it works; default `[]`), `includes` (capabilities that are part of it; default `[]`), `ext`.
+`id`, `name`, `summary`, `area` (a grouping, e.g. "Orders"), `actors` (at least one entity who does it), `supporting` (entities that help, usually external; default `[]`), `realizedBy` (entities that implement it; default `[]`), `behaviors` (behaviors that show how it works; default `[]`), `includes` (use cases that are part of it; default `[]`), `ext`.
 
 ### 5.8 Walkthroughs
 
@@ -199,7 +199,7 @@ A walkthrough explains software to a reader in **scenes**, in reading order. It 
 
 **Inline views.** A scene or overview may write its view in place: the same members as in section 6, with `id`, `title`, `description` and `category` optional. A reader moves each inline view into `views` when it loads the document: the id is the one given, else `<walkthrough id>.<scene id>` (or `<walkthrough id>.overview`); the title defaults to the scene title; the category defaults to `walkthrough`. The canonical form holds only view ids in scenes.
 
-**Refs as text.** Marks, focus and callouts name elements with a *ref key*: `entity:<id>`, `relationship:<id>`, `dataType:<id>` or `dataType:<id>#<field>`, `dataRelation:<id>`, `dataFlow:<id>`, `capability:<id>`, `behavior:<id>`, and `<kind>:<behavior id>:<id>` for `message`, `fragment`, `activityNode`, `activityFlow`, `state` and `transition`.
+**Refs as text.** Marks, focus and callouts name elements with a *ref key*: `entity:<id>`, `relationship:<id>`, `dataType:<id>` or `dataType:<id>#<field>`, `dataRelation:<id>`, `dataFlow:<id>`, `useCase:<id>`, `behavior:<id>`, and `<kind>:<behavior id>:<id>` for `message`, `fragment`, `activityNode`, `activityFlow`, `state` and `transition`.
 
 **Reading a walkthrough.** A renderer can show three modes of any view: *before* (new elements hidden), *change* (new, changed and removed elements marked) and *after* (removed elements hidden). It draws removed elements from `removed`, laid out with the others so the picture does not move between modes. In a sequence view, a scene whose focus names messages MAY show only those messages and their participants.
 
@@ -211,7 +211,7 @@ A view selects part of the model for one diagram and organizes it. Every view ha
 |---|---|
 | `id`, `title`, `description` | |
 | `type` | The diagram type, below. |
-| `category` | Navigation group. Core values: `overview`, `behavior`, `data`, `structure`, `capabilities`. Any other string is allowed. |
+| `category` | Navigation group. Core values: `overview`, `behavior`, `data`, `structure`, `use-cases`. Any other string is allowed. |
 | `positions` | Manual positions by element id: `{ "<id>": { "x": n, "y": n } }`. Default `{}`. Layout engines SHOULD keep them as fixed points. |
 | `ext` | Extension data. Default `{}`. |
 
@@ -223,10 +223,10 @@ Diagram types and their members:
 | `architecture` | `entities` (at least one); `relationships` (optional: omit to show every relationship between shown entities); `groups` (`{ id, label, description?, members }`, default `[]`); `collapsed` (entity or group identifiers shown closed, default `[]`); `layout.direction` (`right` or `down`, default `right`). |
 | `sequence` | `interaction`: an interaction behavior. |
 | `dataflow` | `flows` (at least one data flow); `showControlFlow` (default `true`). |
-| `activity` | `process`: a process behavior; `swimlanes` (default `true`). |
+| `activity` | `activity`: an activity behavior; `swimlanes` (default `true`). |
 | `erd` | `dataTypes` (at least one); `groupByStore` (default `true`); `fieldLimit` (default `6`). |
 | `state` | `stateMachine`: a state machine behavior. |
-| `usecase` | `capabilities` (at least one). |
+| `usecase` | `useCases` (at least one). |
 | `dependency` | `entities`; `relationships` (optional); `layers` (at least one group, top to bottom). |
 | `extension` | `extension` (`"<extension>/<view type>"`); `entities` (entities the view shows, default `[]`); `data` (any value, defined by the extension). |
 
@@ -240,7 +240,7 @@ Presentation holds hints for renderers. It never changes meaning; a reader that 
 
 | Member | Meaning |
 |---|---|
-| `kinds` | Style per entity kind: `{ shape, tone, icon, label }`. `shape` is one of `card`, `cylinder`, `person`, `stack`, `chip`, `frame`. `tone` is a named pigment (`lapis`, `malachite`, `ochre`, `umber`, `tyrian`, `slate`, `poney`, `verdigris`) or a hex color `#rrggbb`. `icon` is a Lucide icon name. `label` is the human name of the kind. |
+| `kinds` | Style per entity kind: `{ shape, tone, icon, label }`. `shape` is one of `card`, `cylinder`, `person`, `stack`, `chip`, `frame`. `tone` is a named pigment (`lapis`, `malachite`, `ochre`, `umber`, `tyrian`, `slate`, `accent`, `verdigris`) or a hex color `#rrggbb`. `icon` is a Lucide icon name. `label` is the human name of the kind. |
 | `relationships` | Line style per relationship kind: `{ pattern: solid \| dashed \| dotted, head: arrow \| open-arrow \| triangle \| none }`. |
 | `elements` | Overrides by element id, for every view: `{ tone?, icon?, width?, height?, emphasis? }`. Default `{}`. |
 | `views` | Overrides by view id, then element id. Default `{}`. |
@@ -265,7 +265,7 @@ An extension MAY define entity kinds and relationship kinds. They are written `"
 
 ### 8.3 Facets and view types
 
-An extension MAY attach data ("facets") to entities, relationships, data types, capabilities and views, under `ext["<name>"]`:
+An extension MAY attach data ("facets") to entities, relationships, data types, use cases and views, under `ext["<name>"]`:
 
 ```json
 { "id": "payment-service", "kind": "service", "ext": { "ownership": { "team": "team-payments" } } }
@@ -298,16 +298,16 @@ These rules apply after the shape check. Each one is an error unless marked as a
 
 | Rule | Requirement |
 |---|---|
-| R1 | Identifiers are unique within `entities`, `relationships`, `dataTypes`, `dataRelations`, `dataFlows`, `behaviors`, `capabilities` and `views`; step identifiers within each interaction; node identifiers within each process; state identifiers within each state machine; field names within each data type. |
+| R1 | Identifiers are unique within `entities`, `relationships`, `dataTypes`, `dataRelations`, `dataFlows`, `behaviors`, `useCases` and `views`; step identifiers within each interaction; node identifiers within each process; state identifiers within each state machine; field names within each data type. |
 | R2 | `parent` names an existing entity, and containment has no cycles. |
 | R3 | A relationship's `source` and `target` are entities; its `data` entries are data types. |
 | R4 | A data type's `ownedBy` and `storedIn` are entities. |
 | R5 | A field's `references` names an existing data type and a field of it. |
 | R6 | A data relation's `from` and `to` are data types, and `via`, when present, is a field of one of them. A data flow's `source` and `target` are entities, its `data` entries are data types, and `via` is a relationship. |
 | R7 | An interaction's participants are entities. A message's `from` and `to` are participants of its interaction; its `relationship` and `data` exist. |
-| R8 | A process has exactly one `start` node; flows connect nodes of the same process; `performedBy` is an entity. |
+| R8 | An activity has exactly one `initial` node; flows connect nodes of the same activity; `performedBy` is an entity. |
 | R9 | A state machine has exactly one `initial` state; transitions connect states of the same machine; `subject` is a data type; `owner` and `triggeredBy` are entities. |
-| R10 | A capability's `actors`, `supporting` and `realizedBy` are entities; `behaviors` are behaviors; `includes` are capabilities. |
+| R10 | A use case's `actors`, `supporting` and `realizedBy` are entities; `behaviors` are behaviors; `includes` are use cases. |
 | R11 | Every identifier a view references exists. Groups and layers list only entities that are in the view; a map's `passThrough` names entities. `collapsed` lists entities or groups of the view; in a map, each entity in `collapsed` contains another entity of the view. `sequence`, `activity` and `state` views reference a behavior of the matching kind. |
 | R12 | `project.defaultView`, when present, names a view. |
 | R13 | In each walkthrough: `overview` and every scene `view` name views; every mark, focus, callout, trace, effect and badge ref names an element of the model or of `removed`; a mark is `removed` exactly when its element is in `removed`; removed elements are not also in the model, and their ends exist. |
@@ -367,3 +367,22 @@ Poney JSON ─▶ parse + validate ─▶ model (canonical form)
 | `spec/examples/kestrel-commerce.poney` | A complete example: a commerce platform with fourteen views (one from the ownership extension) and a walkthrough. |
 | `spec/examples/walkthrough.poney` | A stand-alone walkthrough, as an agent writes one. |
 | `spec/conformance/` | Valid and invalid documents with expected results (`manifest.json`). |
+
+## 11. Versions
+
+A document names the version of the format it was written for in `poneyVersion`. A reader of this version MUST accept a document of an earlier version and upgrade it before validating; a writer writes the current version.
+
+**0.1.0 → 0.2.0** (the names that follow the industry's terms):
+
+| 0.1.0 | 0.2.0 |
+|---|---|
+| Entity kind `module` | `component` (C4) |
+| Entity kind `queue` | `message-broker` |
+| Their styles in `presentation.kinds`, with the default labels "Module" and "Event bus" | Moved to the new kinds; the labels become "Component" and "Message broker" |
+| Cardinality `one`, `many` | `exactly-one`, `zero-or-many` (crow's foot) |
+| `model.capabilities`, a use case view's `capabilities`, refs `capability:<id>` | `model.useCases`, `useCases`, `useCase:<id>` (UML) |
+| View category `capabilities` | `use-cases` |
+| Behaviour kind `process`, an activity view's `process` | `activity` (UML), `activity` |
+| Activity node kinds `start`, `end` | `initial`, `final` (UML) |
+| State kind `normal` | `state` |
+| Tone `poney` | `accent` |

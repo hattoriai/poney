@@ -4,6 +4,7 @@ import { CoreEntityKind, CoreRelationshipKind } from '../schema/model'
 import { namespaceOf, type PoneyExtension } from '../extensions/extension'
 import { indexOf } from '../model/query'
 import { parseRef, refKey } from '../model/refs'
+import { upgradeDocument } from '../upgrade'
 
 export interface ValidationIssue {
   path: string
@@ -66,7 +67,8 @@ export interface ValidateOptions {
  * pass checks kinds, facets and views that extensions define.
  */
 export function validateDocument(input: unknown, options: ValidateOptions = {}): ValidationResult {
-  const parsed = PoneyDocument.safeParse(input)
+  // A document written for an earlier version of the format is upgraded first.
+  const parsed = PoneyDocument.safeParse(upgradeDocument(input))
   if (!parsed.success) {
     return {
       ok: false,
@@ -119,7 +121,7 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
   index(m.dataRelations, 'model.dataRelations')
   index(m.dataFlows, 'model.dataFlows')
   const behaviors = index(m.behaviors, 'model.behaviors')
-  const capabilities = index(m.capabilities, 'model.capabilities')
+  const useCases = index(m.useCases, 'model.useCases')
   index(doc.views, 'views')
 
   const entity = (id: string | undefined, path: string) => {
@@ -207,10 +209,10 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
           }
         })
       walk(b.steps, `${path}.steps`)
-    } else if (b.kind === 'process') {
+    } else if (b.kind === 'activity') {
       const nodes = index(b.nodes, `${path}.nodes`)
       b.nodes.forEach((n, j) => entity(n.performedBy, `${path}.nodes.${j}.performedBy`))
-      if (b.nodes.filter((n) => n.kind === 'start').length !== 1)
+      if (b.nodes.filter((n) => n.kind === 'initial').length !== 1)
         report(`${path}.nodes`, 'A process needs exactly one start node')
       b.flows.forEach((f, j) => {
         if (!nodes.has(f.from)) report(`${path}.flows.${j}.from`, `Unknown node "${f.from}"`, didYouMean(f.from, nodes.keys(), 'node'))
@@ -230,8 +232,8 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
     }
   })
 
-  m.capabilities.forEach((c, i) => {
-    const path = `model.capabilities.${i}`
+  m.useCases.forEach((c, i) => {
+    const path = `model.useCases.${i}`
     c.actors.forEach((a, j) => entity(a, `${path}.actors.${j}`))
     c.supporting.forEach((a, j) => entity(a, `${path}.supporting.${j}`))
     c.realizedBy.forEach((a, j) => entity(a, `${path}.realizedBy.${j}`))
@@ -239,7 +241,7 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
       if (!behaviors.has(b)) report(`${path}.behaviors.${j}`, `Unknown behavior "${b}"`)
     })
     c.includes.forEach((b, j) => {
-      if (!capabilities.has(b)) report(`${path}.includes.${j}`, `Unknown capability "${b}"`)
+      if (!useCases.has(b)) report(`${path}.includes.${j}`, `Unknown use case "${b}"`)
     })
   })
 
@@ -282,7 +284,7 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
         behaviorOfKind(v.interaction, 'interaction', `${path}.interaction`)
         break
       case 'activity':
-        behaviorOfKind(v.process, 'process', `${path}.process`)
+        behaviorOfKind(v.activity, 'activity', `${path}.activity`)
         break
       case 'state':
         behaviorOfKind(v.stateMachine, 'state-machine', `${path}.stateMachine`)
@@ -301,8 +303,8 @@ export function checkReferences(doc: PoneyDocument): ValidationIssue[] {
         v.entities.forEach((e, j) => entity(e, `${path}.entities.${j}`))
         break
       case 'usecase':
-        v.capabilities.forEach((c, j) => {
-          if (!capabilities.has(c)) report(`${path}.capabilities.${j}`, `Unknown capability "${c}"`)
+        v.useCases.forEach((c, j) => {
+          if (!useCases.has(c)) report(`${path}.useCases.${j}`, `Unknown use case "${c}"`)
         })
         break
     }
@@ -351,7 +353,7 @@ export function checkExtensions(doc: PoneyDocument, known: PoneyExtension[]): Va
     if (ext && !ext[field]?.[kind.slice(ns.length + 1)]) error(path, `Extension "${ns}" does not define the kind "${kind}"`)
   }
 
-  const checkFacets = (ext: Record<string, unknown>, path: string, target: 'entity' | 'relationship' | 'dataType' | 'capability' | 'view') => {
+  const checkFacets = (ext: Record<string, unknown>, path: string, target: 'entity' | 'relationship' | 'dataType' | 'useCase' | 'view') => {
     for (const [ns, value] of Object.entries(ext)) {
       if (!declared.has(ns)) {
         error(`${path}.ext.${ns}`, `Data for the undeclared extension "${ns}"`)
@@ -377,7 +379,7 @@ export function checkExtensions(doc: PoneyDocument, known: PoneyExtension[]): Va
     checkFacets(r.ext, `model.relationships.${i}`, 'relationship')
   })
   doc.model.dataTypes.forEach((d, i) => checkFacets(d.ext, `model.dataTypes.${i}`, 'dataType'))
-  doc.model.capabilities.forEach((c, i) => checkFacets(c.ext, `model.capabilities.${i}`, 'capability'))
+  doc.model.useCases.forEach((c, i) => checkFacets(c.ext, `model.useCases.${i}`, 'useCase'))
   doc.views.forEach((v, i) => {
     checkFacets(v.ext, `views.${i}`, 'view')
     if (v.type !== 'extension') return
@@ -472,11 +474,11 @@ function allRefKeys(idx: ReturnType<typeof indexOf>, extra: Set<string>): string
     keys.push(`dataType:${id}`)
     d.fields.forEach((f) => keys.push(`dataType:${id}#${f.name}`))
   })
-  idx.capabilities.forEach((_, id) => keys.push(`capability:${id}`))
+  idx.useCases.forEach((_, id) => keys.push(`useCase:${id}`))
   idx.behaviors.forEach((b, id) => {
     keys.push(`behavior:${id}`)
     if (b.kind === 'interaction') idx.messages(id).forEach((m) => keys.push(`message:${id}:${m.message.id}`))
-    if (b.kind === 'process') b.nodes.forEach((n) => keys.push(`activityNode:${id}:${n.id}`))
+    if (b.kind === 'activity') b.nodes.forEach((n) => keys.push(`activityNode:${id}:${n.id}`))
     if (b.kind === 'state-machine') {
       b.states.forEach((s) => keys.push(`state:${id}:${s.id}`))
       b.transitions.forEach((t) => keys.push(`transition:${id}:${t.id}`))

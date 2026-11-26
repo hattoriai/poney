@@ -1,5 +1,5 @@
 {
-  "poneyVersion": "0.1.0",
+  "poneyVersion": "0.2.0",
   "project": {
     "id": "kestrel-commerce",
     "name": "Kestrel Commerce",
@@ -426,7 +426,7 @@
       },
       {
         "id": "event-bus",
-        "kind": "queue",
+        "kind": "message-broker",
         "name": "Event bus",
         "summary": "Carries order events to the services that react to them.",
         "parent": "kestrel",
@@ -465,7 +465,7 @@
       },
       {
         "id": "order-api",
-        "kind": "module",
+        "kind": "component",
         "name": "HTTP API",
         "summary": "gRPC and HTTP handlers for checkout and order queries.",
         "parent": "order-service",
@@ -482,7 +482,7 @@
       },
       {
         "id": "checkout-orchestrator",
-        "kind": "module",
+        "kind": "component",
         "name": "Checkout orchestrator",
         "summary": "Runs the checkout steps in order and undoes them on failure.",
         "parent": "order-service",
@@ -499,7 +499,7 @@
       },
       {
         "id": "event-publisher",
-        "kind": "module",
+        "kind": "component",
         "name": "Outbox publisher",
         "summary": "Reads the outbox table and publishes events to the bus.",
         "parent": "order-service",
@@ -515,7 +515,7 @@
       },
       {
         "id": "order-domain",
-        "kind": "module",
+        "kind": "component",
         "name": "Order domain",
         "summary": "The order aggregate and its lifecycle rules.",
         "parent": "order-service",
@@ -533,7 +533,7 @@
       },
       {
         "id": "pricing",
-        "kind": "module",
+        "kind": "component",
         "name": "Pricing",
         "summary": "Calculates subtotals, tax and shipping.",
         "parent": "order-service",
@@ -603,7 +603,7 @@
       },
       {
         "id": "payment-client",
-        "kind": "module",
+        "kind": "component",
         "name": "Payment client",
         "summary": "gRPC client for the payment service.",
         "parent": "order-service",
@@ -619,7 +619,7 @@
       },
       {
         "id": "inventory-client",
-        "kind": "module",
+        "kind": "component",
         "name": "Inventory client",
         "summary": "gRPC client for the inventory service.",
         "parent": "order-service",
@@ -635,7 +635,7 @@
       },
       {
         "id": "postgres-repository",
-        "kind": "module",
+        "kind": "component",
         "name": "Postgres repository",
         "summary": "Stores orders and outbox rows in one transaction.",
         "parent": "order-service",
@@ -2434,8 +2434,8 @@
         "id": "rel-user-sessions",
         "from": "users",
         "to": "sessions",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "has",
         "via": "user_id",
         "logical": false
@@ -2444,8 +2444,8 @@
         "id": "rel-category-products",
         "from": "categories",
         "to": "products",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "contains",
         "via": "category_id",
         "logical": false
@@ -2454,7 +2454,7 @@
         "id": "rel-order-items",
         "from": "orders",
         "to": "order-items",
-        "fromCardinality": "one",
+        "fromCardinality": "exactly-one",
         "toCardinality": "one-or-many",
         "label": "is made of",
         "via": "order_id",
@@ -2464,8 +2464,8 @@
         "id": "rel-order-events",
         "from": "orders",
         "to": "order-events",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "emits",
         "via": "order_id",
         "logical": false
@@ -2474,8 +2474,8 @@
         "id": "rel-user-orders",
         "from": "users",
         "to": "orders",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "places",
         "via": "customer_id",
         "logical": true
@@ -2484,8 +2484,8 @@
         "id": "rel-product-items",
         "from": "products",
         "to": "order-items",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "is bought as",
         "via": "product_id",
         "logical": true
@@ -2494,8 +2494,8 @@
         "id": "rel-order-payments",
         "from": "orders",
         "to": "payments",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "is paid by",
         "via": "order_id",
         "logical": true
@@ -2504,7 +2504,7 @@
         "id": "rel-product-stock",
         "from": "products",
         "to": "stock-levels",
-        "fromCardinality": "one",
+        "fromCardinality": "exactly-one",
         "toCardinality": "zero-or-one",
         "label": "is stocked as",
         "via": "product_id",
@@ -2514,8 +2514,8 @@
         "id": "rel-stock-reservations",
         "from": "stock-levels",
         "to": "reservations",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "is held by",
         "via": "product_id",
         "logical": false
@@ -2524,8 +2524,8 @@
         "id": "rel-order-reservations",
         "from": "orders",
         "to": "reservations",
-        "fromCardinality": "one",
-        "toCardinality": "many",
+        "fromCardinality": "exactly-one",
+        "toCardinality": "zero-or-many",
         "label": "holds",
         "via": "order_id",
         "logical": true
@@ -3449,14 +3449,14 @@
         ]
       },
       {
-        "kind": "process",
+        "kind": "activity",
         "id": "checkout-process",
         "name": "Checkout, step by step",
         "summary": "Who does what during checkout, including retries and failures.",
         "nodes": [
           {
             "id": "a-start",
-            "kind": "start",
+            "kind": "initial",
             "label": "Customer opens checkout",
             "performedBy": "customer"
           },
@@ -3545,7 +3545,7 @@
           },
           {
             "id": "a-done",
-            "kind": "end",
+            "kind": "final",
             "label": "Order placed",
             "performedBy": "order-service",
             "outcome": "success"
@@ -3571,7 +3571,7 @@
           },
           {
             "id": "a-failed",
-            "kind": "end",
+            "kind": "final",
             "label": "Checkout failed",
             "performedBy": "inventory-service",
             "outcome": "failure"
@@ -3709,7 +3709,7 @@
           },
           {
             "id": "s-created",
-            "kind": "normal",
+            "kind": "state",
             "name": "Created",
             "description": "Cart validated and prices frozen. Stock is being reserved.",
             "entryActions": [
@@ -3720,7 +3720,7 @@
           },
           {
             "id": "s-awaiting",
-            "kind": "normal",
+            "kind": "state",
             "name": "Awaiting payment",
             "description": "Stock is held. Waiting for the payment provider.",
             "entryActions": [
@@ -3730,7 +3730,7 @@
           },
           {
             "id": "s-failed",
-            "kind": "normal",
+            "kind": "state",
             "name": "Payment failed",
             "description": "The last attempt was declined. The customer may retry.",
             "entryActions": [
@@ -3740,7 +3740,7 @@
           },
           {
             "id": "s-paid",
-            "kind": "normal",
+            "kind": "state",
             "name": "Paid",
             "description": "Payment authorized. The customer has been told.",
             "entryActions": [
@@ -3750,7 +3750,7 @@
           },
           {
             "id": "s-processing",
-            "kind": "normal",
+            "kind": "state",
             "name": "Processing",
             "description": "The warehouse is picking and packing.",
             "entryActions": [],
@@ -3758,7 +3758,7 @@
           },
           {
             "id": "s-shipped",
-            "kind": "normal",
+            "kind": "state",
             "name": "Shipped",
             "description": "With the carrier.",
             "entryActions": [
@@ -3908,7 +3908,7 @@
         ]
       }
     ],
-    "capabilities": [
+    "useCases": [
       {
         "id": "cap-browse",
         "name": "Browse and search products",
@@ -4436,7 +4436,7 @@
       "positions": {},
       "ext": {},
       "type": "activity",
-      "process": "checkout-process",
+      "activity": "checkout-process",
       "swimlanes": true
     },
     {
@@ -4676,11 +4676,11 @@
       "id": "use-cases",
       "title": "What people can do",
       "description": "Each actor and the things Kestrel lets them do.",
-      "category": "capabilities",
+      "category": "use-cases",
       "positions": {},
       "ext": {},
       "type": "usecase",
-      "capabilities": [
+      "useCases": [
         "cap-browse",
         "cap-cart",
         "cap-signup",
@@ -6016,11 +6016,11 @@
         "icon": "zap",
         "label": "Cache"
       },
-      "queue": {
+      "message-broker": {
         "shape": "stack",
         "tone": "ochre",
         "icon": "waypoints",
-        "label": "Event bus"
+        "label": "Message broker"
       },
       "external": {
         "shape": "card",
@@ -6028,11 +6028,11 @@
         "icon": "globe",
         "label": "External system"
       },
-      "module": {
+      "component": {
         "shape": "chip",
         "tone": "lapis",
         "icon": "box",
-        "label": "Module"
+        "label": "Component"
       },
       "interface": {
         "shape": "chip",

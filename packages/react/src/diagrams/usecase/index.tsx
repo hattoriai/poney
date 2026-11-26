@@ -23,17 +23,17 @@ function Renderer({ scene }: { scene: UseCaseScene; view: View }) {
     const caps = new Set<string>()
     if (subject.kind === 'entity' && scene.actors.some((a) => a.entityId === subject.id)) {
       actors.add(subject.id)
-      scene.associations.forEach((a) => a.actor === subject.id && caps.add(a.capability))
-    } else if (subject.kind === 'capability' && scene.capabilities.some((c) => c.id === subject.id)) {
+      scene.associations.forEach((a) => a.actor === subject.id && caps.add(a.useCase))
+    } else if (subject.kind === 'useCase' && scene.useCases.some((c) => c.id === subject.id)) {
       caps.add(subject.id)
-      scene.associations.forEach((a) => a.capability === subject.id && actors.add(a.actor))
+      scene.associations.forEach((a) => a.useCase === subject.id && actors.add(a.actor))
       scene.includes.forEach((i) => i.from === subject.id && caps.add(i.to))
     } else return null
     return { actors, caps }
   }, [subject, scene])
 
   const hotAssoc = (a: UseCaseScene['associations'][number]) =>
-    !!focus && focus.caps.has(a.capability) && focus.actors.has(a.actor)
+    !!focus && focus.caps.has(a.useCase) && focus.actors.has(a.actor)
 
   return (
     <g>
@@ -81,12 +81,12 @@ function Renderer({ scene }: { scene: UseCaseScene; view: View }) {
         )
       })}
 
-      {scene.capabilities.map((c) => {
-        const cap = idx.capabilities.get(c.id)!
+      {scene.useCases.map((c) => {
+        const cap = idx.useCases.get(c.id)!
         const dim = focus && !focus.caps.has(c.id)
-        const selected = selection?.kind === 'capability' && selection.id === c.id
+        const selected = selection?.kind === 'useCase' && selection.id === c.id
         return (
-          <g key={c.id} transform={`translate(${c.x} ${c.y})`} {...bind({ kind: 'capability', id: c.id }, `${cap.name}. ${cap.summary}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
+          <g key={c.id} transform={`translate(${c.x} ${c.y})`} {...bind({ kind: 'useCase', id: c.id }, `${cap.name}. ${cap.summary}`)} className={`poney-el ${dim ? 'poney-dim' : ''}`}>
             <rect className="poney-body" width={c.w} height={c.h} rx={c.h / 2} fill="var(--poney-paper-raised)" stroke={focus?.caps.has(c.id) ? 'var(--poney-tyrian)' : 'var(--poney-rule-strong)'} strokeWidth={1.2} />
             <text x={c.w / 2} y={c.h / 2 + 5} textAnchor="middle" fontSize={13.5} fontWeight={600} fill="var(--poney-ink)">
               {clip(cap.name, c.w - 32, 13.5, 600)}

@@ -113,7 +113,7 @@ const keyOf = (k: string) => {
   const r = parseRef(k)
   return r ? refKey(r) : k
 }
-const isBox = (k: string) => /^(entity|state|dataType|activityNode|capability):/.test(k)
+const isBox = (k: string) => /^(entity|state|dataType|activityNode|useCase):/.test(k)
 
 /** Bands under lines: drawn before the scene, so they never cover a label. */
 export function EmphasisUnder({ scene, view }: { scene: SceneBase; view: View }) {

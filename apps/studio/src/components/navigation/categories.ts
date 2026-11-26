@@ -5,7 +5,7 @@ const LABELS: Record<string, string> = {
   behavior: 'Behavior',
   data: 'Data',
   structure: 'Structure',
-  capabilities: 'Capabilities',
+  'use-cases': 'Use cases',
 }
 
 /** Category names; extension categories are shown in sentence case. */

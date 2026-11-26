@@ -228,7 +228,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'event-bus',
-    kind: 'queue',
+    kind: 'message-broker',
     name: 'Event bus',
     parent: 'kestrel',
     summary: 'Carries order events to the services that react to them.',
@@ -256,7 +256,7 @@ export const entities: EntityInput[] = [
   // ── Inside the order service ──────────────────────────────────────────────
   {
     id: 'order-api',
-    kind: 'module',
+    kind: 'component',
     name: 'HTTP API',
     parent: 'order-service',
     summary: 'gRPC and HTTP handlers for checkout and order queries.',
@@ -265,7 +265,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'checkout-orchestrator',
-    kind: 'module',
+    kind: 'component',
     name: 'Checkout orchestrator',
     parent: 'order-service',
     summary: 'Runs the checkout steps in order and undoes them on failure.',
@@ -273,7 +273,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'event-publisher',
-    kind: 'module',
+    kind: 'component',
     name: 'Outbox publisher',
     parent: 'order-service',
     summary: 'Reads the outbox table and publishes events to the bus.',
@@ -281,7 +281,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'order-domain',
-    kind: 'module',
+    kind: 'component',
     name: 'Order domain',
     parent: 'order-service',
     summary: 'The order aggregate and its lifecycle rules.',
@@ -289,7 +289,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'pricing',
-    kind: 'module',
+    kind: 'component',
     name: 'Pricing',
     parent: 'order-service',
     summary: 'Calculates subtotals, tax and shipping.',
@@ -321,7 +321,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'payment-client',
-    kind: 'module',
+    kind: 'component',
     name: 'Payment client',
     parent: 'order-service',
     summary: 'gRPC client for the payment service.',
@@ -329,7 +329,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'inventory-client',
-    kind: 'module',
+    kind: 'component',
     name: 'Inventory client',
     parent: 'order-service',
     summary: 'gRPC client for the inventory service.',
@@ -337,7 +337,7 @@ export const entities: EntityInput[] = [
   },
   {
     id: 'postgres-repository',
-    kind: 'module',
+    kind: 'component',
     name: 'Postgres repository',
     parent: 'order-service',
     summary: 'Stores orders and outbox rows in one transaction.',

@@ -38,7 +38,7 @@ function Cardinal({ p, d, card, color }: { p: Point; d: Point; card: Cardinality
   }
   return (
     <g>
-      {card === 'one' && (
+      {card === 'exactly-one' && (
         <>
           {bar(6)}
           {bar(11)}
@@ -50,7 +50,7 @@ function Cardinal({ p, d, card, color }: { p: Point; d: Point; card: Cardinality
           {circle(15)}
         </>
       )}
-      {card === 'many' && (
+      {card === 'zero-or-many' && (
         <>
           {crow()}
           {circle(18)}
@@ -255,10 +255,10 @@ function Legend() {
   )
   return (
     <div className="poney-legend">
-      {row('one', 'Exactly one')}
+      {row('exactly-one', 'Exactly one')}
       {row('zero-or-one', 'Zero or one')}
       {row('one-or-many', 'One or more')}
-      {row('many', 'Any number')}
+      {row('zero-or-many', 'Zero or many')}
       <LegendRow line="dashed" label="Across databases, kept by code" head={false} />
       <div className="poney-legend-row">
         <KeyRound size={13} style={{ margin: '0 4px', color: 'var(--poney-ochre)' }} /> Primary key

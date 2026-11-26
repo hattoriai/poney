@@ -106,8 +106,8 @@ export function CommandPalette() {
                 <span className="text-[12px] text-ink-3">{idx.describe({ kind: 'behavior', id: b.id }).kind}</span>
               </Command.Item>
             ))}
-            {doc.model.capabilities.map((c) => (
-              <Command.Item key={c.id} className={item} value={`${c.name} ${c.summary} ${c.area} use case`} onSelect={() => reveal({ kind: 'capability', id: c.id })}>
+            {doc.model.useCases.map((c) => (
+              <Command.Item key={c.id} className={item} value={`${c.name} ${c.summary} ${c.area} use case`} onSelect={() => reveal({ kind: 'useCase', id: c.id })}>
                 <Users size={15} className="text-ink-3" />
                 <span className="flex-1">{c.name}</span>
                 <span className="text-[12px] text-ink-3">Use case</span>
@@ -148,7 +148,7 @@ export function CommandPalette() {
                     <span className="shrink-0 text-[12px] text-ink-3">Message in {b.name}</span>
                   </Command.Item>
                 ))
-              if (b.kind === 'process')
+              if (b.kind === 'activity')
                 return b.nodes
                   .filter((n) => n.label)
                   .map((n) => (

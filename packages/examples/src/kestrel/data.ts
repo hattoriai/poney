@@ -287,16 +287,16 @@ export const dataTypes: NonNullable<M['dataTypes']> = [
 ]
 
 export const dataRelations: NonNullable<M['dataRelations']> = [
-  { id: 'rel-user-sessions', from: 'users', to: 'sessions', fromCardinality: 'one', toCardinality: 'many', label: 'has', via: 'user_id' },
-  { id: 'rel-category-products', from: 'categories', to: 'products', fromCardinality: 'one', toCardinality: 'many', label: 'contains', via: 'category_id' },
-  { id: 'rel-order-items', from: 'orders', to: 'order-items', fromCardinality: 'one', toCardinality: 'one-or-many', label: 'is made of', via: 'order_id' },
-  { id: 'rel-order-events', from: 'orders', to: 'order-events', fromCardinality: 'one', toCardinality: 'many', label: 'emits', via: 'order_id' },
-  { id: 'rel-user-orders', from: 'users', to: 'orders', fromCardinality: 'one', toCardinality: 'many', label: 'places', via: 'customer_id', logical: true },
-  { id: 'rel-product-items', from: 'products', to: 'order-items', fromCardinality: 'one', toCardinality: 'many', label: 'is bought as', via: 'product_id', logical: true },
-  { id: 'rel-order-payments', from: 'orders', to: 'payments', fromCardinality: 'one', toCardinality: 'many', label: 'is paid by', via: 'order_id', logical: true },
-  { id: 'rel-product-stock', from: 'products', to: 'stock-levels', fromCardinality: 'one', toCardinality: 'zero-or-one', label: 'is stocked as', via: 'product_id', logical: true },
-  { id: 'rel-stock-reservations', from: 'stock-levels', to: 'reservations', fromCardinality: 'one', toCardinality: 'many', label: 'is held by', via: 'product_id' },
-  { id: 'rel-order-reservations', from: 'orders', to: 'reservations', fromCardinality: 'one', toCardinality: 'many', label: 'holds', via: 'order_id', logical: true },
+  { id: 'rel-user-sessions', from: 'users', to: 'sessions', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'has', via: 'user_id' },
+  { id: 'rel-category-products', from: 'categories', to: 'products', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'contains', via: 'category_id' },
+  { id: 'rel-order-items', from: 'orders', to: 'order-items', fromCardinality: 'exactly-one', toCardinality: 'one-or-many', label: 'is made of', via: 'order_id' },
+  { id: 'rel-order-events', from: 'orders', to: 'order-events', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'emits', via: 'order_id' },
+  { id: 'rel-user-orders', from: 'users', to: 'orders', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'places', via: 'customer_id', logical: true },
+  { id: 'rel-product-items', from: 'products', to: 'order-items', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'is bought as', via: 'product_id', logical: true },
+  { id: 'rel-order-payments', from: 'orders', to: 'payments', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'is paid by', via: 'order_id', logical: true },
+  { id: 'rel-product-stock', from: 'products', to: 'stock-levels', fromCardinality: 'exactly-one', toCardinality: 'zero-or-one', label: 'is stocked as', via: 'product_id', logical: true },
+  { id: 'rel-stock-reservations', from: 'stock-levels', to: 'reservations', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'is held by', via: 'product_id' },
+  { id: 'rel-order-reservations', from: 'orders', to: 'reservations', fromCardinality: 'exactly-one', toCardinality: 'zero-or-many', label: 'holds', via: 'order_id', logical: true },
 ]
 
 export const dataFlows: NonNullable<M['dataFlows']> = [
