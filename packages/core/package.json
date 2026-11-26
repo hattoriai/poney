@@ -1,6 +1,6 @@
 {
   "name": "@hattoriai/poney-core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "The Poney format: schema, validation and lints, model queries, commands, extensions, JSON and Mermaid adapters.",
   "license": "MIT",
