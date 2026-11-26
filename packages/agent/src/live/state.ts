@@ -25,6 +25,8 @@ interface Events {
   file: [path: string | undefined]
   workspace: [workspace: WorkspaceProject | undefined, keep: boolean]
   message: [message: Message]
+  /** The open project changed: its conversation. */
+  thread: [messages: Message[]]
   agent: [status: AgentStatus]
   /** Overlay results the Studio shows, by overlay id. */
   overlays: [overlays: Record<string, OverlayResult>]
@@ -34,9 +36,11 @@ export class LiveState extends EventEmitter<Events> {
   private document?: unknown
   private source: Source = 'agent'
   private revision = 0
-  private messages: Message[] = []
-  /** Questions an agent took over MCP (poney_wait). */
-  private delivered = 0
+  /** One conversation for each project, by folder. The empty key is the thread before any project opens. */
+  private threads = new Map<string, Message[]>()
+  private lastId = 0
+  /** For each project, the last question an agent took over MCP (poney_wait). */
+  private delivered = new Map<string, number>()
   private waiters = new Set<() => void>()
   private responder: Responder | null = null
   private session: AgentStatus['session'] = null
@@ -101,17 +105,25 @@ export class LiveState extends EventEmitter<Events> {
 
   /* ─── The conversation ──────────────────────────────────────────────── */
 
-  thread(): Message[] {
-    return [...this.messages]
+  /** The key of the open project's thread. */
+  projectKey(): string {
+    return this.workspace?.cwd ?? ''
   }
 
-  /** Adds a message, or replaces the one with the same id. */
-  put(input: MessageInput | Message): Message {
-    const existing = 'id' in input ? this.messages.findIndex((m) => m.id === input.id) : -1
-    const message = (existing >= 0 ? input : { ...input, id: this.messages.length + 1, at: new Date().toISOString() }) as Message
-    if (existing >= 0) this.messages[existing] = message
-    else this.messages.push(message)
-    this.emit('message', message)
+  thread(project = this.projectKey()): Message[] {
+    return [...(this.threads.get(project) ?? [])]
+  }
+
+  /** Adds a message to a project's thread (the open project's by default), or replaces the one with the same id. Only the open project's messages are sent on. */
+  put(input: MessageInput | Message, project = this.projectKey()): Message {
+    let messages = this.threads.get(project)
+    if (!messages) this.threads.set(project, (messages = []))
+    const existing = 'id' in input ? messages.findIndex((m) => m.id === input.id) : -1
+    // One counter for all threads: an id names one message in the hub.
+    const message = (existing >= 0 ? input : { ...input, id: ++this.lastId, at: new Date().toISOString() }) as Message
+    if (existing >= 0) messages[existing] = message
+    else messages.push(message)
+    if (project === this.projectKey()) this.emit('message', message)
     return message
   }
 
@@ -122,7 +134,7 @@ export class LiveState extends EventEmitter<Events> {
   ask(text: string, place: Place = {}): Message {
     const m = this.put({ from: 'person', text, ...place }) as Extract<Message, { from: 'person' }>
     if (this.responder) {
-      this.delivered = m.id
+      this.delivered.set(this.projectKey(), m.id)
       this.responder(m)
     } else for (const wake of this.waiters) wake()
     return m
@@ -140,7 +152,8 @@ export class LiveState extends EventEmitter<Events> {
   async waitForQuestions(timeoutMs: number): Promise<Extract<Message, { from: 'person' }>[]> {
     // An agent the Studio started takes the questions; one that waits over MCP would only keep its turn open.
     if (this.responder) return []
-    const pending = () => this.messages.filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > this.delivered)
+    const project = this.projectKey()
+    const pending = () => this.thread(project).filter((m): m is Extract<Message, { from: 'person' }> => m.from === 'person' && m.id > (this.delivered.get(project) ?? 0))
     if (!pending().length) {
       let wake = () => {}
       const woken = new Promise<void>((resolve) => (wake = resolve))
@@ -153,7 +166,7 @@ export class LiveState extends EventEmitter<Events> {
       this.emitAgent()
     }
     const out = pending()
-    if (out.length) this.delivered = Math.max(this.delivered, ...out.map((m) => m.id))
+    if (out.length) this.delivered.set(project, Math.max(this.delivered.get(project) ?? 0, ...out.map((m) => m.id)))
     return out
   }
 
@@ -175,6 +188,7 @@ export class LiveState extends EventEmitter<Events> {
     if (w?.cwd === this.workspace?.cwd && (keep || !w)) return
     this.workspace = w
     this.emit('workspace', w, keep)
+    this.emit('thread', this.thread())
   }
 
   /** The id of the open document's project. */

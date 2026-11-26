@@ -68,6 +68,7 @@ export class LiveServer {
     }
     state.on('document', (revision, document, source) => send('document', { revision, document, source }))
     state.on('message', (message) => send('message', message))
+    state.on('thread', (messages) => send('thread', { messages }))
     state.on('agent', (status) => send('agent', status))
     state.on('file', (path) => send('file', { path: path ?? null }))
     state.on('workspace', (w) => send('project', { root: w?.cwd ?? null, name: w?.name ?? null }))
