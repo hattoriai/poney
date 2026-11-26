@@ -1,8 +1,9 @@
-/** @jsxRuntime automatic @jsxImportSource react */
+/** @jsxRuntime automatic */
+/** @jsxImportSource @hattoriai/poney-diagrams */
 /// <reference path="./shims.d.ts" />
 /**
  * @hattoriai/poney-render — any view or walkthrough scene of a Poney
- * document to SVG or PNG, in Node, drawn by @hattoriai/poney-react.
+ * document to SVG or PNG, in Node, drawn by @hattoriai/poney-diagrams.
  *
  * Text is measured with the same font files the PNG is drawn with, so labels
  * fit their boxes. The SVG is self-contained: colours are resolved (no CSS
@@ -10,7 +11,6 @@
  */
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { renderToStaticMarkup } from 'react-dom/server'
 import * as fontkit from 'fontkit'
 import { indexOf, marksOf, parseRef, plainText, type PoneyDocument, type Scene, type View } from '@hattoriai/poney-core'
 import { layoutView, setTextMeasurer, wrap, type FontFamily } from '@hattoriai/poney-layout'
@@ -20,6 +20,7 @@ import {
   fit,
   FONTS,
   RenderProvider,
+  resolve,
   SceneStory,
   sceneFrame,
   sceneLayoutOptions,
@@ -27,9 +28,10 @@ import {
   StoryProvider,
   storyState,
   THEMES,
+  toMarkup,
   type Mode,
   type ThemeName,
-} from '@hattoriai/poney-react'
+} from '@hattoriai/poney-diagrams'
 
 /** View types drawn as walkthrough stories; the others draw with their diagram renderer. */
 const STORY_TYPES: string[] = ['map', 'sequence', 'state']
@@ -164,7 +166,8 @@ export async function renderScene(doc: PoneyDocument, options: RenderSceneOption
     numberSteps: true,
   })
 
-  const body = renderToStaticMarkup(
+  const body = toMarkup(
+    resolve(
     <RenderProvider value={{ idx, still: true }}>
       {module ? (
         <module.Renderer scene={scene} view={view} />
@@ -174,6 +177,7 @@ export async function renderScene(doc: PoneyDocument, options: RenderSceneOption
         </StoryProvider>
       )}
     </RenderProvider>,
+    ),
   )
 
   const colors = THEMES[theme]

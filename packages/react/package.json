@@ -2,7 +2,7 @@
   "name": "@hattoriai/poney-react",
   "version": "0.2.0",
   "type": "module",
-  "description": "Renderers for Poney documents in React: every diagram type and walkthrough stories, with a plain stylesheet.",
+  "description": "Poney's drawings in React: every diagram type and walkthrough scene from @hattoriai/poney-diagrams, as React components.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -11,27 +11,18 @@
   },
   "homepage": "https://github.com/hattoriai/poney#readme",
   "bugs": "https://github.com/hattoriai/poney/issues",
-  "sideEffects": [
-    "*.css"
-  ],
   "exports": {
     ".": {
-      "poney-source": "./src/index.ts",
+      "poney-source": "./src/index.tsx",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./styles.css": {
-      "poney-source": "./src/styles/index.css",
-      "default": "./dist/poney.css"
-    },
-    "./styles.min.css": "./dist/poney.min.css"
+    }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build:styles": "node scripts/build-styles.mjs",
-    "build": "tsup && node scripts/build-styles.mjs"
+    "build": "tsup"
   },
   "publishConfig": {
     "access": "public",
@@ -39,17 +30,14 @@
   },
   "dependencies": {
     "@hattoriai/poney-core": "0.2.0",
-    "@hattoriai/poney-layout": "0.2.0",
+    "@hattoriai/poney-diagrams": "0.2.0",
     "lucide-react": "^1.75.0"
   },
   "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0",
-    "react-dom": "^18.3.1 || ^19.0.0"
+    "react": "^18.3.1 || ^19.0.0"
   },
   "devDependencies": {
-    "esbuild": "0.28.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "tsup": "8.5.1"
   }
 }

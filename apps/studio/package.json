@@ -12,6 +12,7 @@
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@hattoriai/poney-core": "0.2.0",
+    "@hattoriai/poney-diagrams": "0.2.0",
     "@hattoriai/poney-examples": "0.1.0",
     "@hattoriai/poney-ext-ownership": "0.2.0",
     "@hattoriai/poney-ext-security": "0.2.0",

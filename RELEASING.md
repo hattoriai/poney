@@ -6,7 +6,8 @@ Seven packages are published to npm, with one version:
 |---|---|
 | `@hattoriai/poney-core` | The format |
 | `@hattoriai/poney-layout` | Layout |
-| `@hattoriai/poney-react` | Renderers and the stylesheet |
+| `@hattoriai/poney-diagrams` | Renderers and the stylesheet, with no framework |
+| `@hattoriai/poney-react` | The renderers in React |
 | `@hattoriai/poney-render` | SVG and PNG in Node |
 | `@hattoriai/poney-ext-ownership` | Extension |
 | `@hattoriai/poney-ext-security` | Extension |
@@ -32,7 +33,7 @@ npm lets you set up trusted publishing only for a package that exists, so 0.1.0 
 3. Publish each, in this order (`--provenance=false`: provenance only comes from CI):
 
    ```sh
-   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
+   for name in @hattoriai/poney-core @hattoriai/poney-layout @hattoriai/poney-diagrams @hattoriai/poney-react @hattoriai/poney-render @hattoriai/poney-ext-ownership @hattoriai/poney-ext-security @hattoriai/poney; do
      npm publish -w "$name" --access public --provenance=false
    done
    ```

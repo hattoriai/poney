@@ -6,7 +6,7 @@ Poney draws the diagrams on this page from its own document, [`docs/poney/poney.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../media/architecture-packages-dark.png">
-  <img alt="The packages in layers. Tools: @hattoriai/poney uses Poney Studio, poney-render and both extensions; Poney Studio uses poney-react and both extensions. Extensions: poney-ext-ownership uses poney-react; poney-ext-security uses poney-core. Drawing: poney-react and poney-render. Layout: poney-layout. Format: poney-core" src="../media/architecture-packages-light.png">
+  <img alt="The packages in layers. Tools: @hattoriai/poney uses Poney Studio, poney-render, poney-diagrams and both extensions; Poney Studio uses poney-react and both extensions. Extensions: poney-ext-ownership uses poney-diagrams; poney-ext-security uses poney-core. Drawing: poney-react and poney-render, which both use poney-diagrams. Diagrams: poney-diagrams. Layout: poney-layout. Format: poney-core" src="../media/architecture-packages-light.png">
 </picture>
 
 Each arrow shows what a package uses directly; it gets the rest through that package. Under each name is the main library that the package builds on.
@@ -25,7 +25,9 @@ packages/
                                              commands, extensions, projections, JSON and Mermaid
                                              adapters. Depends only on Zod.
   layout/        @hattoriai/poney-layout     Diagram layout using ELK and custom algorithms.
-  react/         @hattoriai/poney-react      React renderers and CSS for diagrams and walkthroughs.
+  diagrams/      @hattoriai/poney-diagrams   Renderers and CSS for diagrams and walkthrough scenes,
+                                             with no framework: SVG markup, the DOM, or an adapter.
+  react/         @hattoriai/poney-react      The renderers as React components.
   render/        @hattoriai/poney-render     SVG and PNG export in Node.
   agent/         @hattoriai/poney            Authoring guides (brief*.md), CLI and MCP server
                    src/live/                   Local server, document state and files

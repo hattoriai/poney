@@ -33,7 +33,7 @@ export function StartPage() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    // The diagrams (@hattoriai/poney-react) follow the same theme.
+    // The diagrams (@hattoriai/poney-diagrams) follow the same theme.
     document.documentElement.dataset.poneyTheme = theme
     document.title = 'Poney Studio'
   }, [theme])

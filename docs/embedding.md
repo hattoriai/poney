@@ -1,10 +1,11 @@
 # Use Poney in your app
 
-Use Poney’s packages to read a document, draw a diagram in React or export an image from Node.
+Use Poney’s packages to read a document, draw a diagram in any web page or in React, or export an image from Node.
 
 ```sh
 npm install @hattoriai/poney-core                 # read, check and change documents (any runtime)
 npm install @hattoriai/poney-layout               # position the elements in a diagram
+npm install @hattoriai/poney-diagrams             # draw scenes as SVG, with no framework
 npm install @hattoriai/poney-react                # draw scenes in React (React 18 or 19)
 npm install @hattoriai/poney-render               # export SVG or PNG in Node
 ```
@@ -29,10 +30,30 @@ if (result.ok) {
 
 Validation checks the document’s structure, its references and any rules from registered extensions. For example, if a view names a service, that service must exist in the model. See rules R1–R14 in the [specification](../spec/SPEC.md).
 
+## Draw a view in a web page
+
+`@hattoriai/poney-diagrams` draws with no framework. Give `drawInto` an `<svg>`, a renderer, its scene and the host values.
+
+```ts
+import '@hattoriai/poney-diagrams/styles.css'
+import { diagramFor, drawInto } from '@hattoriai/poney-diagrams'
+import { indexOf } from '@hattoriai/poney-core'
+import { layoutView } from '@hattoriai/poney-layout'
+
+const view = doc.views[0]
+const scene = await layoutView(doc, view)
+const svg = document.querySelector('svg')!
+svg.setAttribute('viewBox', `0 0 ${scene.width} ${scene.height}`)
+const drawing = drawInto(svg, diagramFor(view)!.Renderer, { scene, view }, { render: { idx: indexOf(doc) } })
+// Later, with a new selection: drawing.update({ render: { idx, selection } })
+```
+
+`drawInto` draws again after a change inside the diagram, such as an open group, and changes only the elements that changed. For text, `toMarkup(resolve(element))` gives the same SVG.
+
 ## Draw a view in React
 
 ```tsx
-import '@hattoriai/poney-react/styles.css'
+import '@hattoriai/poney-diagrams/styles.css'
 import { RenderProvider, diagramFor } from '@hattoriai/poney-react'
 import { indexOf } from '@hattoriai/poney-core'
 import { layoutView } from '@hattoriai/poney-layout'
@@ -52,7 +73,7 @@ const { Renderer } = diagramFor(view)!
 
 ### Your app is the host
 
-Pass the model index to `RenderProvider` to draw the scene as SVG. Your app can also supply event handlers and keep track of what the reader selects.
+Pass the model index (as `render` to `drawInto`, or to `RenderProvider` in React) to draw the scene as SVG. Your app can also supply event handlers and keep track of what the reader selects.
 
 | Input | Purpose | Default |
 |---|---|---|
@@ -61,7 +82,7 @@ Pass the model index to `RenderProvider` to draw the scene as SVG. Your app can 
 | `selection`, `hover` | Identifies the element to highlight | No highlight |
 | `viewState`, `setViewState` | Keeps track of open groups and expanded tables | Each view keeps its own state while mounted |
 | `still` | Hides controls for a static picture | Controls visible |
-| `ZoomProvider` (separate provider) | Sets the zoom level used to show or hide detail | `1` |
+| `zoom` (`ZoomProvider` in React) | Sets the zoom level used to show or hide detail | `1` |
 
 Studio uses `bind` to let readers rename an element with a double-click, open its context menu or point it out to an agent. See [StudioRender.tsx](../apps/studio/src/story/StudioRender.tsx).
 
@@ -69,12 +90,12 @@ Studio uses `bind` to let readers rename an element with a double-click, open it
 
 ## Styles and themes
 
-Import `@hattoriai/poney-react/styles.css` once. It is plain CSS, about 1.3 KB gzipped.
+Import `@hattoriai/poney-diagrams/styles.css` once. It is plain CSS, about 1.3 KB gzipped.
 
 - All rules live in the `poney` cascade layer and use `:where()`. You can override `.poney-*` classes and `--poney-*` variables in your own stylesheet.
 - The default theme is light. Set `data-poney-theme="dark"` on a diagram’s container or on `<html>` for the whole page. Use the `--poney-*` variables to change colours and fonts, including `--poney-font-sans` and `--poney-font-mono`.
 - If you use a bundler such as Vite or webpack, import the stylesheet alongside your components.
-- To serve a single CSS file directly or from a CDN, use `@hattoriai/poney-react/styles.min.css`.
+- To serve a single CSS file directly or from a CDN, use `@hattoriai/poney-diagrams/styles.min.css`.
 - Animations respect the reader’s reduced-motion setting. The package marks CSS as a side effect so bundlers can omit unused renderers.
 
 ## Draw without a browser
