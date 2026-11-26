@@ -1,22 +1,21 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { UsersRound } from 'lucide-react'
 import type { ViewOf } from '@poney/core'
 import { clip, type UseCaseScene } from '@poney/layout'
-import { useIndex } from '@/features/store'
-import { useZoom } from '@/components/canvas/Canvas'
-import { useBind, useSubject } from '../shared/interaction'
 import { ArrowHead } from '../shared/Edge'
 import { EntityNode, Rings } from '../shared/EntityNode'
 import { LegendRow, LegendShape } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject, useRenderZoom } from '../../render'
 
 type View = ViewOf<'usecase'>
 
 function Renderer({ scene }: { scene: UseCaseScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const zoom = useZoom()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const zoom = useRenderZoom()
+  const { subject, selection } = useRenderSubject()
 
   const focus = useMemo(() => {
     if (!subject) return null

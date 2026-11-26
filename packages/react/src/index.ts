@@ -1,9 +1,10 @@
 /**
- * @poney/react — story renderers for Poney scenes.
+ * @poney/react — renderers for Poney documents.
  *
- * The same components draw in the studio (interactive) and headless
- * (`@poney/react/static`: SVG and PNG in Node). They read a laid-out scene
- * from @poney/layout and never compute layout themselves.
+ * Every diagram type (diagrams/) and the walkthrough story renderers. The
+ * same components draw in any React app (interactive, through
+ * RenderProvider) and headless (`@poney/react/static`: SVG and PNG in Node).
+ * They read a scene laid out by @poney/layout and never compute layout.
  */
 export * from './context'
 export * from './render'
@@ -16,3 +17,4 @@ export { SequenceStory } from './SequenceStory'
 export { StateStory } from './StateStory'
 export * from './SceneStory'
 export { sceneLines, stepLetter, EmphasisOver, EmphasisUnder, type LineShape } from './emphasis'
+export * from './diagrams'

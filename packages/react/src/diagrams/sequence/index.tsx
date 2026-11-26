@@ -1,23 +1,22 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
-import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-react'
+import { ListOrdered } from 'lucide-react'
 import { fragmentLabel, type ViewOf } from '@poney/core'
 import { clip, measure, type SequenceScene } from '@poney/layout'
-import { useIndex, useStudio } from '@/features/store'
-import { ToolbarButton } from '@/components/shared/Toolbar'
-import { useBind, useSubject } from '../shared/interaction'
 import { ArrowHead } from '../shared/Edge'
 import { Rings } from '../shared/EntityNode'
 import { Glyph } from '../shared/icons'
 import { toneColor, toneWash } from '../shared/tone'
 import { LegendRow } from '../shared/Legend'
 import type { DiagramModule } from '../types'
+import { useRenderBind, useRenderIndex, useRenderSubject } from '../../render'
 
 type View = ViewOf<'sequence'>
 
 function Renderer({ scene }: { scene: SequenceScene; view: View }) {
-  const idx = useIndex()
-  const bind = useBind()
-  const { subject, selection } = useSubject()
+  const idx = useRenderIndex()
+  const bind = useRenderBind()
+  const { subject, selection } = useRenderSubject()
   const behavior = scene.interactionId
   const flat = idx.messages(behavior)
 
@@ -174,28 +173,6 @@ function Renderer({ scene }: { scene: SequenceScene; view: View }) {
   )
 }
 
-function Tools({ view }: { view: View }) {
-  const idx = useIndex()
-  const selection = useStudio((s) => s.selection)
-  const select = useStudio((s) => s.select)
-  const flat = idx.messages(view.interaction)
-  const current = selection?.kind === 'message' && selection.behavior === view.interaction ? flat.findIndex((f) => f.message.id === selection.id) : -1
-  const go = (i: number) => flat[i] && select({ kind: 'message', behavior: view.interaction, id: flat[i].message.id }, { focus: 'center' })
-  return (
-    <>
-      <ToolbarButton label="Previous step" onClick={() => go(current <= 0 ? 0 : current - 1)} disabled={current === 0}>
-        <ChevronLeft size={15} />
-      </ToolbarButton>
-      <span className="font-tabular min-w-[54px] text-center text-[12px] text-ink-2" aria-live="polite">
-        {current >= 0 ? `${current + 1} / ${flat.length}` : `${flat.length} steps`}
-      </span>
-      <ToolbarButton label={current < 0 ? 'Start stepping through' : 'Next step'} onClick={() => go(current + 1)} disabled={current === flat.length - 1}>
-        <ChevronRight size={15} />
-      </ToolbarButton>
-    </>
-  )
-}
-
 function Legend() {
   return (
     <div className="space-y-1.5">
@@ -225,7 +202,6 @@ export const sequence: DiagramModule<View, SequenceScene> = {
   howToRead:
     'Time runs down the page. Each column is a participant; arrows are the messages between them, numbered in order. Boxes mark steps that happen only under a condition, repeat, or run in parallel.',
   Renderer,
-  Tools,
   Legend,
   initialView: 'start',
 }

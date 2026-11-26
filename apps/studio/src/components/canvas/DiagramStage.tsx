@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { onDiagramContextMenu } from '@/features/context'
 import type { View } from '@poney/core'
-import { EmphasisOver, StoryProvider } from '@poney/react'
 import { byTarget, useOverlayFacts } from '@/features/overlays'
 import { Puzzle } from 'lucide-react'
-import { diagramFor } from '@/renderers/registry'
+import { diagramFor, EmphasisOver, StoryProvider, viewKey } from '@poney/react'
+import { TOOLS } from '@/renderers/tools'
 import { useScene } from '@/renderers/useScene'
 import { Canvas } from './Canvas'
 
@@ -39,7 +39,8 @@ function Stage({ view }: { view: View }) {
         Arranging {view.title.toLowerCase()}…
       </div>
     )
-  const { Renderer, Tools, initialView } = module
+  const { Renderer, initialView } = module
+  const Tools = TOOLS[viewKey(view)]
   return (
     <div className="fade-in h-full" onContextMenu={onDiagramContextMenu(view.id)}>
       <Canvas viewId={view.id} scene={scene} label={`${view.title}, ${module.label.toLowerCase()} diagram`} tools={Tools ? <Tools view={view} /> : undefined} initial={initialView}>

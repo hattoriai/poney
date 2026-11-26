@@ -1,16 +1,17 @@
+/** @jsxRuntime automatic @jsxImportSource react */
 import { useMemo } from 'react'
 import { clip, wrap } from '@poney/layout'
 import type { Entity, ResolvedStyle } from '@poney/core'
-import { useZoom } from '@/components/canvas/Canvas'
 import { Glyph } from './icons'
 import { toneColor, toneWash } from './tone'
+import { useRenderZoom } from '../../render'
 
 /**
  * Semantic zoom: the font size, in diagram units, that keeps text at least
  * `screen` pixels tall on screen, in steps so layouts can be cached.
  */
 export function useReadableSize(base: number, screen = 11.5, max = 30) {
-  const k = useZoom()
+  const k = useRenderZoom()
   const wanted = screen / k
   return wanted <= base ? base : Math.min(max, Math.ceil(wanted / 2) * 2)
 }

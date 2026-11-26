@@ -3,9 +3,9 @@ import { ArrowUpRight, ChevronRight, FileCode2 } from 'lucide-react'
 import type { Ref, SourceRef, View } from '@poney/core'
 import { useIndex } from '@/features/store'
 import { openView, revealRef } from '@/features/navigation'
-import { diagramFor } from '@/renderers/registry'
-import { iconFor } from '@/renderers/shared/icons'
-import { toneColor } from '@/renderers/shared/tone'
+import { diagramFor } from '@poney/react'
+import { iconFor } from '@poney/react'
+import { toneColor } from '@poney/react'
 import { LayoutGrid } from 'lucide-react'
 
 export function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {

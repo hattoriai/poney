@@ -8,9 +8,17 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 import { checkDocument, detectMermaid, formatCheck, fromMermaid, PoneyDocument, toJSON, type CheckResult } from '@poney/core'
 import { ownership } from '@poney/ext-ownership'
 import { security } from '@poney/ext-security'
+import { teamMap } from '@poney/ext-ownership/diagram'
+import { layoutTeamMap } from '@poney/ext-ownership/layout'
+import { registerDiagram } from '@poney/react'
+import { registerExtensionLayout } from '@poney/layout'
 import { diffFromGit, filesAt, verifyCode, verifyExcerpts, verifySources } from './verify'
 
 export const EXTENSIONS = [ownership, security]
+
+// The extensions' own diagrams, so headless renders draw their views too.
+registerDiagram(teamMap)
+registerExtensionLayout('ownership/team-map', layoutTeamMap)
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url))
 
