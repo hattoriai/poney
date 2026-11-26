@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { Compass, Copy, FileCode2, Lightbulb, MessageCircle, Pencil } from 'lucide-react'
+import { Compass, Copy, FileCode2, Lightbulb, MessageCircle, Pencil, Plug } from 'lucide-react'
 import { refKey } from '@hattoriai/poney-core'
 import { agentReady, useStudio, type ContextMenu as Menu } from '@/features/store'
 import { askAbout, codeChip, diagramChip, elementChip, textChip } from '@/features/context'
@@ -12,6 +12,8 @@ interface Item {
   icon: ReactNode
   run(): void
   hint?: string
+  /** Shown, greyed, and not chosen (an agent item while no agent is connected). */
+  disabled?: boolean
 }
 
 /**
@@ -34,7 +36,8 @@ export function ContextMenu() {
     if (!menu || !box.current) return
     const r = box.current.getBoundingClientRect()
     setAt({ x: Math.min(menu.x, window.innerWidth - r.width - 8), y: Math.min(menu.y, window.innerHeight - r.height - 8) })
-    setActive(0)
+    // The first item that can be chosen (agent items are greyed while no agent is connected).
+    setActive(Math.max(0, items.findIndex((i) => i.label !== '-' && !i.disabled)))
     box.current.focus()
   }, [menu])
 
@@ -54,14 +57,14 @@ export function ContextMenu() {
   if (!menu || !items.length) return null
   const choose = (i: number) => {
     const item = items[i]
-    if (!item || item.label === '-') return
+    if (!item || item.label === '-' || item.disabled) return
     close()
     item.run()
   }
   const move = (d: number) => {
     let i = active
     do i = (i + d + items.length) % items.length
-    while (items[i].label === '-')
+    while (items[i].label === '-' || items[i].disabled)
     setActive(i)
   }
   return (
@@ -90,11 +93,12 @@ export function ContextMenu() {
             key={i}
             type="button"
             role="menuitem"
-            onMouseEnter={() => setActive(i)}
+            aria-disabled={item.disabled || undefined}
+            onMouseEnter={() => !item.disabled && setActive(i)}
             onClick={() => choose(i)}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] ${i === active ? 'bg-sunken' : ''}`}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] ${item.disabled ? 'cursor-default text-ink-4' : i === active ? 'bg-sunken' : ''}`}
           >
-            <span className="shrink-0 text-ink-3">{item.icon}</span>
+            <span className={`shrink-0 ${item.disabled ? 'text-ink-4' : 'text-ink-3'}`}>{item.icon}</span>
             <span className="flex-1">{item.label}</span>
             {item.hint && <kbd className="font-sans text-[11.5px] text-ink-4">{item.hint}</kbd>}
           </button>
@@ -106,7 +110,23 @@ export function ContextMenu() {
 
 const SEPARATOR: Item = { label: '-', icon: null, run: () => {} }
 
+/**
+ * The agent's items: as they are while an agent can take a question; else
+ * greyed (so the person sees what an agent would do here), then a way to
+ * connect one.
+ */
+function forAgent(live: boolean, items: Item[]): Item[] {
+  if (live) return [...items, SEPARATOR]
+  return [
+    ...items.map((i) => ({ ...i, disabled: true, hint: 'No agent' })),
+    { label: 'Connect an agent…', icon: <Plug size={14} />, run: () => useStudio.getState().setConnectOpen(true) },
+    SEPARATOR,
+  ]
+}
+
 function itemsFor(menu: Menu): Item[] {
+  // Agent items need Poney on this computer; without it, they are left out.
+  const reachable = useStudio.getState().live.state === 'on'
   const live = agentReady(useStudio.getState())
   /** Asks at once, with the chip, and shows the panel with the answer coming in. */
   const askNow = (text: string, chip: ReturnType<typeof elementChip>) => {
@@ -117,13 +137,12 @@ function itemsFor(menu: Menu): Item[] {
   if (menu.on === 'element') {
     const chip = elementChip(menu.ref)
     const kind = chip?.kind ?? 'element'
-    const agent: Item[] = live
-      ? [
+    const agent: Item[] = reachable
+      ? forAgent(live, [
           { label: 'Ask the agent about this', icon: <MessageCircle size={14} />, run: () => askAbout(chip) },
           { label: 'Explain this', icon: <Lightbulb size={14} />, run: () => askNow(`Explain this ${kind}: what it does, why it is here, and where its code is.`, chip) },
           { label: 'Show its code in a scene', icon: <FileCode2 size={14} />, run: () => askNow(`Add a scene to the open document that shows the code of this ${kind}, with short excerpts and notes, and open it.`, chip) },
-          SEPARATOR,
-        ]
+        ])
       : []
     return [
       ...agent,
@@ -148,12 +167,11 @@ function itemsFor(menu: Menu): Item[] {
     const chip = codeChip(menu.path, menu.line, menu.text)
     const where = `${menu.path}:${menu.line}`
     return [
-      ...(live
-        ? [
+      ...(reachable
+        ? forAgent(live, [
             { label: menu.note ? 'Ask the agent about this note' : 'Ask the agent about this line', icon: <MessageCircle size={14} />, run: () => askAbout(menu.note ? { ...chip, quote: `${chip.quote}\nNote: ${menu.note}` } : chip) },
             { label: 'Explain this line', icon: <Lightbulb size={14} />, run: () => askNow('Explain this line of code: what it does and why it is here.', chip) },
-            SEPARATOR,
-          ]
+          ])
         : []),
       ...(menu.note ? [{ label: 'Copy note', icon: <Copy size={14} />, run: () => void navigator.clipboard?.writeText(menu.note!) }] : []),
       { label: 'Copy line', icon: <Copy size={14} />, run: () => void navigator.clipboard?.writeText(menu.text.trim()) },
@@ -162,14 +180,14 @@ function itemsFor(menu: Menu): Item[] {
   }
   if (menu.on === 'text')
     return [
-      ...(live ? [{ label: 'Ask the agent about this text', icon: <MessageCircle size={14} />, run: () => askAbout(textChip(menu.text)) }] : []),
+      ...(reachable ? forAgent(live, [{ label: 'Ask the agent about this text', icon: <MessageCircle size={14} />, run: () => askAbout(textChip(menu.text)) }]) : []),
       { label: 'Copy', icon: <Copy size={14} />, run: () => void navigator.clipboard?.writeText(menu.text) },
     ]
   const chip = diagramChip(menu.viewId)
-  return live
-    ? [
+  return reachable
+    ? forAgent(live, [
         { label: 'Ask the agent about this diagram', icon: <MessageCircle size={14} />, run: () => askAbout(chip) },
         { label: 'Explain this diagram', icon: <Lightbulb size={14} />, run: () => askNow('Explain what this diagram shows, in a few sentences, and what to look at first.', chip) },
-      ]
+      ]).filter((i) => i !== SEPARATOR)
     : []
 }
