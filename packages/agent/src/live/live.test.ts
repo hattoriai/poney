@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { workspaceFile } from './files'
+import { workspaceProject } from './workspace-project'
 import { request } from 'node:http'
 import { startHub, type Hub } from './hub'
 import { RemoteLive, isPoneyHub } from './api'
@@ -24,6 +26,12 @@ afterAll(() => {
   else process.env.PONEY_HOME = saved
   rmSync(home, { recursive: true, force: true })
 })
+const fakeAgent = () => ({ custom: { name: 'Fake agent', command: `"${process.execPath}" "${fake}"` } })
+const post = async (hub: Hub, path: string, body: unknown) => {
+  const res = await fetch(`${hub.server.url}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error(`${path} answered ${res.status}: ${await res.text()}`)
+  return res.json()
+}
 const until = async (ok: () => boolean, ms = 8000) => {
   const end = Date.now() + ms
   while (!ok()) {
@@ -64,10 +72,9 @@ describe('an agent the Studio starts over ACP', () => {
   it('answers the person, shows its tool calls, and asks before it acts', async () => {
     const hub = await startHub(5600 + Math.floor(Math.random() * 200))
     hubs.push(hub)
-    const { workspaceProject } = await import('./workspace-project')
     const cwd = mkdtempSync(join(tmpdir(), 'repo-'))
-    hub.state.setWorkspace(workspaceProject(cwd))
-    await hub.agents.connect({ custom: { name: 'Fake agent', command: `"${process.execPath}" "${fake}"` } })
+    await post(hub, '/api/project/open', { path: cwd })
+    await post(hub, '/api/agent/connect', fakeAgent())
     expect(hub.state.status().session).toMatchObject({ providerId: 'custom:Fake agent', cwd, busy: false })
 
     hub.state.ask('Give me a tour.')
@@ -90,9 +97,54 @@ describe('an agent the Studio starts over ACP', () => {
     await hub.agents.active()!.setSetting('model', 'large')
     expect(hub.state.status().session?.settings.find((s) => s.id === 'model')?.current).toBe('large')
 
-    await hub.agents.disconnect()
+    await post(hub, '/api/agent/disconnect', {})
     expect(hub.state.status().session).toBeNull()
   }, 20_000)
+
+  it('opens the project folder when the agent connects with a folder, and starts one agent', async () => {
+    const hub = await startHub(5800 + Math.floor(Math.random() * 100))
+    hubs.push(hub)
+    const log = join(mkdtempSync(join(tmpdir(), 'starts-')), 'starts.log')
+    const wrapper = join(dirname(log), 'wrapper.mjs')
+    writeFileSync(wrapper, `import { appendFileSync } from 'node:fs'\nappendFileSync(${JSON.stringify(log)}, 'start\\n')\nawait import(${JSON.stringify(fake)})\n`)
+    const counted = { custom: { name: 'Counted agent', command: `"${process.execPath}" "${wrapper}"` } }
+    const starts = () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean).length : 0)
+    // Another agent is the default already: it must not start in the new folder.
+    const other = mkdtempSync(join(tmpdir(), 'other-'))
+    await post(hub, '/api/project/open', { path: other })
+    await post(hub, '/api/agent/connect', fakeAgent())
+    expect(starts()).toBe(0)
+    const folder = mkdtempSync(join(tmpdir(), 'repo-'))
+    await post(hub, '/api/agent/connect', { ...counted, folder })
+    expect(hub.state.project?.cwd).toBe(folder)
+    expect(hub.state.status().session).toMatchObject({ providerId: 'custom:Counted agent', cwd: folder })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(starts()).toBe(1)
+    await post(hub, '/api/agent/disconnect', {})
+  }, 20_000)
+
+  it('has no connect-here route', async () => {
+    const hub = hubs[0]
+    expect((await fetch(`${hub.server.url}/api/agent/connect-here`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(404)
+  })
+
+  it('saves what a background project opens, and does not show it', async () => {
+    const hub = await startHub(5900 + Math.floor(Math.random() * 100))
+    hubs.push(hub)
+    const a = mkdtempSync(join(tmpdir(), 'repo-a-'))
+    const b = mkdtempSync(join(tmpdir(), 'repo-b-'))
+    await post(hub, '/api/project/open', { path: a })
+    await post(hub, '/api/project/open', { path: b })
+    const tour = JSON.parse(readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
+    const shown = hub.state.shown()?.revision
+    const res = await post(hub, '/api/live/open', { document: tour, project: a })
+    expect(res).toMatchObject({ revision: shown, saved: true })
+    expect(hub.state.shown()?.revision).toBe(shown)
+    expect(hub.state.shown()?.document).toMatchObject({ project: { id: workspaceProject(b).id } })
+    expect(JSON.parse(readFileSync(workspaceFile(workspaceProject(a)), 'utf8')).project).toMatchObject({ id: workspaceProject(a).id, name: 'Acme Notes' })
+    expect(hub.state.thread(a).map((m) => (m as { text?: string }).text)).toEqual(['The agent saved “Acme Notes”. It shows when you open this project.'])
+    expect(hub.state.thread(b)).toEqual([])
+  })
 })
 
 describe('a workspace project, saved as a file', () => {
@@ -171,27 +223,6 @@ describe('opening a project folder', () => {
   })
 })
 
-describe('an agent folder for a document with its own file', () => {
-  it('keeps the document and its file', async () => {
-    const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const { LiveState } = await import('./state')
-    const { DocumentFiles } = await import('./files')
-    const { workspaceProject } = await import('./workspace-project')
-    const elsewhere = join(mkdtempSync(join(tmpdir(), 'dl-')), 'tour.poney')
-    writeFileSync(elsewhere, readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
-    const code = mkdtempSync(join(tmpdir(), 'code-'))
-    const state = new LiveState()
-    const files = new DocumentFiles(state)
-    files.open(elsewhere)
-    state.setWorkspace(workspaceProject(code), true)
-    expect(state.file).toBe(elsewhere)
-    expect(state.openProjectId).toBe('acme-notes')
-    expect(state.project?.cwd).toBe(code)
-    files.close()
-  })
-})
-
 describe('an agent in another folder than the open document', () => {
   it('opens its document as that folder’s project, saved there, never over the open file', async () => {
     const { mkdtempSync, readFileSync, writeFileSync, existsSync } = await import('node:fs')
@@ -206,7 +237,7 @@ describe('an agent in another folder than the open document', () => {
     const state = new LiveState()
     const files = new DocumentFiles(state)
     files.open(elsewhere)
-    state.setWorkspace(workspaceProject(tug), true) // the agent's folder; the open document stays
+    state.setWorkspace(workspaceProject(tug)) // the agent's folder
     const tour = JSON.parse(original)
     state.open({ ...tour, project: { id: 'tug', name: 'Tug', description: '' } }) // the agent's tour, opened with replace
     const id = workspaceProject(tug).id
@@ -215,26 +246,6 @@ describe('an agent in another folder than the open document', () => {
     expect(readFileSync(elsewhere, 'utf8')).toBe(original)
     expect(state.file).toBe(join(tug, 'docs', 'poney', `${id}.poney`))
     expect(existsSync(state.file!)).toBe(true)
-    files.close()
-  })
-
-  it('opens the folder as the project when asked, even when it is already the agent’s folder', async () => {
-    const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const { LiveState } = await import('./state')
-    const { DocumentFiles } = await import('./files')
-    const { workspaceProject } = await import('./workspace-project')
-    const elsewhere = join(mkdtempSync(join(tmpdir(), 'superwave-')), 'superwave.poney')
-    writeFileSync(elsewhere, readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
-    const tug = mkdtempSync(join(tmpdir(), 'tug-'))
-    const state = new LiveState()
-    const files = new DocumentFiles(state)
-    files.open(elsewhere)
-    state.setWorkspace(workspaceProject(tug), true)
-    expect(state.file).toBe(elsewhere)
-    state.setWorkspace(workspaceProject(tug)) // Open a project → tug
-    expect((state.shown()!.document as { project: { id: string } }).project.id).toBe(workspaceProject(tug).id)
-    expect(state.file).toBe(join(tug, 'docs', 'poney', `${workspaceProject(tug).id}.poney`))
     files.close()
   })
 })

@@ -167,8 +167,16 @@ export class LiveServer {
         s.report((await body(req)) as object)
         return void res.writeHead(204).end()
       case 'POST /api/live/open': {
-        const { document } = (await body(req)) as { document?: unknown }
+        const { document, project } = (await body(req)) as { document?: unknown; project?: string }
         if (document === undefined) return json(res, 400, { error: 'Give a document' })
+        // An agent of a project that is not open: its document is saved in that project, not shown.
+        if (project && project !== s.projectKey() && this.files) {
+          const w = workspaceProject(checkFolder(project))
+          this.files.saveFor(w, document)
+          const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
+          s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
+          return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, saved: true })
+        }
         return json(res, 200, { revision: s.open(document), viewers: this.viewers })
       }
       case 'GET /api/live/read':
@@ -195,7 +203,7 @@ export class LiveServer {
 
       /* Agents the Studio starts */
       case 'GET /api/agent':
-        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), canStart: !!this.agents, mcpServer: mcpCommand() })
+        return json(res, 200, { providers: builtInProviders().map(describeProvider), status: s.status(), defaultAgent: this.agents?.defaultAgent() ?? null, canStart: !!this.agents, mcpServer: mcpCommand() })
       case 'POST /api/agent/check': {
         const r = (await body(req)) as AgentChoice & { fresh?: boolean }
         const spec = providerFor(r)
@@ -204,10 +212,15 @@ export class LiveServer {
       }
       case 'POST /api/agent/connect': {
         if (!this.agents) return json(res, 400, { error: 'This hub cannot start agents.' })
-        const r = (await body(req)) as AgentChoice & { cwd?: string }
+        const r = (await body(req)) as AgentChoice & { folder?: string }
         if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
-        // The agent's folder; the document open in the Studio stays.
-        s.setWorkspace(workspaceProject(checkFolder(r.cwd ?? '')), true)
+        if (r.folder) {
+          const w = workspaceProject(checkFolder(r.folder))
+          // The default first, so the folder's agent starts once, as this agent.
+          this.agents.setDefault(r)
+          s.setWorkspace(w)
+        }
+        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
         await this.agents.connect(r)
         return json(res, 200, s.status())
       }
@@ -267,17 +280,6 @@ export class LiveServer {
         s.setWorkspace(workspaceProject(checkFolder(r.path ?? '')))
         return json(res, 200, { root: s.project?.cwd })
       }
-      case 'POST /api/agent/connect-here': {
-        // An agent in the open project's folder.
-        if (!this.agents) return json(res, 400, { error: 'This hub cannot start agents.' })
-        const r = (await body(req)) as AgentChoice & { folder?: string }
-        // The folder the agent works in; the open document stays.
-        if (r.folder) s.setWorkspace(workspaceProject(checkFolder(r.folder)), true)
-        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
-        await this.agents.connect(r)
-        return json(res, 200, s.status())
-      }
 
       /* Files */
       case 'POST /api/files/open': {
@@ -292,8 +294,8 @@ export class LiveServer {
       case 'GET /api/workspace/folders':
         return json(res, 200, listFolders(url.searchParams.get('path') ?? undefined))
       case 'GET /api/workspace/files': {
-        // In the folder the agent works in, else the folder of the open document's file.
-        const cwd = s.status().session?.cwd ?? (s.file ? dirname(s.file) : undefined)
+        // In the project's folder, else the folder of the open document's file.
+        const cwd = s.project?.cwd ?? (s.file ? dirname(s.file) : undefined)
         if (!cwd) return json(res, 200, { files: [] })
         return json(res, 200, { root: cwd, files: await searchFiles(cwd, url.searchParams.get('q') ?? '') })
       }

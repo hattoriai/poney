@@ -42,7 +42,7 @@ describe('one thread for each project', () => {
     state.on('thread', (messages) => sent.push(messages))
     state.setWorkspace(workspaceProject('/w/b'))
     state.ask('B?')
-    state.setWorkspace(workspaceProject('/w/b'), true)
+    state.setWorkspace(workspaceProject('/w/b'))
     expect(sent).toHaveLength(1)
     expect(sent[0]).toEqual([])
     state.setWorkspace(workspaceProject('/w/a'))

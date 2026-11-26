@@ -23,7 +23,7 @@ interface Events {
   edited: [document: unknown]
   /** The file the open document is saved to, if any. */
   file: [path: string | undefined]
-  workspace: [workspace: WorkspaceProject | undefined, keep: boolean]
+  workspace: [workspace: WorkspaceProject | undefined]
   message: [message: Message]
   /** The open project changed: its conversation. */
   thread: [messages: Message[]]
@@ -196,14 +196,13 @@ export class LiveState extends EventEmitter<Events> {
   /**
    * Opens a folder as the project, or, with a document tied to it, records
    * the folder it belongs to. What opens for it (its file, the document already
-   * open, or an empty project) is decided where files are known. With
-   * `keep`, the folder is only where agents work: the open document stays.
+   * open, or an empty project) is decided where files are known.
    */
-  setWorkspace(w: WorkspaceProject | undefined, keep = false) {
-    // The same folder again: nothing to do, unless it is now opened as the project (it may have been only the agent's folder).
-    if (w?.cwd === this.workspace?.cwd && (keep || !w)) return
+  setWorkspace(w: WorkspaceProject | undefined) {
+    // The same folder again: nothing to do.
+    if (w?.cwd === this.workspace?.cwd) return
     this.workspace = w
-    this.emit('workspace', w, keep)
+    this.emit('workspace', w)
     this.emit('thread', this.thread())
   }
 

@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, watch, writeFileSync, type FSWatch
 import { dirname, join } from 'node:path'
 import { check } from '../ops'
 import type { LiveState } from './state'
-import { emptyDocument, workspaceProject, type WorkspaceProject } from './workspace-project'
+import { emptyDocument, intoWorkspace, workspaceProject, type WorkspaceProject } from './workspace-project'
 import { execFileSync } from 'node:child_process'
 
 /** The top folder of the git repository a folder is in, if any. */
@@ -44,7 +44,7 @@ export class DocumentFiles {
       if (source === 'agent') this.save(doc)
     })
     state.on('edited', (doc) => this.save(doc))
-    state.on('workspace', (w, keep) => w && this.openWorkspace(w, keep))
+    state.on('workspace', (w) => w && this.openWorkspace(w))
   }
 
   /** Opens a .poney file and ties the document to it. Throws with the check report when it is not a valid document. */
@@ -66,12 +66,10 @@ export class DocumentFiles {
    * the folder's own file opens, or an empty project that becomes a file when
    * there is something to keep.
    */
-  private openWorkspace(w: WorkspaceProject, keep = false) {
+  private openWorkspace(w: WorkspaceProject) {
     const open = this.state.shown()?.document
     const file = this.state.file
     if (file && file.startsWith(`${w.cwd}/`)) return
-    // Only the agent's folder: a document with its own file stays tied to it.
-    if (keep && file && open && !isEmpty(open)) return
     if (open && !file && !isEmpty(open)) {
       const id = this.state.openProjectId ?? w.id
       this.tie(join(w.cwd, 'docs', 'poney', `${id}.poney`), id)
@@ -97,6 +95,17 @@ export class DocumentFiles {
     this.state.setFile(path)
     if (!path) return
     if (existsSync(path)) this.watch(path)
+  }
+
+  /** Saves a document into another project's file, whether or not that project is open. The same rules as `save`: nothing for an empty document, nothing when unchanged. */
+  saveFor(w: WorkspaceProject, doc: unknown): void {
+    const into = intoWorkspace(doc, w)
+    if (isEmpty(into)) return
+    const path = workspaceFile(w)
+    const text = `${JSON.stringify(into, null, 2)}\n`
+    if (existsSync(path) && readFileSync(path, 'utf8') === text) return
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, text)
   }
 
   /** Writes the document to its file, unless it is empty or unchanged. */

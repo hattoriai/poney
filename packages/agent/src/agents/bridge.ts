@@ -100,7 +100,7 @@ export class ProjectAgent {
     this.replaying = true
     try {
       agent = await startAgent(spec, cwd, {
-        mcpServers: [{ name: 'poney', command: mcp.command, args: mcp.args, env: [{ name: 'PONEY_HUB_URL', value: mcp.hubUrl }] }],
+        mcpServers: [{ name: 'poney', command: mcp.command, args: mcp.args, env: [{ name: 'PONEY_HUB_URL', value: mcp.hubUrl }, { name: 'PONEY_PROJECT', value: this.project }] }],
         systemPrompt: briefing(cwd),
         resume,
         onUpdate: (n) => this.onUpdate(n),

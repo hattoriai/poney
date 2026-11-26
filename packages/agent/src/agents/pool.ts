@@ -68,16 +68,27 @@ export class AgentPool {
   async connect(choice: AgentChoice): Promise<void> {
     const project = this.state.projectKey()
     if (!project) throw new Error('Open a project first.')
-    const key = agentKey(choice)
-    const d = this.store.defaultAgent()
-    // The same agent keeps the person's settings.
-    this.store.setDefaultAgent({ agent: choice, settings: d && agentKey(d.agent) === key ? d.settings : {} })
+    const key = this.setDefault(choice)
     const running = this.agents.get(project)
     if (running && running.agentKey !== key) {
       this.agents.delete(project)
       running.stop()
     }
     await this.activate()
+  }
+
+  /** Makes an agent the default, without starting it. Returns its key. */
+  setDefault(choice: AgentChoice): string {
+    const key = agentKey(choice)
+    const d = this.store.defaultAgent()
+    // The same agent keeps the person's settings.
+    this.store.setDefaultAgent({ agent: choice, settings: d && agentKey(d.agent) === key ? d.settings : {} })
+    return key
+  }
+
+  /** The default agent, if the person chose one. */
+  defaultAgent(): AgentChoice | undefined {
+    return this.store.defaultAgent()?.agent
   }
 
   /** Stops the open project's agent. The default agent stays. */

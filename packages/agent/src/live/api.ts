@@ -17,7 +17,7 @@ export interface LiveRead {
 export interface LiveApi {
   /** Where the person opens the Studio. */
   readonly studioUrl: string
-  open(document: unknown): Promise<{ revision: number; viewers: number }>
+  open(document: unknown): Promise<{ revision: number; viewers: number; saved?: boolean }>
   read(): Promise<LiveRead>
   /** `answeredInStudio`: an agent the Studio started takes the questions, so there is nothing to wait for. */
   waitForQuestions(timeoutMs: number): Promise<{ questions: Extract<Message, { from: 'person' }>[]; viewers: number; place?: Place; answeredInStudio?: boolean }>
@@ -65,7 +65,9 @@ export class RemoteLive implements LiveApi {
     return (await res.json()) as T
   }
   open(document: unknown) {
-    return this.call<{ revision: number; viewers: number }>('/api/live/open', { body: { document } })
+    // An agent the Studio started names its project: the hub shows the document only when that project is open.
+    const project = process.env.PONEY_PROJECT
+    return this.call<{ revision: number; viewers: number; saved?: boolean }>('/api/live/open', { body: { document, ...(project ? { project } : {}) } })
   }
   read() {
     return this.call<LiveRead>('/api/live/read')
