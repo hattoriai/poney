@@ -95,3 +95,5 @@ In the document menu, choose **Add a folder…**. A workspace with more than one
 - In a saved workspace, × on a document or a folder removes it from the workspace. The file or the folder stays.
 - **Import from the code…** asks which folder to read. **Facts** reads every folder: each part gets the facts of the folder that has its code.
 - The start page lists the workspaces you opened. Select one to open it again.
+
+A document that is in no repository, such as a file you downloaded, opens alone. To let an agent read the code it explains, choose **Add a folder…** in the document menu. Poney remembers the folder for that document, in `~/.poney/workspaces.json`. A second folder needs a saved workspace; Studio suggests a file next to the document. To make the document alone again, remove its folder with ×.

@@ -10,12 +10,12 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, unlinkSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { check } from '../ops'
-import { poneyHome } from '../home'
+import { changeMemory, readMemory } from './memory'
 import { checkFolder } from '../agents/workspace'
 import type { LiveState } from './state'
 import type { WorkspaceDocument } from './types'
 import { emptyDocument, folderAt, folderDocument, slug, withIdentity, type Folder } from './folder'
-import { readWorkspace, workspaceFilesIn, workspaceFor, writeWorkspace, type Workspace } from './workspace-file'
+import { attachedTo, documentWorkspace, DOCUMENT_KEY, readWorkspace, setAttached, workspaceFilesIn, workspaceFor, writeWorkspace, type Workspace } from './workspace-file'
 import { execFileSync } from 'node:child_process'
 
 /** The top folder of the git repository a folder is in, if any, as a real path. */
@@ -72,7 +72,11 @@ export function documentsIn(cwd: string): WorkspaceDocument[] {
 
 /** The documents of a workspace: a saved one's list, else its folder's docs/poney/. */
 export function documentsOf(w: Workspace): WorkspaceDocument[] {
-  return w.file ? (w.documents ?? []).map(entryFor) : documentsIn(w.folders[0].cwd)
+  if (w.file) return (w.documents ?? []).map(entryFor)
+  const own = documentsIn(w.folders[0].cwd)
+  // A document opened alone comes first, then the documents of its folder.
+  if (w.documents) return [...w.documents.map(entryFor), ...own.filter((d) => !w.documents!.includes(d.path))]
+  return own
 }
 
 /** The id and empty document a workspace starts with when it has no document. */
@@ -92,23 +96,9 @@ function sameFile(a: string, b: string): boolean {
   }
 }
 
-/** The document shown last in each folder, kept in the Poney home, so a folder with several documents opens the one the person was reading. */
-const lastFile = () => join(poneyHome(), 'workspaces.json')
-function readLast(): Map<string, string> {
-  try {
-    return new Map(Object.entries((JSON.parse(readFileSync(lastFile(), 'utf8')) as { last?: Record<string, string> }).last ?? {}))
-  } catch {
-    return new Map()
-  }
-}
-function writeLast(last: Map<string, string>) {
-  try {
-    mkdirSync(dirname(lastFile()), { recursive: true })
-    writeFileSync(lastFile(), `${JSON.stringify({ version: 1, last: Object.fromEntries(last) }, null, 2)}\n`)
-  } catch {
-    /* only a convenience */
-  }
-}
+/** The document shown last in each workspace, kept in the Poney home, so a workspace with several documents opens the one the person was reading. */
+const readLast = () => new Map(Object.entries(readMemory().last))
+const writeLast = (last: Map<string, string>) => changeMemory((m) => (m.last = Object.fromEntries(last)))
 
 /** What an agent's document did: shown (`revision`), saved to a document not shown, or refused. */
 export interface AgentOpened {
@@ -264,15 +254,27 @@ export class DocumentFiles {
     if (shown && !documents.includes(shown) && existsSync(shown)) documents.push(shown)
     mkdirSync(dirname(file), { recursive: true })
     writeWorkspace({ ...w, name: name?.trim() || w.name, file, documents })
+    // A document opened alone is in the saved workspace now; its file there says so.
+    if (w.key.startsWith(DOCUMENT_KEY) && w.documents?.[0]) setAttached(w.documents[0], [])
     const saved = readWorkspace(file)
     this.rekey(w.key, saved.key)
     return { from: w.key, to: saved.key, workspace: saved }
   }
 
-  /** Adds a folder to the open workspace, which must be saved. Its documents in docs/poney/ join the list. */
+  /**
+   * Adds a folder to the open workspace, which must be saved. Its documents in docs/poney/ join the list.
+   * A document opened alone, with no workspace, gets the folder attached: a workspace of its own.
+   */
   addFolder(path: string): Workspace {
     const w = this.state.workspace
-    if (!w?.file) throw new Error('Save the workspace first.')
+    const doc = this.state.file
+    if (!w) {
+      if (!doc || !existsSync(doc)) throw new Error('Open a document or a workspace first.')
+      const cwd = checkFolder(path)
+      setAttached(doc, [cwd])
+      return documentWorkspace(doc, [cwd])
+    }
+    if (!w.file) throw new Error('Save the workspace first.')
     const folder = folderAt(checkFolder(path))
     if (w.folders.some((f) => f.cwd === folder.cwd)) return w
     const documents = [...(w.documents ?? [])]
@@ -282,9 +284,16 @@ export class DocumentFiles {
     return next
   }
 
-  /** Removes a folder from the open workspace, which must be saved and keep one folder. Its documents stay listed. */
-  removeFolder(path: string): Workspace {
+  /**
+   * Removes a folder from the open workspace, which must be saved and keep one folder. Its documents stay listed.
+   * A document opened alone gets its folder detached: it is alone again (undefined).
+   */
+  removeFolder(path: string): Workspace | undefined {
     const w = this.state.workspace
+    if (w?.key.startsWith(DOCUMENT_KEY) && w.documents?.[0]) {
+      setAttached(w.documents[0], [])
+      return undefined
+    }
     if (!w?.file) throw new Error('Save the workspace first.')
     if (w.folders.length < 2) throw new Error('A workspace keeps at least one folder.')
     const next = { ...w, file: w.file, folders: w.folders.filter((f) => f.cwd !== path) }
@@ -400,6 +409,7 @@ export class DocumentFiles {
   fileOf(w: Workspace): string | undefined {
     const tied = this.tied.get(w.key)
     if (tied && existsSync(tied) && (!w.file || w.documents?.includes(tied))) return tied
+    if (!w.file && w.documents?.length) return w.documents[0]
     const found = documentsOf(w).filter((d) => existsSync(d.path))
     if (found.length === 1) return found[0].path
     if (found.length === 0) return (!w.file && tied) || join(w.folders[0].cwd, 'docs', 'poney', `${starter(w).id}.poney`)
@@ -411,8 +421,9 @@ export class DocumentFiles {
    * else its project folder, else none.
    */
   private workspaceOfFile(file: string, root: string | undefined): Workspace | Folder | undefined {
-    if (!root) return undefined
-    for (const candidate of workspaceFilesIn(root)) {
+    const attached = attachedTo(file)
+    if (attached?.length) return documentWorkspace(file, attached)
+    for (const candidate of [...new Set([...workspaceFilesIn(dirname(file)), ...(root ? workspaceFilesIn(root) : [])])]) {
       try {
         const w = readWorkspace(candidate)
         if (w.documents?.includes(file)) return w
@@ -420,7 +431,7 @@ export class DocumentFiles {
         /* not a workspace this file opens in */
       }
     }
-    return folderAt(root)
+    return root ? folderAt(root) : undefined
   }
 
   private load(path: string, root: string | undefined) {

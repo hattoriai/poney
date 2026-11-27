@@ -5,13 +5,16 @@
  * A folder opened alone is a workspace with no file: its documents are the
  * .poney files in its docs/poney/, and its key is the folder's path. A saved
  * workspace is a .poney-workspace file that lists its folders and documents,
- * with paths relative to the file; its key is the file's path. The key names
- * the workspace's conversation and agent session.
+ * with paths relative to the file; its key is the file's path. A document
+ * opened alone, with a folder attached, is a workspace too: its key is
+ * "document:" and the document's path, and the local server remembers its
+ * folder. The key names the workspace's conversation and agent session.
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { folderAt, type Folder } from './folder'
 import { checkFolder } from '../agents/workspace'
+import { changeMemory, readMemory } from './memory'
 
 export const WORKSPACE_EXT = '.poney-workspace'
 /** The version of the workspace file. */
@@ -24,8 +27,38 @@ export interface Workspace {
   file?: string
   /** The first folder is where the agent runs. A folder that does not exist is kept, and marked missing. */
   folders: (Folder & { missing?: boolean })[]
-  /** A saved workspace's documents, as absolute paths. A folder workspace's are the files in docs/poney/. */
+  /** A saved workspace's documents, as absolute paths. A folder workspace's are the files in docs/poney/. A document workspace's: its document. */
   documents?: string[]
+}
+
+/** The start of a document workspace's key. */
+export const DOCUMENT_KEY = 'document:'
+
+/** A document opened alone, with the folders attached to it. */
+export function documentWorkspace(doc: string, folders: string[]): Workspace {
+  let name = basename(doc, '.poney')
+  try {
+    name = (JSON.parse(readFileSync(doc, 'utf8')) as { project?: { name?: string } }).project?.name ?? name
+  } catch {
+    /* the file's name, then */
+  }
+  return {
+    key: `${DOCUMENT_KEY}${doc}`,
+    name,
+    folders: folders.map((cwd) => ({ ...folderAt(cwd), ...(existsSync(cwd) ? {} : { missing: true }) })),
+    documents: [doc],
+  }
+}
+
+/** The folders attached to a document opened alone, if any. */
+export const attachedTo = (doc: string): string[] | undefined => readMemory().attached[doc]
+
+/** Attaches folders to a document opened alone, or, with none, detaches them. */
+export function setAttached(doc: string, folders: string[]): void {
+  changeMemory((m) => {
+    if (folders.length) m.attached[doc] = folders
+    else delete m.attached[doc]
+  })
 }
 
 export const isWorkspaceFile = (path: string) => path.endsWith(WORKSPACE_EXT)
@@ -92,6 +125,12 @@ export function workspaceFilesIn(dir: string): string[] {
 /** The workspace a key names: a saved workspace's file, or a folder. */
 export function workspaceFor(key: string): Workspace {
   if (isWorkspaceFile(key)) return readWorkspace(key)
+  if (key.startsWith(DOCUMENT_KEY)) {
+    const doc = key.slice(DOCUMENT_KEY.length)
+    const folders = attachedTo(doc)
+    if (!folders?.length) throw new Error(`No folder is attached to "${doc}".`)
+    return documentWorkspace(doc, folders)
+  }
   const dir = resolve(key)
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error(`No folder "${dir}"`)
   return folderWorkspace(folderAt(realpathSync(dir)))
@@ -103,6 +142,7 @@ export function workspaceFor(key: string): Workspace {
  */
 export function workspaceToOpen(path: string): Workspace | { choose: string[] } {
   if (isWorkspaceFile(path)) return readWorkspace(path)
+  if (path.startsWith(DOCUMENT_KEY)) return workspaceFor(path)
   const dir = checkFolder(path)
   const files = workspaceFilesIn(dir)
   if (files.length === 1) return readWorkspace(files[0])

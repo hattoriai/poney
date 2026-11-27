@@ -57,6 +57,8 @@ function ProjectSwitcher() {
   useStudio((s) => [s.live.state, s.liveFile].join())
   const file = open ? fileOfDocument(projectId) : undefined
   const workspace = useStudio((s) => (s.live.state === 'on' ? s.workspace : null))
+  const liveOn = useStudio((s) => s.live.state === 'on')
+  const liveFile = useStudio((s) => s.liveFile)
   const inFolder = useStudio((s) => s.folderDocuments)
   // The workspace's documents are listed under it; the others (pasted, imported, examples) above it.
   const loose = workspace ? projects.filter((p) => !inFolder.documents.some((d) => d.id === p.id)) : projects
@@ -122,6 +124,23 @@ function ProjectSwitcher() {
               </button>
             </div>
           ))}
+          {!workspace && liveOn && liveFile && (
+            <>
+              {loose.length > 0 && <div className="my-1 h-px bg-rule" />}
+              <button
+                type="button"
+                title="So an agent can read the code this document explains."
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
+                onClick={() => {
+                  setOpen(false)
+                  useStudio.getState().setWorkspaceDialog('add-folder')
+                }}
+              >
+                <FolderPlus size={14} />
+                Add a folder…
+              </button>
+            </>
+          )}
           {workspace && (
             <>
               {loose.length > 0 && <div className="my-1 h-px bg-rule" />}
@@ -176,7 +195,7 @@ function ProjectSwitcher() {
                     <Folder size={14} className="shrink-0 text-ink-3" />
                     <span className="min-w-0 flex-1 truncate">{f.name}</span>
                   </p>
-                  {workspace.file && workspace.folders.length > 1 && (
+                  {((workspace.file && workspace.folders.length > 1) || workspace.key.startsWith('document:')) && (
                     <button
                       type="button"
                       aria-label={`Remove the folder ${f.name} from the workspace`}

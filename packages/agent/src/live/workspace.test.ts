@@ -150,3 +150,68 @@ describe('saving a folder as a workspace', () => {
     files.close()
   })
 })
+
+describe('a document opened alone, with a folder', () => {
+  /** A .poney file outside any repository, and a repository for its code. */
+  function loose() {
+    const { top, api } = repos()
+    const dir = join(top, 'notes')
+    mkdirSync(dir)
+    const doc = join(dir, 'plan.poney')
+    writeFileSync(doc, JSON.stringify({ ...tour, project: { ...tour.project, id: 'plan', name: 'Plan' } }, null, 2))
+    return { doc, api }
+  }
+
+  it('gets a folder attached: a workspace of its own, which opens again with it', () => {
+    const { doc, api } = loose()
+    const a = hub()
+    a.files.open(doc)
+    expect(a.state.workspace).toBeUndefined()
+    a.state.setWorkspace(a.files.addFolder(api))
+    expect(a.state.projectKey()).toBe(`document:${doc}`)
+    expect(a.state.project?.cwd).toBe(api)
+    // The document first, then its folder's documents.
+    expect(a.state.documents.documents.map((d) => d.id)).toEqual(['plan', 'billing'])
+    expect(a.state.file).toBe(doc)
+    a.files.close()
+    const b = hub()
+    b.files.open(doc)
+    expect(b.state.projectKey()).toBe(`document:${doc}`)
+    b.files.close()
+  })
+
+  it('needs saving for a second folder; saved, it opens from its file next to the document', () => {
+    const { doc, api } = loose()
+    const web = join(api, '..', 'web')
+    const { state, files } = hub()
+    files.open(doc)
+    state.setWorkspace(files.addFolder(api))
+    expect(() => files.addFolder(web)).toThrow(/Save the workspace first/)
+    const file = join(doc, '..', 'plan.poney-workspace')
+    const { from, to, workspace } = files.saveWorkspace(file)
+    state.rekey(from, to)
+    state.setWorkspace(workspace)
+    state.setWorkspace(files.addFolder(web))
+    expect(readWorkspace(file).folders.map((f) => f.name)).toEqual(['api', 'web'])
+    files.close()
+    const again = hub()
+    again.files.open(doc)
+    expect(again.state.projectKey()).toBe(file)
+    again.files.close()
+  })
+
+  it('is alone again when its folder is removed', () => {
+    const { doc, api } = loose()
+    const { state, files } = hub()
+    files.open(doc)
+    state.setWorkspace(files.addFolder(api))
+    state.setWorkspace(files.removeFolder(api))
+    expect(state.workspace).toBeUndefined()
+    expect(state.file).toBe(doc)
+    files.close()
+    const again = hub()
+    again.files.open(doc)
+    expect(again.state.workspace).toBeUndefined()
+    again.files.close()
+  })
+})
