@@ -8,10 +8,13 @@
  * something to keep.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, unlinkSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { check } from '../ops'
+import { poneyHome } from '../home'
+import { checkFolder } from '../agents/workspace'
 import type { LiveState } from './state'
-import { emptyDocument, intoWorkspace, workspaceProject, type WorkspaceProject } from './workspace-project'
+import type { WorkspaceDocument } from './types'
+import { emptyDocument, folderAt, folderDocument, slug, withIdentity, type Folder } from './folder'
 import { execFileSync } from 'node:child_process'
 
 /** The top folder of the git repository a folder is in, if any, as a real path. */
@@ -42,13 +45,76 @@ export function projectOf(path: string): { root?: string; file: string } {
 }
 
 /** Where a folder's Poney file goes when it has none. */
-export const workspaceFile = (w: WorkspaceProject) => join(w.cwd, 'docs', 'poney', `${w.id}.poney`)
+export const workspaceFile = (w: Folder) => join(w.cwd, 'docs', 'poney', `${w.id}.poney`)
+
+/** The documents of a folder: the .poney files in its docs/poney/, by name. */
+export function documentsIn(cwd: string): WorkspaceDocument[] {
+  const dir = join(cwd, 'docs', 'poney')
+  const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.poney')).sort() : []
+  return names.map((f) => {
+    const path = join(dir, f)
+    const fallback = { path, id: f.replace(/\.poney$/, ''), name: f.replace(/\.poney$/, '') }
+    try {
+      const text = readFileSync(path, 'utf8')
+      const { result, report } = check({ text })
+      const project = (JSON.parse(text) as { project?: { id?: string; name?: string } }).project
+      const entry = { path, id: project?.id ?? fallback.id, name: project?.name ?? fallback.name }
+      return result?.ok ? entry : { ...entry, invalid: report.split('\n')[0] || 'Not a valid document.' }
+    } catch {
+      return { ...fallback, invalid: 'Not a valid document.' }
+    }
+  })
+}
+
+/** The same file, whatever path names it. */
+function sameFile(a: string, b: string): boolean {
+  if (a === b) return true
+  try {
+    return realpathSync(a) === realpathSync(b)
+  } catch {
+    return false
+  }
+}
+
+/** The document shown last in each folder, kept in the Poney home, so a folder with several documents opens the one the person was reading. */
+const lastFile = () => join(poneyHome(), 'workspaces.json')
+function readLast(): Map<string, string> {
+  try {
+    return new Map(Object.entries((JSON.parse(readFileSync(lastFile(), 'utf8')) as { last?: Record<string, string> }).last ?? {}))
+  } catch {
+    return new Map()
+  }
+}
+function writeLast(last: Map<string, string>) {
+  try {
+    mkdirSync(dirname(lastFile()), { recursive: true })
+    writeFileSync(lastFile(), `${JSON.stringify({ version: 1, last: Object.fromEntries(last) }, null, 2)}\n`)
+  } catch {
+    /* only a convenience */
+  }
+}
+
+/** What an agent's document did: shown (`revision`), saved to a document not shown, or refused. */
+export interface AgentOpened {
+  revision?: number
+  saved?: boolean
+  refused?: string
+}
 
 /** Why a file that exists is not a valid document (a merge conflict, a bad edit); undefined when it is missing or valid. */
 function invalidFile(path: string): string | undefined {
   if (!existsSync(path)) return undefined
   const { result, report } = check({ text: readFileSync(path, 'utf8') })
   return result?.ok ? undefined : report.split('\n')[0] || 'Not a valid document.'
+}
+
+/** Why nothing was saved over a file that is not a valid document. */
+export const NOT_SAVED = "The project's file is not a valid document. Not saved."
+
+/** The refusal when a folder has several documents and none is shown. */
+function chooseOne(w: Folder): string {
+  const list = documentsIn(w.cwd).map((d) => `${d.path} (${d.name})`)
+  return `Not opened: ${w.cwd} has several documents, and none is shown. Give \`file\`: one of ${list.join(', ')}, or a new path in docs/poney/.`
 }
 
 const isEmpty = (doc: unknown) => {
@@ -65,15 +131,119 @@ export class DocumentFiles {
   private project?: string
   /** The file a save was refused for, so the person is told once. */
   private refused?: string
-  /** The file each project is tied to, by project key (its folder). */
-  private tied = new Map<string, string>()
+  /** The file each folder showed last, by folder. */
+  private tied = readLast()
+  /** Watches the open folder's docs/poney/, so the list of documents stays true. */
+  private dirWatcher?: { dir: string; watcher?: FSWatcher }
+  private listTimer?: ReturnType<typeof setTimeout>
 
   constructor(private readonly state: LiveState) {
     state.on('document', (_rev, doc, source) => {
       if (source === 'agent') this.save(doc)
     })
     state.on('edited', (doc) => this.save(doc))
-    state.on('workspace', (w) => w && this.openWorkspace(w))
+    state.on('workspace', (w) => {
+      if (w) this.openWorkspace(w)
+      else this.refresh()
+    })
+    state.on('file', () => this.refresh())
+  }
+
+  private remember(root: string, path: string) {
+    if (this.tied.get(root) === path) return
+    this.tied.set(root, path)
+    writeLast(this.tied)
+  }
+
+  /** Sends the open folder's documents, and the one shown, to the Studio. */
+  refresh(): void {
+    const cwd = this.state.project?.cwd
+    this.state.setDocuments({ documents: cwd ? documentsIn(cwd) : [], shown: this.state.file ?? null })
+    const dir = cwd ? join(cwd, 'docs', 'poney') : undefined
+    if (this.dirWatcher?.dir === dir && (this.dirWatcher?.watcher || !dir || !existsSync(dir))) return
+    this.dirWatcher?.watcher?.close()
+    this.dirWatcher = dir ? { dir } : undefined
+    if (!dir || !existsSync(dir)) return
+    try {
+      this.dirWatcher!.watcher = watch(dir, () => {
+        clearTimeout(this.listTimer)
+        this.listTimer = setTimeout(() => this.refresh(), 150)
+      })
+    } catch {
+      /* the list is then read again on the next change here */
+    }
+  }
+
+  /**
+   * A new, empty document in the open folder's docs/poney/, shown at once.
+   * Its id comes from its name, and is not one another document of the folder has.
+   */
+  create(name: string): string {
+    const w = this.state.project
+    if (!w) throw new Error('Open a folder first.')
+    const title = name.trim()
+    if (!title) throw new Error('Give the document a name.')
+    const dir = join(w.cwd, 'docs', 'poney')
+    const taken = new Set(documentsIn(w.cwd).map((d) => d.id))
+    const base = slug(title)
+    let id = base
+    for (let n = 2; taken.has(id) || existsSync(join(dir, `${id}.poney`)); n++) id = `${base}-${n}`
+    const path = join(dir, `${id}.poney`)
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(path, `${JSON.stringify(emptyDocument(id, title, ''), null, 2)}\n`)
+    this.load(path, w.cwd)
+    return path
+  }
+
+  /**
+   * A document from an agent. Without `file`, it goes into the shown document (or, for an agent of a
+   * folder that is not shown, `project`, into that folder's document). With `file`: into that document
+   * (shown at once when it is the shown one, else saved and listed), or, when the file does not exist, a
+   * new document there, shown at once. A document never changes the id of the file it goes into.
+   */
+  agentOpen(document: unknown, options: { project?: string; file?: string } = {}): AgentOpened {
+    const background = !!options.project && options.project !== this.state.projectKey()
+    const folder = background ? folderAt(checkFolder(options.project!)) : this.state.project
+    const target = options.file ? (isAbsolute(options.file) ? options.file : resolve(folder?.cwd ?? process.cwd(), options.file)) : undefined
+    if (target && !target.endsWith('.poney')) return { refused: 'Not opened: `file` must end in .poney.' }
+    const name = (document as { project?: { name?: string } } | null)?.project?.name ?? (target ? basename(target, '.poney') : folder?.name ?? 'the document')
+    if (background) {
+      const saved = this.saveFor(folder!, document, target)
+      if (saved === 'invalid') return { refused: NOT_SAVED }
+      if (saved === 'nofile') return { refused: chooseOne(folder!) }
+      if (saved === 'saved') this.state.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this workspace.`, tone: 'info' }, options.project)
+      return { saved: true }
+    }
+    if (!target || (this.state.file && sameFile(target, this.state.file))) {
+      if (folder && !this.state.shown()) return { refused: chooseOne(folder) }
+      return { revision: this.state.open(document) }
+    }
+    if (existsSync(target)) {
+      const saved = this.saveInto(target, document)
+      if (saved === 'invalid') return { refused: NOT_SAVED }
+      if (saved === 'saved') this.state.put({ from: 'notice', text: `The agent saved “${name}”. Select it in the document menu to see it.`, tone: 'info' })
+      return { saved: true }
+    }
+    // A new document: it keeps its own id, unless another document of the folder has it.
+    const root = projectOf(target).root
+    const taken = new Set(root ? documentsIn(root).map((d) => d.id) : [])
+    const own = (document as { project?: { id?: string } } | null)?.project?.id
+    const id = own && !taken.has(own) ? own : slug(basename(target, '.poney'))
+    mkdirSync(dirname(target), { recursive: true })
+    writeFileSync(target, `${JSON.stringify(withIdentity(document, { id }), null, 2)}\n`)
+    this.load(target, root)
+    return { revision: this.state.shown()?.revision }
+  }
+
+  /** Writes a document into an existing document's file, keeping that file's id. Nothing over a file that is not a valid document. */
+  private saveInto(path: string, doc: unknown): 'saved' | 'unchanged' | 'invalid' {
+    if (invalidFile(path)) return 'invalid'
+    const id = (JSON.parse(readFileSync(path, 'utf8')) as { project?: { id?: string } }).project?.id
+    const text = `${JSON.stringify(id ? withIdentity(doc, { id }) : doc, null, 2)}\n`
+    if (readFileSync(path, 'utf8') === text) return 'unchanged'
+    writeFileSync(path, text)
+    this.refresh()
+    return 'saved'
   }
 
   /**
@@ -86,7 +256,7 @@ export class DocumentFiles {
       // Nothing is saved over another file meanwhile; the project then ties its own file, and the document stays.
       this.tie(undefined)
       this.state.open(given, 'file')
-      return this.state.setWorkspace(workspaceProject(root))
+      return this.state.setWorkspace(folderAt(root))
     }
     this.load(file, root)
   }
@@ -104,17 +274,28 @@ export class DocumentFiles {
     if (invalid) throw new Error(`"${path}" is not a valid Poney document. It was not deleted.`)
     if (project !== undefined && (JSON.parse(readFileSync(file, 'utf8')) as { project?: { id?: string } }).project?.id !== project) throw new Error(`"${path}" holds another document. It was not deleted.`)
     if (this.state.file && existsSync(this.state.file) && realpathSync(this.state.file) === file) this.tie(undefined)
-    for (const [root, tied] of this.tied) if (tied === file || tied === path) this.tied.delete(root)
+    let forgot = false
+    for (const [root, tied] of this.tied)
+      if (tied === file || tied === path) {
+        this.tied.delete(root)
+        forgot = true
+      }
+    if (forgot) writeLast(this.tied)
     unlinkSync(file)
+    this.refresh()
   }
 
-  /** The file of a project: the one it is tied to, else the only .poney file in its docs/poney/, else the folder's own name there. */
-  fileOf(w: WorkspaceProject): string {
+  /**
+   * The document of a folder: the one it showed last, else its only document, else (none) the folder's own
+   * name in docs/poney/. Undefined when it has several and none was shown yet: the person selects one.
+   */
+  fileOf(w: Folder): string | undefined {
     const tied = this.tied.get(w.cwd)
-    if (tied) return tied
-    const dir = join(w.cwd, 'docs', 'poney')
-    const found = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.poney')) : []
-    return found.length === 1 ? join(dir, found[0]) : workspaceFile(w)
+    if (tied && existsSync(tied)) return tied
+    const found = documentsIn(w.cwd)
+    if (found.length === 1) return found[0].path
+    if (found.length === 0) return tied ?? workspaceFile(w)
+    return undefined
   }
 
   private load(path: string, root: string | undefined) {
@@ -123,30 +304,36 @@ export class DocumentFiles {
     if (!result?.ok) throw new Error(`"${path}" is not a valid Poney document.\n${report}`)
     const doc = JSON.parse(text) as { project?: { id?: string } }
     this.tie(path, doc.project?.id, text)
-    if (root) this.tied.set(root, path)
+    if (root) this.remember(root, path)
     this.state.open(doc, 'file')
     // Agents work in the file's project; a file of no project leaves none open.
-    if (root !== this.state.project?.cwd) this.state.setWorkspace(root ? workspaceProject(root) : undefined)
+    if (root !== this.state.project?.cwd) this.state.setWorkspace(root ? folderAt(root) : undefined)
   }
 
   /**
    * A project folder. The document already open stays when it belongs here,
    * or when it has no file yet (it is saved to docs/poney/ here). Otherwise
-   * the folder's own file opens, or an empty project that becomes a file when
-   * there is something to keep.
+   * the folder's document opens (see fileOf), or an empty project that becomes
+   * a file when there is something to keep, or, when the folder has several
+   * documents and none was shown yet, none: the person selects one.
    */
-  private openWorkspace(w: WorkspaceProject) {
+  private openWorkspace(w: Folder) {
     const open = this.state.shown()?.document
     const file = this.state.file
-    if (file && file.startsWith(`${w.cwd}/`)) return
+    if (file && file.startsWith(`${w.cwd}/`)) return this.refresh()
     if (open && !file && !isEmpty(open)) {
       const id = this.state.openProjectId ?? w.id
       const path = join(w.cwd, 'docs', 'poney', `${id}.poney`)
       this.tie(path, id)
-      this.tied.set(w.cwd, path)
-      return this.save(open)
+      this.remember(w.cwd, path)
+      this.save(open)
+      return this.refresh()
     }
     const path = this.fileOf(w)
+    if (!path) {
+      this.tie(undefined)
+      return this.state.clear()
+    }
     if (existsSync(path)) {
       try {
         return this.load(path, w.cwd)
@@ -154,13 +341,12 @@ export class DocumentFiles {
         this.state.put({ from: 'notice', text: e instanceof Error ? e.message.split('\n')[0] : String(e), tone: 'error' })
         // The file is the person's to fix: nothing is saved over it.
         this.tie(undefined)
-        if (this.state.openProjectId !== w.id) this.state.open(emptyDocument(w), 'workspace')
+        if (this.state.openProjectId !== w.id) this.state.open(folderDocument(w), 'workspace')
         return
       }
     }
     this.tie(path, w.id)
-    this.tied.set(w.cwd, path)
-    if (this.state.openProjectId !== w.id) this.state.open(emptyDocument(w), 'workspace')
+    if (this.state.openProjectId !== w.id) this.state.open(folderDocument(w), 'workspace')
   }
 
   private tie(path: string | undefined, project?: string, text?: string) {
@@ -177,11 +363,15 @@ export class DocumentFiles {
    * Saves a document into another project's file, whether or not that project is open.
    * Nothing for an empty document or when unchanged, and never over a file that is not a valid document.
    */
-  saveFor(w: WorkspaceProject, doc: unknown): 'saved' | 'unchanged' | 'invalid' {
-    const into = intoWorkspace(doc, w)
-    if (isEmpty(into)) return 'unchanged'
-    const path = this.fileOf(w)
+  saveFor(w: Folder, doc: unknown, file?: string): 'saved' | 'unchanged' | 'invalid' | 'nofile' {
+    const path = file ?? this.fileOf(w)
+    if (!path) return 'nofile'
     if (invalidFile(path)) return 'invalid'
+    // Into an existing document, with its id; a new one keeps its own id when it names the file, else takes the folder's.
+    const existing = existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as { project?: { id?: string } }).project?.id : undefined
+    const own = (doc as { project?: { id?: string } } | null)?.project?.id
+    const into = withIdentity(doc, { id: existing ?? (file && own ? own : w.id), name: w.name })
+    if (isEmpty(into)) return 'unchanged'
     const text = `${JSON.stringify(into, null, 2)}\n`
     if (existsSync(path) && readFileSync(path, 'utf8') === text) return 'unchanged'
     mkdirSync(dirname(path), { recursive: true })
@@ -190,9 +380,9 @@ export class DocumentFiles {
   }
 
   /** The document saved in a project's file: none when the file is missing, `invalid` when it is not a valid document. */
-  savedFor(w: WorkspaceProject): { document?: unknown; invalid?: string } {
+  savedFor(w: Folder): { document?: unknown; invalid?: string } {
     const path = this.fileOf(w)
-    if (!existsSync(path)) return {}
+    if (!path || !existsSync(path)) return {}
     const invalid = invalidFile(path)
     return invalid ? { invalid } : { document: JSON.parse(readFileSync(path, 'utf8')) }
   }
@@ -221,7 +411,10 @@ export class DocumentFiles {
     mkdirSync(dirname(path), { recursive: true })
     this.written = text
     writeFileSync(path, text)
-    if (!this.watcher) this.watch(path)
+    if (!this.watcher) {
+      this.watch(path)
+      this.refresh()
+    }
   }
 
   /** Changes on disk show in the Studio; a file that no longer reads as a document is reported, not opened. */
@@ -242,5 +435,6 @@ export class DocumentFiles {
 
   close() {
     this.watcher?.close()
+    this.dirWatcher?.watcher?.close()
   }
 }

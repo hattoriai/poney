@@ -8,8 +8,8 @@
  */
 import { EventEmitter } from 'node:events'
 import type { OverlayResult } from '../plugins/types'
-import type { AgentStatus, Message, MessageInput, Place, StudioState } from './types'
-import { intoWorkspace, type WorkspaceProject } from './workspace-project'
+import type { AgentStatus, Message, MessageInput, Place, StudioState, WorkspaceDocuments } from './types'
+import { withIdentity, type Folder } from './folder'
 
 /** Answers the person's questions: an agent the Studio started. */
 export type Responder = (question: Extract<Message, { from: 'person' }>) => void
@@ -23,7 +23,9 @@ interface Events {
   edited: [document: unknown]
   /** The file the open document is saved to, if any. */
   file: [path: string | undefined]
-  workspace: [workspace: WorkspaceProject | undefined]
+  workspace: [workspace: Folder | undefined]
+  /** The documents of the open folder, and the one shown. */
+  documents: [documents: WorkspaceDocuments]
   message: [message: Message]
   /** The open project changed: its conversation. */
   thread: [messages: Message[]]
@@ -44,10 +46,11 @@ export class LiveState extends EventEmitter<Events> {
   private waiters = new Set<() => void>()
   private responder: Responder | null = null
   private session: AgentStatus['session'] = null
-  private workspace?: WorkspaceProject
+  private workspace?: Folder
   private path?: string
   studio?: StudioState
   private shownOverlays: Record<string, OverlayResult> = {}
+  private list: WorkspaceDocuments = { documents: [], shown: null }
 
   /* ─── The document ──────────────────────────────────────────────────── */
 
@@ -56,12 +59,31 @@ export class LiveState extends EventEmitter<Events> {
     // What an agent opens joins the open project when that project belongs to the agent's folder (its file is there, or it has none);
     // otherwise it is the folder's own project. A file opens as it is.
     const joins = !this.path || (this.workspace && this.path.startsWith(`${this.workspace.cwd}/`))
-    this.document = this.workspace && source === 'agent' ? intoWorkspace(document, { ...this.workspace, id: (joins ? this.openProjectId : undefined) ?? this.workspace.id }) : document
+    this.document = this.workspace && source === 'agent' ? withIdentity(document, { id: (joins ? this.openProjectId : undefined) ?? this.workspace.id, name: this.workspace.name }) : document
     this.source = source
     this.revision++
     this.studio = undefined
     this.emit('document', this.revision, this.document, source)
     return this.revision
+  }
+
+  /** Shows no document: the folder has several, and the person selects one. */
+  clear(): void {
+    if (this.document === undefined) return
+    this.document = undefined
+    this.revision++
+    this.studio = undefined
+    this.emit('document', this.revision, null, 'workspace')
+  }
+
+  /** The documents of the open folder, and the one shown. */
+  get documents(): WorkspaceDocuments {
+    return this.list
+  }
+  setDocuments(list: WorkspaceDocuments) {
+    if (JSON.stringify(list) === JSON.stringify(this.list)) return
+    this.list = list
+    this.emit('documents', list)
   }
 
   /** Overlay results shown in the Studio, by id. */
@@ -189,7 +211,7 @@ export class LiveState extends EventEmitter<Events> {
   /* ─── The workspace ─────────────────────────────────────────────────── */
 
   /** The project folder: the folder the open document belongs to, where agents work. */
-  get project(): WorkspaceProject | undefined {
+  get project(): Folder | undefined {
     return this.workspace
   }
 
@@ -198,7 +220,7 @@ export class LiveState extends EventEmitter<Events> {
    * the folder it belongs to. What opens for it (its file, the document already
    * open, or an empty project) is decided where files are known.
    */
-  setWorkspace(w: WorkspaceProject | undefined) {
+  setWorkspace(w: Folder | undefined) {
     if (w?.cwd === this.workspace?.cwd) {
       // The same folder again. Nothing to do, unless the shown document is not the folder's: then it opens again. The thread and the agent stay.
       if (!w || (this.file?.startsWith(`${w.cwd}/`) && this.openProjectId === w.id)) return

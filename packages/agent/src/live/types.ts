@@ -125,3 +125,18 @@ export interface PluginItem {
   /** What it would read in the project's folder; empty when there is nothing. */
   files: string[]
 }
+
+/** A document of the open workspace: a .poney file. */
+export interface WorkspaceDocument {
+  path: string
+  id: string
+  name: string
+  /** Why the file is not a valid document, when it is not. */
+  invalid?: string
+}
+
+/** The documents of the open workspace, and the one shown (null: none yet, the person selects one). */
+export interface WorkspaceDocuments {
+  documents: WorkspaceDocument[]
+  shown: string | null
+}

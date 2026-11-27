@@ -7,7 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { startHub, type Hub } from './live/hub'
 import { workspaceFile } from './live/files'
-import { workspaceProject } from './live/workspace-project'
+import { folderAt } from './live/folder'
 
 // The MCP server of an agent whose project (A) is not the one open in the Studio (B).
 const mcpSource = fileURLToPath(new URL('./mcp.ts', import.meta.url))
@@ -23,15 +23,15 @@ const client = new Client({ name: 'test', version: '0' })
 let hub: Hub
 let saved: string | undefined
 const call = async (name: string, args: Record<string, unknown> = {}) => (await client.callTool({ name, arguments: args })) as Result
-const fileA = () => JSON.parse(readFileSync(workspaceFile(workspaceProject(a)), 'utf8'))
+const fileA = () => JSON.parse(readFileSync(workspaceFile(folderAt(a)), 'utf8'))
 
 beforeAll(async () => {
   saved = process.env.PONEY_HOME
   process.env.PONEY_HOME = home
   hub = await startHub(6200 + Math.floor(Math.random() * 100))
-  hub.state.setWorkspace(workspaceProject(a))
+  hub.state.setWorkspace(folderAt(a))
   hub.state.open(withWalkthrough('only-a'))
-  hub.state.setWorkspace(workspaceProject(b))
+  hub.state.setWorkspace(folderAt(b))
   hub.state.open(withWalkthrough('only-b'))
   await client.connect(new StdioClientTransport({ command: 'node', args: ['--conditions=poney-source', '--import', 'tsx', mcpSource], env: { ...process.env, PONEY_HUB_URL: hub.server.url, PONEY_PROJECT: a, PONEY_HOME: home } as Record<string, string>, stderr: 'ignore' }))
 }, 30_000)
@@ -59,7 +59,7 @@ describe('an agent of a project that is not open', () => {
   it('may leave out what only another project has, and is told it was saved', async () => {
     const r = await call('poney_open', { document: withWalkthrough('only-a') })
     expect(r.isError).toBeFalsy()
-    expect(textOf(r)).toBe('Saved in its project. It shows when the person opens that project.')
+    expect(textOf(r)).toBe('Saved in its workspace. It shows when the person opens that workspace.')
     expect(hub.state.shown()?.document).toMatchObject({ walkthroughs: [{ id: 'only-b' }] })
   })
 
@@ -68,7 +68,7 @@ describe('an agent of a project that is not open', () => {
     writeFileSync(join(repo, 'a.js'), "import './b.js'\n")
     writeFileSync(join(repo, 'b.js'), 'export const x = 1\n')
     const r = await call('poney_import', { repo, importer: 'js-modules' })
-    expect(textOf(r)).toContain('Saved in its project')
+    expect(textOf(r)).toContain('Saved in its workspace')
     const doc = fileA()
     expect(doc.walkthroughs.map((w: { id: string }) => w.id)).toEqual(['only-a'])
     expect(JSON.stringify(doc)).not.toContain('only-b')
@@ -77,7 +77,7 @@ describe('an agent of a project that is not open', () => {
 
 describe('an agent of a project whose file is not a valid document', () => {
   it('is refused, and the file stays as it is', async () => {
-    const path = workspaceFile(workspaceProject(a))
+    const path = workspaceFile(folderAt(a))
     const conflicted = `<<<<<<< HEAD\n${readFileSync(path, 'utf8')}=======\n{}\n>>>>>>> theirs\n`
     writeFileSync(path, conflicted)
     const r = await call('poney_open', { document: withWalkthrough('new-one') })

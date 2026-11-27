@@ -82,7 +82,7 @@ export class AgentPool {
   /** Makes an agent the default, and starts it for the open project. */
   async connect(choice: AgentChoice): Promise<void> {
     const project = this.state.projectKey()
-    if (!project) throw new Error('Open a project first.')
+    if (!project) throw new Error('Open a workspace first.')
     const key = this.setDefault(choice)
     const running = this.agents.get(project)
     if (running && running.agentKey !== key) {

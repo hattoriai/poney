@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AgentStatus, ContextItem, Message, OverlayResult } from '@hattoriai/poney/live'
+import type { AgentStatus, ContextItem, Message, OverlayResult, WorkspaceDocuments } from '@hattoriai/poney/live'
 import { createHistory, execute, indexOf, redo, refKey, undo, type Command, type History, type Ref, type PoneyDocument } from '@hattoriai/poney-core'
 
 /**
@@ -36,7 +36,8 @@ export interface FocusRequest {
   nonce: number
 }
 
-export interface Project {
+/** A document open in the Studio. */
+export interface OpenDocument {
   id: string
   doc: PoneyDocument
   origin: 'example' | 'imported' | 'pasted' | 'live'
@@ -72,7 +73,7 @@ export interface Renaming {
 }
 
 interface State {
-  projects: Project[]
+  projects: OpenDocument[]
   projectId: string
   history: History
   viewId: string
@@ -122,12 +123,20 @@ interface State {
   startOpen: boolean
   /** The document whose file the delete dialog asks about. */
   deleting: { id: string; name: string; path: string } | null
+  /** The documents of the open folder, and the one shown, as Poney on this computer has them. */
+  folderDocuments: WorkspaceDocuments
+  /** The dialog that selects a document of the folder. */
+  documentsOpen: boolean
+  /** The dialog that makes a new document in the folder. */
+  newDocumentOpen: boolean
+  /** The person asked Poney on this computer for a document: the next one it sends shows, even on the start page. */
+  documentWanted: boolean
 }
 
 interface Actions {
-  loadDocument(doc: PoneyDocument, origin?: Project['origin']): void
+  loadDocument(doc: PoneyDocument, origin?: OpenDocument['origin']): void
   /** Replaces the open document with a new revision, keeping the reader's place when it still exists. */
-  reviseDocument(doc: PoneyDocument, origin: Project['origin']): void
+  reviseDocument(doc: PoneyDocument, origin: OpenDocument['origin']): void
   setLive(live: LiveStatus): void
   setActiveScene(id: string | null): void
   setConversation(messages: Message[]): void
@@ -157,8 +166,11 @@ interface Actions {
   /** Removes a document from the open list. Closing the open one opens the next, else the start page. */
   closeDocument(id: string): void
   setDeleting(deleting: State['deleting']): void
+  setFolderDocuments(list: WorkspaceDocuments): void
+  setDocumentsOpen(open: boolean): void
+  setNewDocumentOpen(open: boolean): void
   /** Adds a project to the list without opening it. */
-  keepProject(doc: PoneyDocument, origin: Project['origin']): void
+  keepProject(doc: PoneyDocument, origin: OpenDocument['origin']): void
   importOpen: boolean
   setImportOpen(open: boolean, text?: string): void
   importText: string
@@ -335,6 +347,14 @@ export const useStudio = create<State & Actions>()((set, get) => ({
 
   deleting: null,
   setDeleting: (deleting) => set({ deleting }),
+  folderDocuments: { documents: [], shown: null },
+  documentsOpen: false,
+  newDocumentOpen: false,
+  documentWanted: false,
+  // With several documents and none shown, the person selects one.
+  setFolderDocuments: (folderDocuments) => set({ folderDocuments, ...(folderDocuments.shown === null && folderDocuments.documents.length > 1 ? { documentsOpen: true } : {}) }),
+  setDocumentsOpen: (documentsOpen) => set({ documentsOpen }),
+  setNewDocumentOpen: (newDocumentOpen) => set({ newDocumentOpen }),
 
   switchProject(id) {
     const target = get().projects.find((p) => p.id === id)

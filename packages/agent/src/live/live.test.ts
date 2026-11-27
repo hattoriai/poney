@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { workspaceFile } from './files'
-import { workspaceProject } from './workspace-project'
+import { folderAt } from './folder'
 import { request } from 'node:http'
 import { startHub, type Hub } from './hub'
 import { RemoteLive, isPoneyHub } from './api'
@@ -164,8 +164,8 @@ describe('an agent the Studio starts over ACP', () => {
     expect(hub.state.project).toBeUndefined()
     expect(hub.state.status().session).toBeNull()
     await post(hub, '/api/project/open', { path: p })
-    expect(hub.state.file).toBe(workspaceFile(workspaceProject(p)))
-    expect(hub.state.shown()?.document).toMatchObject({ project: { id: workspaceProject(p).id } })
+    expect(hub.state.file).toBe(workspaceFile(folderAt(p)))
+    expect(hub.state.shown()?.document).toMatchObject({ project: { id: folderAt(p).id } })
     expect(hub.agents.get(p)).toBe(agent)
     expect(hub.state.status().session).toEqual(session)
     expect(readFileSync(join(home, 'sessions.json'), 'utf8')).toBe(sessionId)
@@ -184,9 +184,9 @@ describe('an agent the Studio starts over ACP', () => {
     const res = await post(hub, '/api/live/open', { document: tour, project: a })
     expect(res).toMatchObject({ revision: shown, saved: true })
     expect(hub.state.shown()?.revision).toBe(shown)
-    expect(hub.state.shown()?.document).toMatchObject({ project: { id: workspaceProject(b).id } })
-    expect(JSON.parse(readFileSync(workspaceFile(workspaceProject(a)), 'utf8')).project).toMatchObject({ id: workspaceProject(a).id, name: 'Acme Notes' })
-    expect(hub.state.thread(a).map((m) => (m as { text?: string }).text)).toEqual(['The agent saved “Acme Notes”. It shows when you open this project.'])
+    expect(hub.state.shown()?.document).toMatchObject({ project: { id: folderAt(b).id } })
+    expect(JSON.parse(readFileSync(workspaceFile(folderAt(a)), 'utf8')).project).toMatchObject({ id: folderAt(a).id, name: 'Acme Notes' })
+    expect(hub.state.thread(a).map((m) => (m as { text?: string }).text)).toEqual(['The agent saved “Acme Notes”. It shows when you open this workspace.'])
     expect(hub.state.thread(b)).toEqual([])
   })
 })
@@ -197,11 +197,11 @@ describe('a workspace project, saved as a file', () => {
     const { join } = await import('node:path')
     const { LiveState } = await import('./state')
     const { DocumentFiles, workspaceFile } = await import('./files')
-    const { workspaceProject } = await import('./workspace-project')
+    const { folderAt } = await import('./folder')
     const cwd = mkdtempSync(join(tmpdir(), 'repo-'))
     const state = new LiveState()
     const files = new DocumentFiles(state)
-    const w = workspaceProject(cwd)
+    const w = folderAt(cwd)
     const file = workspaceFile(w)
 
     state.setWorkspace(w)
@@ -236,7 +236,7 @@ describe('a project whose file is not a valid document', () => {
     const { LiveState } = await import('./state')
     const { DocumentFiles } = await import('./files')
     const cwd = mkdtempSync(join(tmpdir(), 'broken-'))
-    const w = workspaceProject(cwd)
+    const w = folderAt(cwd)
     const path = workspaceFile(w)
     mkdirSync(dirname(path), { recursive: true })
     const broken = '<<<<<<< HEAD\n{"poneyVersion": "0.1.0"}\n=======\n{}\n>>>>>>> theirs\n'
@@ -274,13 +274,13 @@ describe('opening a project folder', () => {
     const { join } = await import('node:path')
     const { LiveState } = await import('./state')
     const { DocumentFiles } = await import('./files')
-    const { workspaceProject } = await import('./workspace-project')
+    const { folderAt } = await import('./folder')
     const cwd = mkdtempSync(join(tmpdir(), 'kept-'))
     const state = new LiveState()
     const files = new DocumentFiles(state)
     const tour = JSON.parse(readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8'))
     state.open(tour) // e.g. pasted, with no file
-    state.setWorkspace(workspaceProject(cwd))
+    state.setWorkspace(folderAt(cwd))
     expect(state.shown()?.document).toMatchObject({ project: { id: 'acme-notes' } })
     expect(state.file).toBe(join(cwd, 'docs', 'poney', 'acme-notes.poney'))
     expect(existsSync(state.file!)).toBe(true)
@@ -297,7 +297,7 @@ describe('an agent in another folder than the open document', () => {
     const { join } = await import('node:path')
     const { LiveState } = await import('./state')
     const { DocumentFiles } = await import('./files')
-    const { workspaceProject } = await import('./workspace-project')
+    const { folderAt } = await import('./folder')
     const elsewhere = join(mkdtempSync(join(tmpdir(), 'superwave-')), 'superwave.poney')
     const original = readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8')
     writeFileSync(elsewhere, original)
@@ -305,10 +305,10 @@ describe('an agent in another folder than the open document', () => {
     const state = new LiveState()
     const files = new DocumentFiles(state)
     files.open(elsewhere)
-    state.setWorkspace(workspaceProject(tug)) // the agent's folder
+    state.setWorkspace(folderAt(tug)) // the agent's folder
     const tour = JSON.parse(original)
     state.open({ ...tour, project: { id: 'tug', name: 'Tug', description: '' } }) // the agent's tour, opened with replace
-    const id = workspaceProject(tug).id
+    const id = folderAt(tug).id
     expect((state.shown()!.document as { project: { id: string } }).project.id).toBe(id)
     await new Promise((r) => setTimeout(r, 50))
     expect(readFileSync(elsewhere, 'utf8')).toBe(original)
@@ -397,7 +397,7 @@ describe('the project of a path', () => {
     const more = { ...tour, walkthroughs: [...tour.walkthroughs, { ...tour.walkthroughs[0], id: 'more', title: 'More' }] }
     expect(await post(hub, '/api/live/open', { document: more, project: notes })).toMatchObject({ saved: true })
     expect(JSON.parse(readFileSync(file, 'utf8')).walkthroughs.map((w: { id: string }) => w.id)).toContain('more')
-    expect(existsSync(workspaceFile(workspaceProject(notes)))).toBe(false)
+    expect(existsSync(workspaceFile(folderAt(notes)))).toBe(false)
     // Back in the project, its own document opens.
     await post(hub, '/api/project/open', { path: notes })
     expect(hub.state.file).toBe(file)
@@ -405,7 +405,7 @@ describe('the project of a path', () => {
 
   it('comes back after a restart without a file, with its document and its agent\'s session', async () => {
     const { SessionStore } = await import('../agents/sessions')
-    const { emptyDocument } = await import('./workspace-project')
+    const { folderDocument } = await import('./folder')
     const alpha = realpathSync(mkdtempSync(join(tmpdir(), 'alpha-')))
     const store = new SessionStore()
     store.setDefaultAgent({ agent: fakeAgent(), settings: {} })
@@ -413,8 +413,8 @@ describe('the project of a path', () => {
     const hub = await startHub(6900 + Math.floor(Math.random() * 100), { autoStart: true })
     hubs.push(hub)
     // The Studio gives back its document and the file it was tied to, which was never written.
-    const document = emptyDocument(workspaceProject(alpha))
-    await post(hub, '/api/files/open', { path: join(alpha, 'docs', 'poney', `${workspaceProject(alpha).id}.poney`), document })
+    const document = folderDocument(folderAt(alpha))
+    await post(hub, '/api/files/open', { path: join(alpha, 'docs', 'poney', `${folderAt(alpha).id}.poney`), document })
     expect(hub.state.project?.cwd).toBe(alpha)
     expect(hub.state.shown()).toMatchObject({ revision: 1, document })
     await until(() => !!hub.state.status().session)

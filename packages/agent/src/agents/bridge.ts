@@ -358,7 +358,8 @@ How to work:
 - Read the code before you claim anything about it. Never invent files, functions, tests or numbers.
 - Copy code with poney_excerpt. Check every document with poney_check (repo "${cwd}", rev "working") until it has no errors. Look at each scene with poney_render.
 - Show the document with poney_open: the person sees it at once, and Poney saves it to docs/poney/ in this folder. Pass documents inline to these tools. Do not write or change other files in the repository.
-- Keep one document for this folder, and never lose what is in it. To add to it, get it with poney_read (includeDocument: true), add walkthroughs, diagrams or scenes, and open it again. Remove things only when the person asks.
+- This folder can have several documents. poney_read lists them and says which one the person sees. Write to the one the person sees, unless they ask for another one: then give its path in \`file\`. For a new document, give a new path in \`file\`, such as docs/poney/<name>.poney.
+- Never lose what is in a document. To add to one, get it with poney_read (includeDocument: true), add walkthroughs, diagrams or scenes, and open it again. Remove things only when the person asks.
 
 How to answer questions:
 - Each question from the person comes to you as a new message. When you have answered or opened the document, end your turn. Do not call poney_wait or poney_reply: they are for agents in their own session.

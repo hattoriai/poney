@@ -90,7 +90,7 @@ export function ConnectDialog() {
 
   const ready = (!!project || !!folder) && !!choice && usableStatus(checks[keyOf(choice)])
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Choose your agent" description="It works in each project you open." width={640}>
+    <Modal open={open} onOpenChange={setOpen} title="Choose your agent" description="It works in each workspace you open." width={640}>
       <div className="scrollbar-quiet min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
         <section aria-labelledby="code-folder">
           <h3 id="code-folder" className="text-[13px] font-semibold">

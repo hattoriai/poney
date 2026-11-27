@@ -1,6 +1,7 @@
 import { indexOf, refKey, validateDocument, plainText } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
 import { useStudio, walkId, type AgentStatus, type Message } from './store'
+import type { WorkspaceDocuments } from '@hattoriai/poney/live'
 import { listRecent } from './recent'
 import { readLocation } from './location'
 
@@ -47,16 +48,23 @@ function connect(base: string, attempt = 0) {
   let first = true
   events.addEventListener('document', (e) => {
     const { revision, document, source } = JSON.parse((e as MessageEvent).data) as { revision: number; document: unknown; source?: 'agent' | 'file' | 'workspace' }
+    // No document shown: the folder has several, and the person selects one (see the documents event).
+    if (document === null) {
+      first = false
+      return useStudio.getState().setLive({ ...useStudio.getState().live, state: 'on', url: base, revision })
+    }
     const result = validateDocument(document, { extensions: knownExtensions() })
     const st = useStudio.getState()
     if (!result.ok || !result.document) return st.notify('The agent sent a document with errors. It was not opened.')
     // On connecting, what the local server already holds never replaces a different document opened here on purpose.
-    const opening = first
+    // A document the person asked for (a file, a folder, a new document) always shows.
+    const opening = first && !st.documentWanted
     first = false
+    if (st.documentWanted) useStudio.setState({ documentWanted: false })
     if (opening && st.history && !st.startOpen && st.projectId !== result.document.project.id) {
       st.keepProject(result.document, 'live')
       st.setLive({ state: 'on', url: base, revision })
-      return st.notify(`“${result.document.project.name}” from Poney on this computer is in the project menu.`)
+      return st.notify(`“${result.document.project.name}” from Poney on this computer is in the document menu.`)
     }
     // The start page stays, and the document waits in its list, unless the address names this document (?doc=<id>).
     const named = REQUESTED === result.document.project.id
@@ -81,7 +89,7 @@ function connect(base: string, attempt = 0) {
     st.setLive({ state: 'on', url: base, revision })
     st.notify(
       isEmpty(result.document)
-        ? `Opened the project “${result.document.project.name}”. Ask the agent for a tour to fill it.`
+        ? `Opened “${result.document.project.name}”. Ask the agent for a tour to fill it.`
         : source === 'file'
           ? `Opened “${result.document.project.name}” from its file.`
           : `The agent opened “${plainText(result.document.walkthroughs[0]?.title ?? result.document.project.name)}” (revision ${revision}).`,
@@ -100,6 +108,7 @@ function connect(base: string, attempt = 0) {
   })
   events.addEventListener('overlays', (e) => useStudio.getState().setOverlays(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('file', (e) => useStudio.getState().setLiveFile((JSON.parse((e as MessageEvent).data) as { path: string | null }).path))
+  events.addEventListener('documents', (e) => useStudio.getState().setFolderDocuments(JSON.parse((e as MessageEvent).data) as WorkspaceDocuments))
 
   // Report what the person does, a moment after they do it.
   let timer = 0

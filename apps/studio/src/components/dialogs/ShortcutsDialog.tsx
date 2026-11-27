@@ -8,7 +8,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ['⌘K  or  /', 'Search this document'],
       ['⌘Z  ⇧⌘Z', 'Undo and redo a change'],
       ['⌥←  ⌥→', 'Back and forward'],
-      ['O', 'Project overview'],
+      ['O', 'Overview'],
       ['[  ]', 'Show or hide the sidebar and the inspector'],
     ],
   },

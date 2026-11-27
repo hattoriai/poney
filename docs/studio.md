@@ -50,19 +50,25 @@ Choose **Explore the whole system** to browse diagrams like these from Kestrel.
 - Paste a Mermaid diagram or Poney JSON to open it as a new project. Choose **Export → Copy JSON** to copy the current document.
 - Press <kbd>?</kbd> for the full list of keyboard shortcuts.
 
-With a repository connected, choose **Facts** to see test coverage or recent changes for a part of the system. **Import from the code…** in the project menu lets you add tables or modules from the repository. See [Importers and overlays](extending.md#plugins-importers-and-overlays).
+With a repository connected, choose **Facts** to see test coverage or recent changes for a part of the system. **Import from the code…** in the document menu lets you add tables or modules from the repository. See [Importers and overlays](extending.md#plugins-importers-and-overlays).
 
 ## Working with agents
 
 - **Start an agent in Studio.** Choose **Connect an agent** and pick a local folder or a Git URL to clone into `~/.poney/workspaces`. Select Claude Code, OpenAI Codex, OpenCode or GitHub Copilot, or enter the command for another agent that uses the [Agent Client Protocol](https://agentclientprotocol.com). The agent uses your existing sign-in. Follow its work and respond to permission requests in the agent panel.
-- **Choose the agent one time.** Each project has its own agent session and its own conversation. When you open a project, the agent starts there, or continues the project's earlier session. An agent can finish its answer while you look at another project. Poney keeps the agent you chose and each project's session in `~/.poney/sessions.json`.
+- **Choose the agent one time.** Each workspace has its own agent session and its own conversation. When you open a workspace, the agent starts there, or continues the workspace's earlier session. An agent can finish its answer while you look at another workspace. Poney keeps the agent you chose and each workspace's session in `~/.poney/sessions.json`.
 - **Use an existing session.** Add the Poney MCP server to your agent. It connects to a running Studio server or starts one for you. To use a specific server, set `PONEY_HUB_URL`. See [Agents, the CLI and MCP](agents.md).
 
 In either setup, **Ask the agent** includes the scene you’re reading with your question. Use the target button to point to a particular part of the diagram, or choose **Add a note for the agent** to leave a comment.
 
 ## Documents are files
 
-When you connect an agent from the start page, Studio saves your walkthrough under `docs/poney/` in the repository. For a folder named `shop`, it opens `docs/poney/shop.poney`, or creates it when there’s a diagram or walkthrough to save.
+Choose **Open a workspace** and select a folder, usually a repository. Its documents are the `.poney` files in `docs/poney/`.
+
+- With one document, Studio opens it.
+- With several, Studio opens the one you read last. The first time, it asks you to select one.
+- With none, Studio starts an empty document. For a folder named `shop`, it saves `docs/poney/shop.poney` when there’s a diagram or walkthrough to keep.
+
+The document menu, at the top of the sidebar, lists the workspace's documents. Select one to read it, or choose **New document…** to start another. An agent writes to the document you're reading, unless you ask it for another one.
 
 Edits in Studio go straight to that file. Changes you make in an editor or pull from Git show up in Studio too. Use **Open a file** to browse for a walkthrough saved elsewhere.
 

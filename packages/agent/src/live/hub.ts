@@ -29,7 +29,7 @@ export async function startHub(port?: number, options: { autoStart?: boolean } =
   const files = new DocumentFiles(state)
   server = new LiveServer(state, agents, files)
   await server.start(port)
-  return { state, files, server, live: new LocalLive(state, server), agents }
+  return { state, files, server, live: new LocalLive(state, server, files), agents }
 }
 
 /**

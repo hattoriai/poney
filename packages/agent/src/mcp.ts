@@ -15,6 +15,8 @@ import { z } from 'zod'
 import { renderScenePng } from '@hattoriai/poney-render'
 import { brief, check, example, excerpt, outline, schema, type Input, type Topic } from './ops'
 import { attachOrStart } from './live/hub'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { isAbsolute, resolve } from 'node:path'
 
 // The live link: this process's own hub, or one already running (a Studio started with `poney studio`).
 const { live, hub } = await attachOrStart()
@@ -42,9 +44,29 @@ async function inputOrLive(args: Input): Promise<Input | undefined> {
   return current == null ? undefined : { document: current }
 }
 
-/** The walkthroughs and diagrams of the open document that `next` leaves out. */
-async function dropped(next: { walkthroughs: { id: string }[]; views: { id: string }[] }): Promise<string[]> {
-  const { current } = await live.read()
+const fileInput = z
+  .string()
+  .optional()
+  .describe('The document to write to: a .poney path, relative to the folder. Default: the document the person sees. A path that does not exist makes a new document there (use docs/poney/<name>.poney).')
+
+/** The document an agent writes to: the shown one, another document of the folder (read from its file), or none (a new file). */
+async function target(file?: string): Promise<unknown> {
+  const r = await live.read()
+  if (!file) return r.current
+  const path = isAbsolute(file) ? file : resolve(r.workspace?.folder ?? process.cwd(), file)
+  if (!existsSync(path)) return undefined
+  const real = realpathSync(path)
+  if (r.workspace?.shown && existsSync(r.workspace.shown) && realpathSync(r.workspace.shown) === real) return r.current
+  try {
+    return JSON.parse(readFileSync(real, 'utf8'))
+  } catch {
+    return undefined
+  }
+}
+
+/** The walkthroughs and diagrams of the target document that `next` leaves out. */
+async function dropped(next: { walkthroughs: { id: string }[]; views: { id: string }[] }, file?: string): Promise<string[]> {
+  const current = await target(file)
   const open = current as { walkthroughs?: { id: string; title?: string }[]; views?: { id: string; title?: string }[] } | undefined
   if (!open) return []
   const keep = new Set([...next.walkthroughs.map((w) => `w:${w.id}`), ...next.views.map((v) => `v:${v.id}`)])
@@ -54,7 +76,7 @@ async function dropped(next: { walkthroughs: { id: string }[]; views: { id: stri
   ]
 }
 
-const SAVED = 'Saved in its project. It shows when the person opens that project.'
+const SAVED = 'Saved in its workspace. It shows when the person opens that workspace.'
 const noWindow = () => `No Studio window is open. Ask the person to open ${live.studioUrl}.`
 
 server.registerTool(
@@ -165,9 +187,10 @@ server.registerTool(
   {
     title: 'Open in Poney Studio',
     description:
-      'Checks a document and shows it live in Poney Studio for the person. Every open Studio window updates at once. Returns the address to give the person if no window is open yet. Call it again after each revision. It replaces the open document: to add to it, get it with poney_read (includeDocument: true) and open it with your additions.',
+      'Checks a document and shows it live in Poney Studio for the person. Every open Studio window updates at once. Returns the address to give the person if no window is open yet. Call it again after each revision. It replaces the open document: to add to it, get it with poney_read (includeDocument: true) and open it with your additions. A folder can have several documents (poney_read lists them): give `file` to write to another one, or to start a new one.',
     inputSchema: {
       ...documentInput,
+      file: fileInput,
       replace: z.boolean().optional().describe('Set only when the person asked to remove walkthroughs or diagrams that are open now, or to start a new document.'),
     },
   },
@@ -177,16 +200,16 @@ server.registerTool(
     if (!result?.ok || !result.document) return text(`Not opened: the document has errors.\n\n${report}`, true)
     // The person's work is not lost by accident: what is open stays unless they asked to remove it.
     if (!args.replace) {
-      const lost = await dropped(result.document)
+      const lost = await dropped(result.document, args.file)
       if (lost.length)
         return text(
           `Not opened: the open document has ${lost.join(', ')}, and this one leaves them out. Get the open document with poney_read (includeDocument: true), add your work to it, and open that. Set replace: true only if the person asked to remove them.`,
           true,
         )
     }
-    const { revision, viewers, saved, refused } = await live.open(JSON.parse(JSON.stringify(result.document)))
+    const { revision, viewers, saved, refused } = await live.open(JSON.parse(JSON.stringify(result.document)), args.file)
     if (refused) return text(refused, true)
-    if (saved) return text(SAVED)
+    if (saved) return text(args.file ? `Saved to ${args.file}. The person sees it when they select it.` : SAVED)
     const where = viewers ? `Shown in ${viewers} open Studio window${viewers > 1 ? 's' : ''}.` : noWindow()
     return text(`Opened revision ${revision}: "${result.document.walkthroughs[0]?.title ?? result.document.project.name}". ${where}${result.warnings.length ? `\n\n${report}` : ''}`)
   },
@@ -203,22 +226,23 @@ server.registerTool(
       importer: z.string().optional().describe('"schema", "js-modules", or another installed importer. Leave out to list them.'),
       path: z.string().optional().describe('A file to read instead of the one the importer finds, relative to the repository.'),
       store: z.string().optional().describe('For "schema": the id of the database entity the tables are stored in.'),
+      file: fileInput,
     },
   },
-  async ({ repo, importer, path, store }) => {
+  async ({ repo, importer, path, store, file }) => {
     const p = await import('./plugins')
     if (!importer) {
       const { importers, problems } = await p.available(repo)
       return text([...importers.map((i) => `- ${i.id}: ${i.description} ${i.files.length ? `Would read ${i.files.join(', ')}.` : 'Nothing to read in this repository.'}`), ...problems].join('\n'))
     }
     try {
-      const { current } = await live.read()
+      const current = await target(file)
       const { document, summary } = await p.runImport(importer, repo, { into: current ?? undefined, path, store })
       const { result, report } = check({ document })
       if (!result?.ok) return text(`Not opened: the document has errors after the import.\n\n${report}`, true)
-      const { revision, viewers, saved, refused } = await live.open(document)
+      const { revision, viewers, saved, refused } = await live.open(document, file)
       if (refused) return text(refused, true)
-      if (saved) return text(`${summary}\n${SAVED}`)
+      if (saved) return text(`${summary}\n${file ? `Saved to ${file}.` : SAVED}`)
       return text(`${summary}\nOpened revision ${revision}${viewers ? '' : `. ${noWindow()}`}. Give the new parts and tables plain summaries, then group them into views that explain something.`)
     } catch (e) {
       return text(e instanceof Error ? e.message : String(e), true)
@@ -296,15 +320,16 @@ server.registerTool(
   {
     title: 'Read what the person sees',
     description:
-      'Returns what the person is doing in Poney Studio: the view and scene they are on, what they selected, their answers to questions, the notes they wrote for you, which scenes they marked as read, the last messages of the question thread, and the document itself if they changed it.',
+      'Returns what the person is doing in Poney Studio: the view and scene they are on, what they selected, their answers to questions, the notes they wrote for you, which scenes they marked as read, the last messages of the question thread, the documents of the folder and the one shown, and the document itself if they changed it.',
     inputSchema: { includeDocument: z.boolean().optional().describe('Also return the full document. Default: only when the person changed it.') },
     annotations: { readOnlyHint: true },
   },
   async (args) => {
     const r = await live.read()
-    if (!r.studio && !args.includeDocument) return text(r.viewers ? 'A Studio window is open but has reported nothing yet.' : noWindow())
+    const workspace = r.workspace ? { folder: r.workspace.folder, documents: r.workspace.documents, shown: r.workspace.shown } : undefined
+    if (!r.studio && !args.includeDocument) return text(r.viewers ? `A Studio window is open but has reported nothing yet.${workspace ? `\n\n${JSON.stringify({ workspace }, null, 2)}` : ''}` : noWindow())
     const { document, ...rest } = r.studio ?? { document: undefined }
-    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20), ...(r.invalid ? { problem: r.invalid } : {}) }
+    const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20), ...(workspace ? { workspace } : {}), ...(r.invalid ? { problem: r.invalid } : {}) }
     if (document !== undefined || args.includeDocument) out.document = document ?? r.current
     return text(JSON.stringify(out, null, 2))
   },

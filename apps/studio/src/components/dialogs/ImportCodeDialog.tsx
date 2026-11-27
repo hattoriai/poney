@@ -44,7 +44,7 @@ export function ImportCodeDialog() {
   }
 
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Import from the code" description={root ? `Adds to this document what it reads in ${root.split('/').pop()}. What the document has stays.` : 'Connect an agent or open a project first.'}>
+    <Modal open={open} onOpenChange={setOpen} title="Import from the code" description={root ? `Adds to this document what it reads in ${root.split('/').pop()}. What the document has stays.` : 'Connect an agent or open a workspace first.'}>
       <ul className="divide-y divide-rule px-5 py-3">
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-4 py-3">

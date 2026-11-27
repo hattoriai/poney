@@ -5,9 +5,8 @@ import { FileBrowser } from '@/components/agent/FileBrowser'
 import { Modal } from './Modal'
 
 /**
- * Opens a project: a folder on this computer, or a repository cloned from a
- * Git address. Its Poney document opens (or starts empty), and agents work
- * there.
+ * Opens a workspace: a folder on this computer, or a repository cloned from a
+ * Git address. Its Poney documents are in docs/poney/, and agents work there.
  */
 export function OpenProjectDialog() {
   const open = useStudio((s) => s.projectOpen)
@@ -26,7 +25,7 @@ export function OpenProjectDialog() {
     }
   }
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Open a project" description="A folder on this computer, usually a Git repository. Its Poney document is saved in docs/poney/, and agents work there." width={620}>
+    <Modal open={open} onOpenChange={setOpen} title="Open a workspace" description="A folder on this computer, usually a Git repository. Its Poney documents are in docs/poney/, and agents work there." width={620}>
       <div className="space-y-3 px-5 py-5">
         <div role="tablist" className="inline-flex rounded-lg border border-rule bg-sunken/60 p-0.5 text-[12.5px]">
           {(['local', 'git'] as const).map((k) => (
