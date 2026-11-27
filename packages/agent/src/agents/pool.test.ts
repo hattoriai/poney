@@ -83,6 +83,26 @@ describe('AgentPool and workspaces', () => {
     expect(pool.get(key)!.folders).toEqual([a, b])
     expect(sessionOf(await askAndAnswer(state, pool, 'And now?'))).toBe(sessionOf(first))
   }, 20_000)
+  it('gives a folder added while the agent works to it when it finishes, in the same session', async () => {
+    const { state, pool } = setup()
+    const [a, b] = [folder(), folder()]
+    const key = join(a, 'acme.poney-workspace')
+    state.setWorkspace({ key, name: 'Acme', file: key, folders: [folderAt(a)], documents: [] })
+    await pool.activate()
+    await pool.connect({ providerId: 'fake' })
+    const first = await askAndAnswer(state, pool, 'Hello?')
+    state.ask('Give me a tour.')
+    await until(() => state.thread(key).some((m) => m.from === 'permission' && !m.chosen))
+    state.setWorkspace({ key, name: 'Acme', file: key, folders: [folderAt(a), folderAt(b)], documents: [] })
+    await pool.activate()
+    // Busy: it keeps working with what it had.
+    expect(pool.get(key)!.folders).toEqual([a])
+    const ask = [...state.thread(key)].reverse().find((m) => m.from === 'permission')!
+    pool.get(key)!.choose(ask.id, 'yes')
+    await until(() => pool.get(key)?.connected === true && pool.get(key)!.folders.length === 2)
+    expect(pool.get(key)!.folders).toEqual([a, b])
+    expect(sessionOf(await askAndAnswer(state, pool, 'And now?'))).toBe(sessionOf(first))
+  }, 20_000)
 })
 
 describe('AgentPool', () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { briefing } from './bridge'
 import { mkdtempSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -36,5 +37,21 @@ describe('workspaces', () => {
     await expect(cloneRepository('--upload-pack=touch /tmp/x')).rejects.toThrow(/https/)
     await expect(cloneRepository('file:///etc')).rejects.toThrow(/https/)
     await expect(cloneRepository('https://example.com/a b')).rejects.toThrow(/https/)
+  })
+})
+
+describe('briefing', () => {
+  it('names every folder of a workspace as its code, with none of them extra', () => {
+    const text = briefing('/w/api', ['/w/worker'])
+    expect(text).toContain('Its folders are: /w/api, /w/worker.')
+    expect(text).toContain('a tour or an answer covers every folder that has code for it')
+    expect(text).not.toContain('may read')
+    expect(text).not.toContain('repo "/w/api"')
+  })
+
+  it('names the one folder of a folder opened alone', () => {
+    const text = briefing('/w/api')
+    expect(text).toContain('understand the code in /w/api.')
+    expect(text).toContain('Give "/w/api" as `repo`.')
   })
 })

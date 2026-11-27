@@ -20,7 +20,7 @@ export function Prose({ text, multiline = false }: { text: string; multiline?: b
   )
 }
 
-function Inline({ text }: { text: string }) {
+export function Inline({ text }: { text: string }) {
   return (
     <>
       {parseInline(text).map((s, i) => (
@@ -35,7 +35,8 @@ function render(s: InlineSpan): ReactNode {
   if (s.marks.includes('code')) node = <code className="rounded-[4px] bg-sunken px-1 py-px font-mono text-[0.88em] [font-variant-ligatures:none]">{node}</code>
   if (s.marks.includes('italic')) node = <em>{node}</em>
   if (s.marks.includes('bold')) node = <strong className="font-semibold text-ink">{node}</strong>
-  if (s.href)
+  // Only web and mail links: text from an agent or a file must not run script.
+  if (s.href && /^(https?:|mailto:)/i.test(s.href))
     node = (
       <a href={s.href} target="_blank" rel="noreferrer" className="text-poney underline decoration-poney/40 underline-offset-2 hover:decoration-poney">
         {node}

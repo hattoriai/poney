@@ -100,6 +100,8 @@ interface State {
   connectOpen: boolean
   /** The agent panel. */
   agentPanelOpen: boolean
+  /** Goes up each time something asks to show the agent panel, also when it is already open, so a diagram over the page can make room. */
+  agentShown: number
   /** The file the open document is saved to, when Poney on this computer keeps it. */
   liveFile: string | null
   /** The dialog that opens a .poney file from this computer. */
@@ -296,8 +298,9 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   setAgent: (agent) => set({ agent }),
   connectOpen: false,
   agentPanelOpen: false,
+  agentShown: 0,
   setConnectOpen: (connectOpen) => set({ connectOpen }),
-  setAgentPanelOpen: (agentPanelOpen) => set({ agentPanelOpen }),
+  setAgentPanelOpen: (agentPanelOpen) => set((s) => ({ agentPanelOpen, agentShown: agentPanelOpen ? s.agentShown + 1 : s.agentShown })),
   liveFile: null,
   fileOpen: false,
   setLiveFile: (liveFile) => set({ liveFile }),
@@ -401,7 +404,7 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   setWorkspaceDialog: (workspaceDialog) => set({ workspaceDialog }),
   setChooseWorkspace: (chooseWorkspace) => set({ chooseWorkspace }),
   draft: null,
-  suggest: (draft) => set({ draft, agentPanelOpen: true }),
+  suggest: (draft) => set((s) => ({ draft, agentPanelOpen: true, agentShown: s.agentShown + 1 })),
   takeDraft() {
     const draft = get().draft
     if (draft !== null) set({ draft: null })

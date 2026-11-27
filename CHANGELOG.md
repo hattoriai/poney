@@ -16,10 +16,20 @@ Every package in this repository has the same version. The format has its own ve
 - The folder browser takes a typed or pasted path (`~` is the home folder).
 - The suggested requests in the agent panel and on an empty document put their text in the message box. They no longer send it on a click.
 - A tab that reloads, or a local server that restarts, opens the workspace again.
+- **Expand** on a walkthrough diagram makes the same diagram bigger. The groups you opened, the zoom and an edit in progress stay. Before, it opened a new copy with all groups closed. The button then restores the diagram.
+- An expanded diagram restores when you ask the agent from it, or open **Connect an agent…**, so you see the agent panel or the dialog.
+- The agent's replies show their Markdown: bold, italic, `code`, links, headings, lists, code blocks, quotes and tables. Before, they showed the raw marks.
+- A link in document text or in a reply opens only for web and mail addresses.
+- **Zoom to selection** has its own icon, a frame with a magnifier, so it does not look like **Fit to view**. It is off when nothing is selected.
+- A sequence diagram has **Play** next to its step buttons, as a walkthrough scene has. It selects one message about every two seconds. Selecting something else, or Esc, stops it.
+- In a narrow window, the diagram toolbar centers in the part of the canvas that the inspector does not cover. Before, the inspector hid its end.
+- The facts in a walkthrough's **At a glance** and **Verdict** show `code` and links, as the findings do, and you can edit them.
 
 ### Agents
 
 - No agent starts in a workspace with no folder. **Connect an agent** says to add a folder first.
+- In a workspace with several folders, the agent is told that all of them are the code: a tour or an answer covers every folder that has code for it. Before, it was told the first folder was the code and the others were folders it may read.
+- A folder added while the agent works or starts gets to the agent when it finishes, in the same session. Before, the agent kept the folders it started with.
 
 ## 0.4.0
 

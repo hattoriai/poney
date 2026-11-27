@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { Maximize, Minus, Plus, Scan } from 'lucide-react'
+import { Maximize, Minus, Plus, ScanSearch } from 'lucide-react'
 import { useStudio } from '@/features/store'
 import { parseRef, refKey, type Ref } from '@hattoriai/poney-core'
 import { focusNextElement } from '@/features/interaction'
@@ -49,6 +49,7 @@ export function Canvas({ viewId, scene, label, children, tools, overlay, initial
   const pointer = useRef({ x: 0, y: 0 })
   const select = useStudio((s) => s.select)
   const selection = useStudio((s) => s.selection)
+  const inspectorOpen = useStudio((s) => s.inspectorOpen)
   const focus = useStudio((s) => s.focus)
   const lastFocus = useRef<number>(0)
   const fitted = useRef<string | null>(null)
@@ -283,7 +284,12 @@ export function Canvas({ viewId, scene, label, children, tools, overlay, initial
         </svg>
         {overlay && <div className="pointer-events-none absolute left-4 top-4">{overlay}</div>}
         <Tooltip pointer={pointer} />
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl border border-rule bg-raised/95 p-1 shadow-float backdrop-blur">
+        {/* Below xl the inspector lies over the canvas (340px): the toolbar centers in what is left. */}
+        <div
+          className={`absolute bottom-4 left-1/2 flex max-w-[calc(100%-2rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-0.5 rounded-xl border border-rule bg-raised/95 p-1 shadow-float backdrop-blur ${
+            inspectorOpen ? 'max-xl:left-[calc(50%-170px)] max-xl:max-w-[calc(100%-340px-2rem)]' : ''
+          }`}
+        >
           <ToolbarButton label="Zoom out" shortcut="−" onClick={() => zoomAt(0.8, undefined, undefined, true)}>
             <Minus size={15} />
           </ToolbarButton>
@@ -306,12 +312,13 @@ export function Canvas({ viewId, scene, label, children, tools, overlay, initial
           <ToolbarButton
             label="Zoom to selection"
             shortcut="F"
+            disabled={!selection}
             onClick={() => {
               const sel = useStudio.getState().selection
               if (sel) useStudio.getState().requestFocus('zoom', sel)
             }}
           >
-            <Scan size={15} />
+            <ScanSearch size={15} />
           </ToolbarButton>
           <PointButton size={15} className="h-8 w-8" />
           {tools && (

@@ -1,8 +1,9 @@
-import type { FC } from 'react'
-import { ArrowRightLeft, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Share2 } from 'lucide-react'
+import { useEffect, useRef, useState, type FC } from 'react'
+import { ArrowRightLeft, ChevronsDownUp, ChevronsUpDown, Share2 } from 'lucide-react'
 import type { View, ViewOf } from '@hattoriai/poney-core'
 import { useIndex, useStudio } from '@/features/store'
 import { ToolbarButton } from '@/components/shared/Toolbar'
+import { FIRST_STEP_MS, STEP_MS, StepPlayer } from '@/components/shared/StepPlayer'
 
 /**
  * The Studio's controls for each diagram type, in the canvas toolbar. The
@@ -67,18 +68,45 @@ function SequenceTools({ view }: { view: ViewOf<'sequence'> }) {
   const flat = idx.messages(view.interaction)
   const current = selection?.kind === 'message' && selection.behavior === view.interaction ? flat.findIndex((f) => f.message.id === selection.id) : -1
   const go = (i: number) => flat[i] && select({ kind: 'message', behavior: view.interaction, id: flat[i].message.id }, { focus: 'center' })
+  // Playing moves the selection one message at a time. Selecting anything else, or Esc, stops it.
+  const [playing, setPlaying] = useState(false)
+  /** The step that playing selected last; any other selection is the reader's. */
+  const ours = useRef(-1)
+  const play = (from: number) => {
+    ours.current = from
+    setPlaying(true)
+  }
+  useEffect(() => {
+    if (!playing) return
+    if (current !== ours.current) return setPlaying(false)
+    const next = current + 1
+    if (next >= flat.length) return setPlaying(false)
+    const t = window.setTimeout(() => {
+      ours.current = next
+      go(next)
+    }, current < 0 ? FIRST_STEP_MS : STEP_MS)
+    return () => clearTimeout(t)
+  }, [playing, current, flat.length])
+  useEffect(() => setPlaying(false), [view.id])
   return (
-    <>
-      <ToolbarButton label="Previous step" onClick={() => go(current <= 0 ? 0 : current - 1)} disabled={current === 0}>
-        <ChevronLeft size={15} />
-      </ToolbarButton>
-      <span className="font-tabular min-w-[54px] text-center text-[12px] text-ink-2" aria-live="polite">
-        {current >= 0 ? `${current + 1} / ${flat.length}` : `${flat.length} steps`}
-      </span>
-      <ToolbarButton label={current < 0 ? 'Start stepping through' : 'Next step'} onClick={() => go(current + 1)} disabled={current === flat.length - 1}>
-        <ChevronRight size={15} />
-      </ToolbarButton>
-    </>
+    <StepPlayer
+      count={flat.length}
+      step={current >= 0 ? current : null}
+      playing={playing}
+      compact
+      label="Play the messages"
+      onPlay={() => {
+        if (current >= flat.length - 1) {
+          play(0)
+          go(0)
+        } else play(current)
+      }}
+      onPause={() => setPlaying(false)}
+      onStep={(k) => {
+        setPlaying(false)
+        if (k !== null) go(Math.max(0, Math.min(flat.length - 1, k)))
+      }}
+    />
   )
 }
 
