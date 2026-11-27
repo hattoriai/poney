@@ -10,7 +10,8 @@ Every package in this repository has the same version. The format has its own ve
 - The document menu, at the top of the sidebar, lists the folder's documents, and **New document…** starts another one in `docs/poney/`.
 - Names in the interface: workspace in place of project, and **Overview** in place of **Project overview**.
 - A workspace can have several folders, kept in a `.poney-workspace` file with paths relative to the file. **Add a folder…** and **Save the workspace…** are in the document menu. A folder with its own workspace file opens that file. Saving a workspace keeps its conversation and agent session.
-- **Import from the code…** asks which folder of the workspace to read.
+- **Import from the code…** asks which folder of the workspace to read. **Facts** reads every folder of the workspace.
+- The start page lists recent workspaces. A folder saved as a workspace file shows once.
 - You can close an open document: the × on the document in the **Open** list on the start page, or in the document menu. A closed document stays in **Recent**.
 - You can delete the `.poney` file of a document when Poney on this computer keeps it: **Delete file…** in the document menu, or the trash button on the document in the start page's lists. Studio asks first. The delete is permanent.
 - New route `POST /api/files/delete` in the local server. It deletes only a valid Poney document, and with `project` only a file that holds that document.

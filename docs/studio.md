@@ -93,4 +93,5 @@ In the document menu, choose **Add a folder…**. A workspace with more than one
 - **Open a workspace** opens a `.poney-workspace` file, or a folder. A folder with its own workspace file opens that file. With several, Studio asks which one.
 - When you add a folder, its documents in `docs/poney/` join the list. A new document joins it too.
 - In a saved workspace, × on a document or a folder removes it from the workspace. The file or the folder stays.
-- **Import from the code…** asks which folder to read.
+- **Import from the code…** asks which folder to read. **Facts** reads every folder: each part gets the facts of the folder that has its code.
+- The start page lists the workspaces you opened. Select one to open it again.

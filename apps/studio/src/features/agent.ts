@@ -1,4 +1,5 @@
-import { indexOf, refKey } from '@hattoriai/poney-core'
+import { indexOf, refKey, validateDocument } from '@hattoriai/poney-core'
+import { knownExtensions } from './extensions'
 import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@hattoriai/poney/live'
 import { useStudio, walkId, type ContextItem } from './store'
 
@@ -81,7 +82,16 @@ export const setSetting = (id: string, value: string | boolean) => call('/api/ag
 async function wanted<T>(request: () => Promise<T>): Promise<T> {
   useStudio.setState({ documentWanted: true })
   try {
-    return await request()
+    const result = await request()
+    // The document asked for is shown already: no new one comes, so it shows now, as Poney on this computer has it.
+    const revision = (result as { revision?: number | null } | null)?.revision
+    if (useStudio.getState().documentWanted && revision != null && revision === useStudio.getState().live.revision) {
+      useStudio.setState({ documentWanted: false })
+      const { current } = await call<{ current?: unknown }>('/api/live/read')
+      const checked = current == null ? undefined : validateDocument(current, { extensions: knownExtensions() })
+      if (checked?.ok && checked.document) useStudio.getState().reviseDocument(checked.document, 'live')
+    }
+    return result
   } catch (e) {
     useStudio.setState({ documentWanted: false })
     throw e

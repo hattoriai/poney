@@ -29,7 +29,7 @@ import { documentsOf, type DocumentFiles } from './files'
 
 
 import type { Place } from './types'
-import { workspaceFor, workspaceToOpen, type Workspace } from './workspace-file'
+import { presentFolders, workspaceFor, workspaceToOpen, type Workspace } from './workspace-file'
 import { buildStamp } from './stamp'
 import { mcpCommand, studioDist } from '../paths'
 
@@ -266,10 +266,14 @@ export class LiveServer {
       /* The project folder */
       case 'GET /api/plugins': {
         // Importers and overlays, and what each would read in the project's folder.
-        const { available } = await import('../plugins/run')
-        const dir = folderOf(url.searchParams.get('folder'))
+        const { available, availableIn } = await import('../plugins/run')
+        const asked = url.searchParams.get('folder')
+        const dir = folderOf(asked)
         if (!dir) return json(res, 200, { root: null, importers: [], overlays: [], problems: [] })
-        return json(res, 200, { root: dir, ...(await available(dir)) })
+        // Importers read one folder; overlays read every folder of the workspace, unless the request names one.
+        const all = asked ? [dir] : presentFolders(s.workspace!).map((f) => f.cwd)
+        const overlays = (await availableIn(all)).overlays
+        return json(res, 200, { root: dir, ...(await available(dir)), overlays })
       }
       case 'POST /api/import': {
         const { runImport } = await import('../plugins/run')
@@ -283,11 +287,11 @@ export class LiveServer {
         return json(res, 200, { summary })
       }
       case 'POST /api/overlays/run': {
-        const { runOverlay } = await import('../plugins/run')
+        const { runOverlayIn } = await import('../plugins/run')
         const r = (await body(req)) as { id?: string; folder?: string }
         const dir = folderOf(r.folder)
         if (!dir) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        const result = await runOverlay(r.id ?? '', dir, s.current())
+        const result = await runOverlayIn(r.id ?? '', r.folder ? [dir] : presentFolders(s.workspace!).map((f) => f.cwd), s.current())
         s.setOverlay(r.id!, result)
         return json(res, 200, result)
       }
@@ -301,7 +305,7 @@ export class LiveServer {
         const w = workspaceToOpen(r.path ?? '')
         if ('choose' in w) return json(res, 200, { choose: w.choose })
         s.setWorkspace(w)
-        return json(res, 200, { root: s.project?.cwd, key: s.projectKey() })
+        return json(res, 200, { root: s.project?.cwd, key: s.projectKey(), revision: s.shown()?.revision ?? null })
       }
 
       /* The open workspace */
@@ -336,7 +340,7 @@ export class LiveServer {
         const r = (await body(req)) as { path?: string; document?: unknown }
         if (!r.path) return json(res, 400, { error: 'Give a path' })
         this.files.open(r.path, r.document)
-        return json(res, 200, { path: s.file })
+        return json(res, 200, { path: s.file, revision: s.shown()?.revision ?? null })
       }
       case 'POST /api/documents/new': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot make files.' })

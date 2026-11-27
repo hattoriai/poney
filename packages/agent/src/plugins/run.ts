@@ -52,3 +52,23 @@ export function describeOverlay(r: OverlayResult): string {
   const lines = r.marks.map((m) => `- ${m.target}: ${m.badge?.text ?? ''}${m.effect ? ` (${m.effect})` : ''}`)
   return [`${r.title}, read ${r.at}.`, ...r.notes, ...lines].join('\n')
 }
+
+/**
+ * Runs an overlay on each folder of a workspace and joins the marks: a part gets the facts of the folder
+ * that has its code (the first one, if several do). The notes name their folder.
+ */
+export async function runOverlayIn(id: string, dirs: string[], document: unknown): Promise<OverlayResult> {
+  if (dirs.length === 1) return runOverlay(id, dirs[0], document)
+  const results = await Promise.all(dirs.map(async (dir) => ({ dir, result: await runOverlay(id, dir, document) })))
+  const seen = new Set<string>()
+  const marks = results.flatMap(({ result }) => result.marks.filter((m) => !seen.has(m.target) && seen.add(m.target)))
+  return { title: results[0].result.title, at: results[0].result.at, marks, notes: results.flatMap(({ dir, result }) => result.notes.map((n) => `${basename(dir)}: ${n}`)) }
+}
+
+/** The overlays of a workspace: each with the files it would read, in every folder. */
+export async function availableIn(dirs: string[]) {
+  if (dirs.length === 1) return available(dirs[0])
+  const each = await Promise.all(dirs.map(async (dir) => ({ dir, found: await available(dir) })))
+  const overlays = each[0].found.overlays.map((o) => ({ ...o, files: each.flatMap(({ dir, found }) => (found.overlays.find((x) => x.id === o.id)?.files ?? []).map((f) => `${basename(dir)}/${f}`)) }))
+  return { ...each[0].found, overlays }
+}
