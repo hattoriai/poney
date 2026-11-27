@@ -1,6 +1,6 @@
 {
   "name": "@hattoriai/poney-element",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "<poney-diagram>: a custom element that draws a Poney view or walkthrough scene in any web page, with no framework. Also built as one file, poney.js, with poney.css.",
   "license": "MIT",
@@ -37,11 +37,11 @@
     "provenance": true
   },
   "dependencies": {
-    "@hattoriai/poney-core": "0.3.0",
-    "@hattoriai/poney-diagrams": "0.3.0",
-    "@hattoriai/poney-ext-ownership": "0.3.0",
-    "@hattoriai/poney-ext-security": "0.3.0",
-    "@hattoriai/poney-layout": "0.3.0"
+    "@hattoriai/poney-core": "0.3.1",
+    "@hattoriai/poney-diagrams": "0.3.1",
+    "@hattoriai/poney-ext-ownership": "0.3.1",
+    "@hattoriai/poney-ext-security": "0.3.1",
+    "@hattoriai/poney-layout": "0.3.1"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
