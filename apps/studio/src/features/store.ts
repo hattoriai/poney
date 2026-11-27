@@ -120,6 +120,8 @@ interface State {
   jump: { scene: string; nonce: number } | null
   /** The start page shows: nothing is open yet, or the person asked for it. */
   startOpen: boolean
+  /** The document whose file the delete dialog asks about. */
+  deleting: { id: string; name: string; path: string } | null
 }
 
 interface Actions {
@@ -152,6 +154,9 @@ interface Actions {
   jumpTo(scene: string): void
   showStart(open: boolean): void
   switchProject(id: string): void
+  /** Removes a document from the open list. Closing the open one opens the next, else the start page. */
+  closeDocument(id: string): void
+  setDeleting(deleting: State['deleting']): void
   /** Adds a project to the list without opening it. */
   keepProject(doc: PoneyDocument, origin: Project['origin']): void
   importOpen: boolean
@@ -315,6 +320,21 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   keepProject(doc, origin) {
     set({ projects: [...get().projects.filter((p) => p.id !== doc.project.id), { id: doc.project.id, doc, origin }] })
   },
+
+  closeDocument(id) {
+    const { projects, projectId } = get()
+    const rest = projects.filter((p) => p.id !== id)
+    if (id !== projectId) return set({ projects: rest })
+    const next = [...rest].reverse().find((p) => p.origin !== 'example') ?? rest[rest.length - 1]
+    if (next) {
+      get().loadDocument(next.doc, next.origin)
+      return set({ projects: get().projects.filter((p) => p.id !== id) })
+    }
+    set({ projects: [], projectId: '', history: undefined as unknown as History, viewId: OVERVIEW, selection: null, hover: null, back: [], forward: [], viewUi: {}, focus: null, liveFile: null, startOpen: true })
+  },
+
+  deleting: null,
+  setDeleting: (deleting) => set({ deleting }),
 
   switchProject(id) {
     const target = get().projects.find((p) => p.id === id)

@@ -1,9 +1,10 @@
 import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star } from 'lucide-react'
+import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Search, Star, Trash2, X } from 'lucide-react'
 import type { Entity, View } from '@hattoriai/poney-core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
+import { fileOfDocument } from '@/features/recent'
 import { diagramFor } from '@hattoriai/poney-react'
 import { iconFor } from '@hattoriai/poney-react'
 import { toneColor } from '@hattoriai/poney-react'
@@ -47,6 +48,8 @@ function ProjectSwitcher() {
   const projectId = useStudio((s) => s.projectId)
   const idx = useIndex()
   const [open, setOpen] = useState(false)
+  useStudio((s) => [s.live.state, s.liveFile].join())
+  const file = open ? fileOfDocument(projectId) : undefined
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -78,25 +81,51 @@ function ProjectSwitcher() {
       {open && (
         <div role="listbox" aria-label="Projects" className="fade-in absolute left-2 right-2 top-14 z-40 rounded-xl border border-rule bg-raised p-1 shadow-float">
           {projects.map((p) => (
-            <button
-              key={p.id}
-              role="option"
-              aria-selected={p.id === projectId}
-              type="button"
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left hover:bg-sunken"
-              onClick={() => {
-                setOpen(false)
-                useStudio.getState().switchProject(p.id)
-              }}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{p.doc.project.name}</span>
-                <span className="block text-[11.5px] text-ink-3">{p.origin === 'example' ? 'Example' : p.origin === 'pasted' ? 'Pasted' : 'Imported'}</span>
-              </span>
-              {p.id === projectId && <Check size={14} className="text-poney" />}
-            </button>
+            <div key={p.id} className="group relative">
+              <button
+                role="option"
+                aria-selected={p.id === projectId}
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md py-2 pl-2.5 pr-8 text-left hover:bg-sunken"
+                onClick={() => {
+                  setOpen(false)
+                  useStudio.getState().switchProject(p.id)
+                }}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{p.doc.project.name}</span>
+                  <span className="block text-[11.5px] text-ink-3">{p.origin === 'example' ? 'Example' : p.origin === 'pasted' ? 'Pasted' : p.origin === 'live' ? 'From an agent' : 'Imported'}</span>
+                </span>
+                {p.id === projectId && <Check size={14} className="text-poney group-hover:invisible" />}
+              </button>
+              <button
+                type="button"
+                aria-label={`Close ${p.doc.project.name}`}
+                title="Close"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 opacity-0 hover:bg-raised hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
+                onClick={() => {
+                  setOpen(false)
+                  useStudio.getState().closeDocument(p.id)
+                }}
+              >
+                <X size={13} />
+              </button>
+            </div>
           ))}
           <div className="my-1 h-px bg-rule" />
+          {file && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-ink-2 hover:bg-sunken hover:text-removed"
+              onClick={() => {
+                setOpen(false)
+                useStudio.getState().setDeleting({ id: projectId, name: idx.doc.project.name, path: file })
+              }}
+            >
+              <Trash2 size={14} />
+              Delete file…
+            </button>
+          )}
           <button
             type="button"
             className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-ink-2 hover:bg-sunken"

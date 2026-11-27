@@ -2,6 +2,14 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
+## Next
+
+### Poney Studio
+
+- You can close an open document: the × on the document in the **Open** list on the start page, or in the project menu. A closed document stays in **Recent**.
+- You can delete the `.poney` file of a document when Poney on this computer keeps it: **Delete file…** in the project menu, or the trash button on the document in the start page's lists. Studio asks first. The delete is permanent.
+- New route `POST /api/files/delete` in the local server. It deletes only a valid Poney document, and with `project` only a file that holds that document.
+
 ## 0.3.1
 
 ### The guide for agents

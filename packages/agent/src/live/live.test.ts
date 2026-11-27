@@ -434,3 +434,42 @@ describe('the project of a path', () => {
     expect(read.current?.project?.name).toBe('Acme Notes')
   })
 })
+
+describe('deleting a .poney file', () => {
+  const tour = () => readFileSync(new URL('../../examples/tour.poney', import.meta.url), 'utf8')
+  const status = async (hub: Hub, path: string) =>
+    (await fetch(`${hub.server.url}/api/files/delete`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path }) })).status
+
+  it('deletes the open file, and a later change does not write it again', async () => {
+    const hub = await startHub(6300 + Math.floor(Math.random() * 100))
+    hubs.push(hub)
+    const file = join(realpathSync(mkdtempSync(join(tmpdir(), 'del-'))), 'tour.poney')
+    writeFileSync(file, tour())
+    await post(hub, '/api/files/open', { path: file })
+    expect(hub.state.file).toBe(file)
+    await post(hub, '/api/files/delete', { path: file })
+    expect(existsSync(file)).toBe(false)
+    expect(hub.state.file).toBeUndefined()
+    const doc = JSON.parse(tour())
+    hub.state.open({ ...doc, views: doc.views.slice(1) }, 'agent')
+    await new Promise((r) => setTimeout(r, 200))
+    expect(existsSync(file)).toBe(false)
+  })
+
+  it('refuses a file that is not a valid Poney document', async () => {
+    const hub = hubs[hubs.length - 1]
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'del-')))
+    const other = join(dir, 'notes.txt')
+    const broken = join(dir, 'broken.poney')
+    writeFileSync(other, 'keep me')
+    writeFileSync(broken, '{ "not": "poney" }')
+    expect(await status(hub, other)).toBe(400)
+    expect(await status(hub, broken)).toBe(400)
+    expect(await status(hub, join(dir, 'missing.poney'))).toBe(400)
+    const tourFile = join(dir, 'tour.poney')
+    writeFileSync(tourFile, tour())
+    const wrong = await fetch(`${hub.server.url}/api/files/delete`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: tourFile, project: 'another' }) })
+    expect(wrong.status).toBe(400)
+    expect(existsSync(other) && existsSync(broken) && existsSync(tourFile)).toBe(true)
+  })
+})

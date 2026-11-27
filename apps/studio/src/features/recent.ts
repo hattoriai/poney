@@ -62,6 +62,14 @@ export function forgetLast() {
   }
 }
 
+/** The file a document is saved to, when Poney on this computer keeps it. */
+export function fileOfDocument(id: string): string | undefined {
+  const s = useStudio.getState()
+  if (s.live.state !== 'on') return undefined
+  if (id === s.projectId && s.liveFile) return s.liveFile
+  return listRecent().find((r) => r.id === id)?.path
+}
+
 /** Opens a recent document: from its file when Poney on this computer can, else the copy kept here. Returns false if it does not open. */
 export async function openRecent(r: Recent): Promise<boolean> {
   if (r.path && useStudio.getState().live.state === 'on') {
