@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, ClipboardPaste, FileText, FileUp, FolderGit2, MessageCircle, Moon, PanelLeft, Plug, Sun, X } from 'lucide-react'
+import { BookOpen, ClipboardPaste, FileText, FileUp, FolderGit2, MessageCircle, Moon, PanelLeft, Plug, Sun, Trash2, X } from 'lucide-react'
 import * as RT from '@radix-ui/react-tooltip'
 import { useStudio } from '@/features/store'
 import { detectFormat, importText, isTyping } from '@/features/io'
-import { forgetRecent, listRecent, openExample, openRecent, type Recent } from '@/features/recent'
+import { fileOfDocument, forgetRecent, listRecent, openExample, openRecent, type Recent } from '@/features/recent'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 import { McpSetup } from '@/components/agent/McpSetup'
 import { Mark } from '@/components/navigation/Sidebar'
@@ -26,6 +26,9 @@ export function StartPage() {
   const projects = useStudio((s) => s.projects)
   const sidebarOpen = useStudio((s) => s.sidebarOpen)
   const [recent, setRecent] = useState<Recent[]>(() => listRecent())
+  const deleting = useStudio((s) => s.deleting)
+  // Closing or deleting a document changes the recent list.
+  useEffect(() => setRecent(listRecent()), [projects, deleting])
   const [problem, setProblem] = useState<{ title: string; lines: string[] } | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -124,10 +127,13 @@ export function StartPage() {
             <nav aria-label="Open documents" className="mt-4 px-2">
               <h2 className="px-2 pb-1 text-[11.5px] font-medium text-ink-3">Open</h2>
               {documents.map((p) => (
-                <button key={p.id} type="button" className={navItem} onClick={() => (p.id === useStudio.getState().projectId ? useStudio.getState().showStart(false) : useStudio.getState().switchProject(p.id))}>
-                  <FileText size={14} className="shrink-0 text-ink-3" />
-                  <span className="truncate">{p.doc.project.name}</span>
-                </button>
+                <div key={p.id} className="group relative">
+                  <button type="button" className={`${navItem} ${live.state === 'on' ? 'pr-14' : 'pr-8'}`} onClick={() => (p.id === useStudio.getState().projectId ? useStudio.getState().showStart(false) : useStudio.getState().switchProject(p.id))}>
+                    <FileText size={14} className="shrink-0 text-ink-3" />
+                    <span className="truncate">{p.doc.project.name}</span>
+                  </button>
+                  <ItemActions id={p.id} name={p.doc.project.name} onClose={() => useStudio.getState().closeDocument(p.id)} closeLabel="Close" />
+                </div>
               ))}
             </nav>
           )}
@@ -136,25 +142,22 @@ export function StartPage() {
               <h2 className="px-2 pb-1 text-[11.5px] font-medium text-ink-3">Recent</h2>
               {others.map((r) => (
                 <div key={r.id} className="group relative">
-                  <button type="button" className={`${navItem} pr-8`} onClick={() => openRecentItem(r)} title={`${r.name}, ${when(r.at)}`}>
+                  <button type="button" className={`${navItem} ${live.state === 'on' && r.path ? 'pr-14' : 'pr-8'}`} onClick={() => openRecentItem(r)} title={`${r.name}, ${when(r.at)}`}>
                     <FileText size={14} className="shrink-0 text-ink-3" />
                     <span className="min-w-0">
                       <span className="block truncate">{r.name}</span>
                       <span className="block truncate text-[11.5px] text-ink-3">{r.origin === 'example' ? 'Example' : r.origin === 'live' ? 'From an agent' : r.origin === 'pasted' ? 'Pasted' : 'File'}, {when(r.at)}</span>
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${r.name} from the list`}
-                    title="Remove from the list"
-                    onClick={() => {
+                  <ItemActions
+                    id={r.id}
+                    name={r.name}
+                    closeLabel="Remove from the list"
+                    onClose={() => {
                       forgetRecent(r.id)
                       setRecent(listRecent())
                     }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 opacity-0 hover:bg-raised hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    <X size={13} />
-                  </button>
+                  />
                 </div>
               ))}
             </nav>
@@ -329,5 +332,24 @@ function AgentCard() {
         <McpSetup />
       </div>
     </div>
+  )
+}
+
+/** The buttons on a document in the sidebar: delete its file (when Poney on this computer keeps it), and close or remove it. */
+function ItemActions({ id, name, closeLabel, onClose }: { id: string; name: string; closeLabel: string; onClose(): void }) {
+  useStudio((s) => s.live.state)
+  const path = fileOfDocument(id)
+  const button = 'rounded p-1 text-ink-4 hover:bg-raised hover:text-ink'
+  return (
+    <span className="absolute right-1 top-1/2 flex -translate-y-1/2 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+      {path && (
+        <button type="button" aria-label={`Delete the file of ${name}`} title="Delete file…" className={`${button} hover:text-removed`} onClick={() => useStudio.getState().setDeleting({ id, name, path })}>
+          <Trash2 size={13} />
+        </button>
+      )}
+      <button type="button" aria-label={`${closeLabel}: ${name}`} title={closeLabel} className={button} onClick={onClose}>
+        <X size={13} />
+      </button>
+    </span>
   )
 }

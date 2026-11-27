@@ -77,6 +77,8 @@ export const setSetting = (id: string, value: string | boolean) => call('/api/ag
 export const openProjectFolder = (path: string) => call<{ root: string }>('/api/project/open', { path })
 /** Opens a .poney file on this computer; the Studio keeps it saved. */
 export const openFile = (path: string) => call<{ path: string }>('/api/files/open', { path })
+/** Deletes a .poney file for good. The server deletes it only when it holds the document `project`. */
+export const deleteFile = (path: string, project: string) => call('/api/files/delete', { path, project })
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
 
 /** Importers and overlays, with what each would read in the project's folder. */

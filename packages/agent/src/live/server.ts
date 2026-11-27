@@ -302,6 +302,13 @@ export class LiveServer {
         this.files.open(r.path, r.document)
         return json(res, 200, { path: s.file })
       }
+      case 'POST /api/files/delete': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot delete files.' })
+        const r = (await body(req)) as { path?: string; project?: string }
+        if (!r.path) return json(res, 400, { error: 'Give a path' })
+        this.files.delete(r.path, r.project)
+        return json(res, 200, {})
+      }
 
       /* Workspaces */
       case 'GET /api/workspace/folders':

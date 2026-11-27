@@ -7,7 +7,7 @@
  * an agent works in gets its file in docs/poney/, made when there is
  * something to keep.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, unlinkSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { check } from '../ops'
 import type { LiveState } from './state'
@@ -89,6 +89,23 @@ export class DocumentFiles {
       return this.state.setWorkspace(workspaceProject(root))
     }
     this.load(file, root)
+  }
+
+  /**
+   * Deletes a .poney file for good. Only a valid Poney document is deleted.
+   * With `project`, only a file that holds that project is deleted.
+   * When it is the open file, the document is untied first, so no later save writes it again.
+   */
+  delete(path: string, project?: string): void {
+    if (!path.endsWith('.poney')) throw new Error('Only a .poney file can be deleted.')
+    if (!existsSync(path)) throw new Error(`"${path}" does not exist.`)
+    const file = realpathSync(path)
+    const invalid = invalidFile(file)
+    if (invalid) throw new Error(`"${path}" is not a valid Poney document. It was not deleted.`)
+    if (project !== undefined && (JSON.parse(readFileSync(file, 'utf8')) as { project?: { id?: string } }).project?.id !== project) throw new Error(`"${path}" holds another document. It was not deleted.`)
+    if (this.state.file && existsSync(this.state.file) && realpathSync(this.state.file) === file) this.tie(undefined)
+    for (const [root, tied] of this.tied) if (tied === file || tied === path) this.tied.delete(root)
+    unlinkSync(file)
   }
 
   /** The file of a project: the one it is tied to, else the only .poney file in its docs/poney/, else the folder's own name there. */
