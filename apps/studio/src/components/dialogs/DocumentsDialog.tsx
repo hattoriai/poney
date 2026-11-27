@@ -9,11 +9,13 @@ export function DocumentsDialog() {
   const open = useStudio((s) => s.documentsOpen)
   const { documents, shown } = useStudio((s) => s.folderDocuments)
   const folder = useStudio((s) => s.project)
+  const workspace = useStudio((s) => s.workspace)
   const [error, setError] = useState<string | null>(null)
   const close = () => {
     setError(null)
     useStudio.getState().setDocumentsOpen(false)
   }
+  const where = workspace?.file ? `The documents of ${workspace.name}.` : folder ? `The documents in ${folder.name}/docs/poney/.` : undefined
   const choose = async (path: string) => {
     setError(null)
     try {
@@ -24,7 +26,7 @@ export function DocumentsDialog() {
     }
   }
   return (
-    <Modal open={open} onOpenChange={(o) => !o && close()} title="Select a document" description={folder ? `The documents in ${folder.name}/docs/poney/.` : undefined} width={520}>
+    <Modal open={open} onOpenChange={(o) => !o && close()} title="Select a document" description={where} width={520}>
       <div className="space-y-1 px-3 py-3">
         {documents.map((d) => (
           <button

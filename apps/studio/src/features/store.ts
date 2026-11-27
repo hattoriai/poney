@@ -131,6 +131,20 @@ interface State {
   newDocumentOpen: boolean
   /** The person asked Poney on this computer for a document: the next one it sends shows, even on the start page. */
   documentWanted: boolean
+  /** The open workspace: its folders and, when saved, its file. */
+  workspace: OpenWorkspace | null
+  /** The workspace dialog that is open: add a folder, or save the workspace as a file. */
+  workspaceDialog: 'add-folder' | 'save' | null
+  /** Workspace files to choose from, when a folder has several. */
+  chooseWorkspace: string[] | null
+}
+
+/** The open workspace, as Poney on this computer describes it. */
+export interface OpenWorkspace {
+  key: string
+  name: string
+  file: string | null
+  folders: { path: string; name: string; missing?: boolean }[]
 }
 
 interface Actions {
@@ -169,6 +183,9 @@ interface Actions {
   setFolderDocuments(list: WorkspaceDocuments): void
   setDocumentsOpen(open: boolean): void
   setNewDocumentOpen(open: boolean): void
+  setWorkspace(workspace: OpenWorkspace | null): void
+  setWorkspaceDialog(dialog: State['workspaceDialog']): void
+  setChooseWorkspace(files: string[] | null): void
   /** Adds a project to the list without opening it. */
   keepProject(doc: PoneyDocument, origin: OpenDocument['origin']): void
   importOpen: boolean
@@ -351,6 +368,12 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   documentsOpen: false,
   newDocumentOpen: false,
   documentWanted: false,
+  workspace: null,
+  workspaceDialog: null,
+  chooseWorkspace: null,
+  setWorkspace: (workspace) => set({ workspace }),
+  setWorkspaceDialog: (workspaceDialog) => set({ workspaceDialog }),
+  setChooseWorkspace: (chooseWorkspace) => set({ chooseWorkspace }),
   // With several documents and none shown, the person selects one.
   setFolderDocuments: (folderDocuments) => set({ folderDocuments, ...(folderDocuments.shown === null && folderDocuments.documents.length > 1 ? { documentsOpen: true } : {}) }),
   setDocumentsOpen: (documentsOpen) => set({ documentsOpen }),

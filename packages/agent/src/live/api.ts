@@ -16,7 +16,7 @@ export interface LiveRead {
   /** The project's file exists but is not a valid document. */
   invalid?: string
   /** The open folder: its documents, and the one shown (its path). */
-  workspace?: WorkspaceDocuments & { folder: string }
+  workspace?: WorkspaceDocuments & { folder: string; folders?: string[] }
 }
 
 /** What opening a document did. `saved`: kept in its project, not shown. `refused`: why nothing was saved. */
@@ -55,7 +55,7 @@ export class LocalLive implements LiveApi {
   }
   async read(): Promise<LiveRead> {
     const folder = this.state.project?.cwd
-    return { viewers: this.server.viewers, studio: this.state.studio, current: this.state.current(), thread: this.state.thread(), ...(folder ? { workspace: { folder, ...this.state.documents } } : {}) }
+    return { viewers: this.server.viewers, studio: this.state.studio, current: this.state.current(), thread: this.state.thread(), ...(folder ? { workspace: { folder, folders: this.state.workspace!.folders.map((f) => f.cwd), ...this.state.documents } } : {}) }
   }
   async waitForQuestions(timeoutMs: number) {
     const questions = await this.state.waitForQuestions(timeoutMs)

@@ -30,7 +30,7 @@ export function listFolders(path?: string): Folder {
   const dir = resolve(path || homedir())
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error(`No folder "${dir}"`)
   const entries = readdirSync(dir, { withFileTypes: true })
-  const files = entries.filter((e) => e.isFile() && e.name.endsWith('.poney')).map((e) => ({ name: e.name, path: join(dir, e.name) })).sort((a, b) => a.name.localeCompare(b.name))
+  const files = entries.filter((e) => e.isFile() && (e.name.endsWith('.poney') || e.name.endsWith('.poney-workspace'))).map((e) => ({ name: e.name, path: join(dir, e.name) })).sort((a, b) => a.name.localeCompare(b.name))
   const folders = entries
     .filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')
     .map((e) => ({ name: e.name, path: join(dir, e.name), git: isGit(join(dir, e.name)) }))

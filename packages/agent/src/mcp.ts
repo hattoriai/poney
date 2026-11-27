@@ -326,7 +326,7 @@ server.registerTool(
   },
   async (args) => {
     const r = await live.read()
-    const workspace = r.workspace ? { folder: r.workspace.folder, documents: r.workspace.documents, shown: r.workspace.shown } : undefined
+    const workspace = r.workspace ? { folders: r.workspace.folders ?? [r.workspace.folder], documents: r.workspace.documents, shown: r.workspace.shown } : undefined
     if (!r.studio && !args.includeDocument) return text(r.viewers ? `A Studio window is open but has reported nothing yet.${workspace ? `\n\n${JSON.stringify({ workspace }, null, 2)}` : ''}` : noWindow())
     const { document, ...rest } = r.studio ?? { document: undefined }
     const out: Record<string, unknown> = { viewers: r.viewers, ...rest, changedDocument: document !== undefined, thread: r.thread.slice(-20), ...(workspace ? { workspace } : {}), ...(r.invalid ? { problem: r.invalid } : {}) }

@@ -1,4 +1,5 @@
-import { indexOf, refKey } from '@hattoriai/poney-core'
+import { indexOf, refKey, validateDocument } from '@hattoriai/poney-core'
+import { knownExtensions } from './extensions'
 import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@hattoriai/poney/live'
 import { useStudio, walkId, type ContextItem } from './store'
 
@@ -63,7 +64,11 @@ export const listAgents = () => call<{ providers: Provider[]; canStart: boolean;
 /** An agent as the Studio names it: a known one, or one the person added by command. */
 export type AgentChoice = { providerId: string } | { custom: { name: string; command: string } }
 /** Starts the agent for the open project, or for `folder`, which opens as the project first. */
-export const connectAgent = (agent: AgentChoice, folder?: string) => call('/api/agent/connect', { ...agent, ...(folder ? { folder } : {}) })
+export const connectAgent = async (agent: AgentChoice, folder?: string) => {
+  const r = await call<{ choose?: string[] }>('/api/agent/connect', { ...agent, ...(folder ? { folder } : {}) })
+  if (r?.choose) throw new Error('This folder has several workspaces. Open one with Open a workspace, then connect the agent.')
+  return r
+}
 /** Asks whether an agent is signed in (its own CLI), or whether a test session opens. */
 export const checkAgent = (agent: AgentChoice, fresh = false) => call<SignInStatus>('/api/agent/check', { ...agent, fresh })
 export const disconnectAgent = () => call('/api/agent/disconnect', {})
@@ -77,7 +82,16 @@ export const setSetting = (id: string, value: string | boolean) => call('/api/ag
 async function wanted<T>(request: () => Promise<T>): Promise<T> {
   useStudio.setState({ documentWanted: true })
   try {
-    return await request()
+    const result = await request()
+    // The document asked for is shown already: no new one comes, so it shows now, as Poney on this computer has it.
+    const revision = (result as { revision?: number | null } | null)?.revision
+    if (useStudio.getState().documentWanted && revision != null && revision === useStudio.getState().live.revision) {
+      useStudio.setState({ documentWanted: false })
+      const { current } = await call<{ current?: unknown }>('/api/live/read')
+      const checked = current == null ? undefined : validateDocument(current, { extensions: knownExtensions() })
+      if (checked?.ok && checked.document) useStudio.getState().reviseDocument(checked.document, 'live')
+    }
+    return result
   } catch (e) {
     useStudio.setState({ documentWanted: false })
     throw e
@@ -85,7 +99,19 @@ async function wanted<T>(request: () => Promise<T>): Promise<T> {
 }
 
 /** Opens a folder (a repository) as the project: agents work there, and its document is saved there. */
-export const openProjectFolder = (path: string) => wanted(() => call<{ root: string }>('/api/project/open', { path }))
+/** Opens a workspace: a .poney-workspace file, or a folder (its own workspace file, else the folder alone). `choose`: the folder has several workspace files. */
+export const openProjectFolder = async (path: string) => {
+  const r = await wanted(() => call<{ root?: string; choose?: string[] }>('/api/project/open', { path }))
+  if (r.choose) useStudio.setState({ documentWanted: false })
+  return r
+}
+/** Saves the open workspace as a .poney-workspace file. Its conversation and agent session move with it. */
+export const saveWorkspace = (file: string, name?: string) => call<{ key: string }>('/api/workspace/save', { file, ...(name ? { name } : {}) })
+/** Adds a folder to the open workspace, which must be saved. */
+export const addFolder = (path: string) => call('/api/workspace/folders', { add: path })
+export const removeFolder = (path: string) => call('/api/workspace/folders', { remove: path })
+/** Removes a document from a saved workspace. The file stays. */
+export const removeDocument = (path: string) => call('/api/workspace/documents/remove', { path })
 /** Opens a .poney file on this computer; the Studio keeps it saved. */
 export const openFile = (path: string) => wanted(() => call<{ path: string }>('/api/files/open', { path }))
 /** Deletes a .poney file for good. The server deletes it only when it holds the document `project`. */
@@ -95,9 +121,9 @@ export const newDocument = (name: string) => wanted(() => call<{ path: string }>
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
 
 /** Importers and overlays, with what each would read in the project's folder. */
-export const listPlugins = () => call<{ root: string | null; importers: PluginItem[]; overlays: PluginItem[]; problems: string[] }>('/api/plugins')
+export const listPlugins = (folder?: string) => call<{ root: string | null; importers: PluginItem[]; overlays: PluginItem[]; problems: string[] }>(`/api/plugins${folder ? `?folder=${encodeURIComponent(folder)}` : ''}`)
 /** Adds what an importer reads to the open document. */
-export const runImporter = (importer: string) => call<{ summary: string }>('/api/import', { importer })
+export const runImporter = (importer: string, folder?: string) => call<{ summary: string }>('/api/import', { importer, ...(folder ? { folder } : {}) })
 /** Reads an overlay's facts and shows them in scenes; `clearOverlay` stops showing them. */
 export const showOverlay = (id: string) => call<OverlayResult>('/api/overlays/run', { id })
 export const clearOverlay = (id: string) => call('/api/overlays/clear', { id })

@@ -7,6 +7,8 @@ import { parseDocument } from '@hattoriai/poney-core'
 import { coverageOverlay } from './overlays/coverage'
 import { churnOverlay } from './overlays/churn'
 import { plugins, resetPlugins } from './registry'
+import { basename } from 'node:path'
+import { runOverlayIn } from './run'
 
 const project = (files: Record<string, string>) => {
   const dir = mkdtempSync(join(tmpdir(), 'poney-overlay-'))
@@ -55,6 +57,20 @@ describe('the coverage overlay', () => {
     const r = await coverageOverlay.read(project({}), doc)
     expect(r.marks).toEqual([])
     expect(r.notes[0]).toMatch(/No coverage report found/)
+  })
+})
+
+describe('an overlay on a workspace with several folders', () => {
+  it('joins the facts of each folder, and names the folder in its notes', async () => {
+    const web = project({ 'coverage/lcov.info': ['SF:src/api/a.ts', 'LF:10', 'LH:8', 'end_of_record'].join('\n') })
+    const api = project({ 'coverage/lcov.info': ['SF:src/jobs/worker.ts', 'LF:10', 'LH:2', 'end_of_record', 'SF:src/api/a.ts', 'LF:10', 'LH:1', 'end_of_record'].join('\n') })
+    const r = await runOverlayIn('coverage', [web, api], doc)
+    // The first folder with facts for a part gives them.
+    expect(r.marks.map((m) => [m.target, m.badge?.text])).toEqual([
+      ['entity:api', '80% tested'],
+      ['entity:jobs', '20% tested'],
+    ])
+    expect(r.notes.every((n) => n.startsWith(`${basename(web)}: `) || n.startsWith(`${basename(api)}: `))).toBe(true)
   })
 })
 

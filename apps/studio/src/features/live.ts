@@ -1,8 +1,8 @@
 import { indexOf, refKey, validateDocument, plainText } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
-import { useStudio, walkId, type AgentStatus, type Message } from './store'
+import { useStudio, walkId, type AgentStatus, type Message, type OpenWorkspace } from './store'
 import type { WorkspaceDocuments } from '@hattoriai/poney/live'
-import { listRecent } from './recent'
+import { listRecent, saveRecentWorkspace } from './recent'
 import { readLocation } from './location'
 
 /** The document the address named when the page opened (?doc=<id>); the start page may remove it from the address. */
@@ -108,6 +108,11 @@ function connect(base: string, attempt = 0) {
   })
   events.addEventListener('overlays', (e) => useStudio.getState().setOverlays(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('file', (e) => useStudio.getState().setLiveFile((JSON.parse((e as MessageEvent).data) as { path: string | null }).path))
+  events.addEventListener('workspace', (e) => {
+    const w = JSON.parse((e as MessageEvent).data) as OpenWorkspace | null
+    useStudio.getState().setWorkspace(w)
+    if (w) saveRecentWorkspace(w)
+  })
   events.addEventListener('documents', (e) => useStudio.getState().setFolderDocuments(JSON.parse((e as MessageEvent).data) as WorkspaceDocuments))
 
   // Report what the person does, a moment after they do it.

@@ -21,15 +21,15 @@ import { dirname, extname, join, normalize } from 'node:path'
 import type { LiveState } from './state'
 import { providerFor, type AgentPool } from '../agents/pool'
 import { builtInProviders, describeProvider } from '../agents/providers'
-import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agents/workspace'
+import { cloneRepository, listFolders, searchFiles } from '../agents/workspace'
 import { checkProvider } from '../agents/check'
 import type { AgentChoice } from '../agents/sessions'
 import { check } from '../ops'
-import { documentsIn, type DocumentFiles } from './files'
+import { documentsOf, type DocumentFiles } from './files'
 
 
 import type { Place } from './types'
-import { folderAt } from './folder'
+import { presentFolders, workspaceFor, workspaceToOpen, type Workspace } from './workspace-file'
 import { buildStamp } from './stamp'
 import { mcpCommand, studioDist } from '../paths'
 
@@ -47,6 +47,9 @@ const TYPES: Record<string, string> = {
 const NOT_VALID = "The project's file is not a valid document."
 /** The Studio's dev server may also use the hub. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
+
+/** The open workspace, as the Studio shows it. */
+const describe = (w: Workspace | undefined) => (w ? { key: w.key, name: w.name, file: w.file ?? null, folders: w.folders.map((f) => ({ path: f.cwd, name: f.name, ...(f.missing ? { missing: true } : {}) })) } : null)
 
 export class LiveServer {
   private server?: Server
@@ -72,7 +75,10 @@ export class LiveServer {
     state.on('thread', (messages) => send('thread', { messages }))
     state.on('agent', (status) => send('agent', status))
     state.on('file', (path) => send('file', { path: path ?? null }))
-    state.on('workspace', (w) => send('project', { root: w?.cwd ?? null, name: w?.name ?? null }))
+    state.on('workspace', (w) => {
+      send('project', { root: state.project?.cwd ?? null, name: w?.name ?? null })
+      send('workspace', describe(w))
+    })
     state.on('overlays', (o) => send('overlays', o))
     state.on('documents', (d) => send('documents', d))
   }
@@ -153,6 +159,8 @@ export class LiveServer {
   private async api(url: URL, req: IncomingMessage, res: ServerResponse) {
     const route = `${req.method} ${url.pathname}`
     const s = this.state
+    /** A folder of the open workspace the request names, else its first folder. */
+    const folderOf = (given: string | null | undefined) => (given && s.workspace?.folders.some((f) => f.cwd === given) ? given : s.project?.cwd)
     switch (route) {
       /* Live document and conversation */
       case 'GET /api/live':
@@ -183,12 +191,12 @@ export class LiveServer {
         // An agent of a project that is not open reads its own project: the saved document and its thread.
         const project = url.searchParams.get('project')
         if (project && project !== s.projectKey() && this.files) {
-          const w = folderAt(checkFolder(project))
+          const w = workspaceFor(project)
           const { document, invalid } = this.files.savedFor(w)
-          const workspace = { folder: w.cwd, documents: documentsIn(w.cwd), shown: this.files.fileOf(w) ?? null }
+          const workspace = { folder: w.folders[0].cwd, folders: w.folders.map((f) => f.cwd), documents: documentsOf(w), shown: this.files.fileOf(w) ?? null }
           return json(res, 200, { viewers: this.viewers, current: document ?? null, ...(invalid ? { invalid: NOT_VALID } : {}), thread: s.thread(project), workspace })
         }
-        const workspace = s.project ? { folder: s.project.cwd, ...s.documents } : undefined
+        const workspace = s.project ? { folder: s.project.cwd, folders: s.workspace!.folders.map((f) => f.cwd), ...s.documents } : undefined
         return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread(), ...(workspace ? { workspace } : {}) })
       }
       case 'GET /api/live/wait': {
@@ -225,7 +233,8 @@ export class LiveServer {
         const r = (await body(req)) as AgentChoice & { folder?: string }
         if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
         if (r.folder) {
-          const w = folderAt(checkFolder(r.folder))
+          const w = workspaceToOpen(r.folder)
+          if ('choose' in w) return json(res, 200, { choose: w.choose })
           // The default first, so the folder's agent starts once, as this agent.
           this.agents.setDefault(r)
           s.setWorkspace(w)
@@ -257,26 +266,32 @@ export class LiveServer {
       /* The project folder */
       case 'GET /api/plugins': {
         // Importers and overlays, and what each would read in the project's folder.
-        const { available } = await import('../plugins/run')
-        const dir = s.project?.cwd
+        const { available, availableIn } = await import('../plugins/run')
+        const asked = url.searchParams.get('folder')
+        const dir = folderOf(asked)
         if (!dir) return json(res, 200, { root: null, importers: [], overlays: [], problems: [] })
-        return json(res, 200, { root: dir, ...(await available(dir)) })
+        // Importers read one folder; overlays read every folder of the workspace, unless the request names one.
+        const all = asked ? [dir] : presentFolders(s.workspace!).map((f) => f.cwd)
+        const overlays = (await availableIn(all)).overlays
+        return json(res, 200, { root: dir, ...(await available(dir)), overlays })
       }
       case 'POST /api/import': {
         const { runImport } = await import('../plugins/run')
-        const r = (await body(req)) as { importer?: string; path?: string; store?: string }
-        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        const { document, summary } = await runImport(r.importer ?? '', s.project.cwd, { into: s.current(), path: r.path, store: r.store })
+        const r = (await body(req)) as { importer?: string; path?: string; store?: string; folder?: string }
+        const dir = folderOf(r.folder)
+        if (!dir) return json(res, 400, { error: 'Choose the folder with the code first.' })
+        const { document, summary } = await runImport(r.importer ?? '', dir, { into: s.current(), path: r.path, store: r.store })
         const checked = check({ document })
         if (!checked.result?.ok) return json(res, 400, { error: `The document has errors after the import.\n${checked.report}` })
         s.open(document, 'agent')
         return json(res, 200, { summary })
       }
       case 'POST /api/overlays/run': {
-        const { runOverlay } = await import('../plugins/run')
-        const r = (await body(req)) as { id?: string }
-        if (!s.project) return json(res, 400, { error: 'Choose the folder with the code first.' })
-        const result = await runOverlay(r.id ?? '', s.project.cwd, s.current())
+        const { runOverlayIn } = await import('../plugins/run')
+        const r = (await body(req)) as { id?: string; folder?: string }
+        const dir = folderOf(r.folder)
+        if (!dir) return json(res, 400, { error: 'Choose the folder with the code first.' })
+        const result = await runOverlayIn(r.id ?? '', r.folder ? [dir] : presentFolders(s.workspace!).map((f) => f.cwd), s.current())
         s.setOverlay(r.id!, result)
         return json(res, 200, result)
       }
@@ -287,8 +302,36 @@ export class LiveServer {
       }
       case 'POST /api/project/open': {
         const r = (await body(req)) as { path?: string }
-        s.setWorkspace(folderAt(checkFolder(r.path ?? '')))
-        return json(res, 200, { root: s.project?.cwd })
+        const w = workspaceToOpen(r.path ?? '')
+        if ('choose' in w) return json(res, 200, { choose: w.choose })
+        s.setWorkspace(w)
+        return json(res, 200, { root: s.project?.cwd, key: s.projectKey(), revision: s.shown()?.revision ?? null })
+      }
+
+      /* The open workspace */
+      case 'POST /api/workspace/save': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
+        const r = (await body(req)) as { file?: string; name?: string }
+        if (!r.file) return json(res, 400, { error: 'Give a file' })
+        const { from, to, workspace } = this.files.saveWorkspace(r.file, r.name)
+        s.rekey(from, to)
+        this.agents?.rekey(from, to)
+        s.setWorkspace(workspace)
+        return json(res, 200, { key: to })
+      }
+      case 'POST /api/workspace/folders': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
+        const r = (await body(req)) as { add?: string; remove?: string }
+        const w = r.add ? this.files.addFolder(r.add) : r.remove ? this.files.removeFolder(r.remove) : undefined
+        if (!w) return json(res, 400, { error: 'Give a folder to add or remove' })
+        s.setWorkspace(w)
+        return json(res, 200, describe(w))
+      }
+      case 'POST /api/workspace/documents/remove': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
+        const r = (await body(req)) as { path?: string }
+        this.files.removeDocument(r.path ?? '')
+        return json(res, 200, {})
       }
 
       /* Files */
@@ -297,12 +340,12 @@ export class LiveServer {
         const r = (await body(req)) as { path?: string; document?: unknown }
         if (!r.path) return json(res, 400, { error: 'Give a path' })
         this.files.open(r.path, r.document)
-        return json(res, 200, { path: s.file })
+        return json(res, 200, { path: s.file, revision: s.shown()?.revision ?? null })
       }
       case 'POST /api/documents/new': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot make files.' })
-        const r = (await body(req)) as { name?: string }
-        return json(res, 200, { path: this.files.create(r.name ?? '') })
+        const r = (await body(req)) as { name?: string; folder?: string }
+        return json(res, 200, { path: this.files.create(r.name ?? '', r.folder) })
       }
       case 'POST /api/files/delete': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot delete files.' })
@@ -342,6 +385,7 @@ export class LiveServer {
     res.write(`event: project\ndata: ${JSON.stringify({ root: this.state.project?.cwd ?? null, name: this.state.project?.name ?? null })}\n\n`)
     res.write(`event: overlays\ndata: ${JSON.stringify(this.state.overlays)}\n\n`)
     res.write(`event: documents\ndata: ${JSON.stringify(this.state.documents)}\n\n`)
+    res.write(`event: workspace\ndata: ${JSON.stringify(describe(this.state.workspace))}\n\n`)
     this.clients.add(res)
     const beat = setInterval(() => res.write(': beat\n\n'), 20_000)
     req.on('close', () => {

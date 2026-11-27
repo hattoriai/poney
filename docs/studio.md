@@ -73,3 +73,25 @@ The document menu, at the top of the sidebar, lists the workspace's documents. S
 Edits in Studio go straight to that file. Changes you make in an editor or pull from Git show up in Studio too. Use **Open a file** to browse for a walkthrough saved elsewhere.
 
 Commit the walkthrough alongside the code it describes. Run `poney check <file> --git .` to check its excerpts and references against the current commit.
+
+## Workspaces with several folders
+
+A workspace can hold several folders, such as a web app and its API in two repositories. One agent works for the whole workspace and can read every folder, so it can explain how they work together.
+
+In the document menu, choose **Add a folder…**. A workspace with more than one folder is saved as a `.poney-workspace` file, so Studio asks where to save it first. The default is the first folder. Commit the file to share the workspace with your team. To save a workspace with one folder, choose **Save the workspace…**. Its conversation and agent session go with it.
+
+```json
+{
+  "poneyWorkspace": 1,
+  "name": "Acme",
+  "folders": [{ "path": "." }, { "path": "../acme-api" }],
+  "documents": [{ "path": "docs/poney/overview.poney" }, { "path": "../acme-api/docs/poney/billing.poney" }]
+}
+```
+
+- Paths are relative to the file. A document can be in any folder.
+- **Open a workspace** opens a `.poney-workspace` file, or a folder. A folder with its own workspace file opens that file. With several, Studio asks which one.
+- When you add a folder, its documents in `docs/poney/` join the list. A new document joins it too.
+- In a saved workspace, × on a document or a folder removes it from the workspace. The file or the folder stays.
+- **Import from the code…** asks which folder to read. **Facts** reads every folder: each part gets the facts of the folder that has its code.
+- The start page lists the workspaces you opened. Select one to open it again.

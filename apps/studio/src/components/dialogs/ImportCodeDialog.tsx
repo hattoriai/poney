@@ -16,24 +16,27 @@ export function ImportCodeDialog() {
   const [root, setRoot] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const workspace = useStudio((s) => s.workspace)
+  const folders = workspace?.folders.filter((f) => !f.missing) ?? []
+  const [folder, setFolder] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     if (!open) return
     setError(null)
-    void listPlugins().then(
+    void listPlugins(folder).then(
       (r) => {
         setItems(r.importers)
         setRoot(r.root)
       },
       (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
     )
-  }, [open])
+  }, [open, folder])
 
   const run = async (id: string) => {
     setBusy(id)
     setError(null)
     try {
-      const { summary } = await runImporter(id)
+      const { summary } = await runImporter(id, folder)
       setOpen(false)
       useStudio.getState().notify(summary.split('\n')[0])
     } catch (e) {
@@ -45,6 +48,18 @@ export function ImportCodeDialog() {
 
   return (
     <Modal open={open} onOpenChange={setOpen} title="Import from the code" description={root ? `Adds to this document what it reads in ${root.split('/').pop()}. What the document has stays.` : 'Connect an agent or open a workspace first.'}>
+      {folders.length > 1 && (
+        <label className="flex items-center gap-2 px-5 pt-4 text-[13px] text-ink-2">
+          Folder
+          <select value={folder ?? folders[0].path} onChange={(e) => setFolder(e.target.value)} className="h-8 rounded-lg border border-rule bg-paper px-2 text-[13px]">
+            {folders.map((f) => (
+              <option key={f.path} value={f.path}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <ul className="divide-y divide-rule px-5 py-3">
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-4 py-3">

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, ClipboardPaste, FileText, FileUp, FolderGit2, MessageCircle, Moon, PanelLeft, Plug, Sun, Trash2, X } from 'lucide-react'
+import { BookOpen, ClipboardPaste, FileText, FileUp, Folder, FolderGit2, Folders, MessageCircle, Moon, PanelLeft, Plug, Sun, Trash2, X } from 'lucide-react'
 import * as RT from '@radix-ui/react-tooltip'
 import { useStudio } from '@/features/store'
 import { detectFormat, importText, isTyping } from '@/features/io'
-import { fileOfDocument, forgetRecent, listRecent, openExample, openRecent, type Recent } from '@/features/recent'
+import { fileOfDocument, forgetRecent, forgetRecentWorkspace, listRecent, listRecentWorkspaces, openExample, openRecent, type Recent } from '@/features/recent'
+import { openProjectFolder } from '@/features/agent'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 import { McpSetup } from '@/components/agent/McpSetup'
 import { Mark } from '@/components/navigation/Sidebar'
@@ -29,6 +30,14 @@ export function StartPage() {
   const deleting = useStudio((s) => s.deleting)
   // Closing or deleting a document changes the recent list.
   useEffect(() => setRecent(listRecent()), [projects, deleting])
+  const openWorkspace = useStudio((s) => s.workspace)
+  const [workspaces, setWorkspaces] = useState(() => listRecentWorkspaces())
+  useEffect(() => setWorkspaces(listRecentWorkspaces()), [openWorkspace])
+  const reopen = (key: string) =>
+    void openProjectFolder(key).then(
+      (r) => r.choose && useStudio.getState().setProjectOpen(true),
+      (e: unknown) => setProblem({ title: 'The workspace does not open', lines: [e instanceof Error ? e.message : String(e), 'Its folder or file may have moved. Remove it from the list.'] }),
+    )
   const [problem, setProblem] = useState<{ title: string; lines: string[] } | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -133,6 +142,37 @@ export function StartPage() {
                     <span className="truncate">{p.doc.project.name}</span>
                   </button>
                   <ItemActions id={p.id} name={p.doc.project.name} onClose={() => useStudio.getState().closeDocument(p.id)} closeLabel="Close" />
+                </div>
+              ))}
+            </nav>
+          )}
+          {live.state === 'on' && workspaces.length > 0 && (
+            <nav aria-label="Recent workspaces" className="mt-4 px-2">
+              <h2 className="px-2 pb-1 text-[11.5px] font-medium text-ink-3">Workspaces</h2>
+              {workspaces.map((w) => (
+                <div key={w.key} className="group relative">
+                  <button type="button" className={`${navItem} pr-8`} onClick={() => reopen(w.key)} title={w.file ?? w.key}>
+                    {w.folders.length > 1 ? <Folders size={14} className="shrink-0 text-ink-3" /> : <Folder size={14} className="shrink-0 text-ink-3" />}
+                    <span className="min-w-0">
+                      <span className="block truncate">{w.name}</span>
+                      <span className="block truncate text-[11.5px] text-ink-3">
+                        {w.folders.length > 1 ? `${w.folders.length} folders` : 'Folder'}, {when(w.at)}
+                      </span>
+                    </span>
+                    {openWorkspace?.key === w.key && <span className="ml-auto shrink-0 text-[11px] text-ink-3">Open</span>}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove from the list: ${w.name}`}
+                    title="Remove from the list"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 opacity-0 hover:bg-raised hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
+                    onClick={() => {
+                      forgetRecentWorkspace(w.key)
+                      setWorkspaces(listRecentWorkspaces())
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
                 </div>
               ))}
             </nav>

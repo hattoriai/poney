@@ -58,6 +58,8 @@ export interface RunningAgent {
 
 export interface StartOptions {
   mcpServers?: McpServer[]
+  /** More folders the agent may read, besides `cwd`, when it supports that (ACP `additionalDirectories`). */
+  additionalDirectories?: string[]
   /** Instructions added to the agent's own system prompt, when it supports that (ACP `systemPrompt`, append mode). */
   systemPrompt?: string
   /** An earlier session to continue. An agent that cannot resume it loads it; if it cannot, or fails, a new session starts. */
@@ -100,7 +102,9 @@ export async function startAgent(spec: ProviderSpec, cwd: string, options: Start
     const canAppend = init.agentCapabilities?.sessionCapabilities?.systemPrompt != null
     const systemPrompt = canAppend && options.systemPrompt ? { mode: 'append' as const, content: [{ type: 'text' as const, text: options.systemPrompt }] } : undefined
     const can = { load: init.agentCapabilities?.loadSession === true, resume: init.agentCapabilities?.sessionCapabilities?.resume != null }
-    const base = { cwd, mcpServers: options.mcpServers ?? [], ...(systemPrompt ? { systemPrompt } : {}) }
+    // More folders, only to an agent that says it reads them.
+    const dirs = init.agentCapabilities?.sessionCapabilities?.additionalDirectories != null && options.additionalDirectories?.length ? { additionalDirectories: options.additionalDirectories } : {}
+    const base = { cwd, mcpServers: options.mcpServers ?? [], ...dirs, ...(systemPrompt ? { systemPrompt } : {}) }
     const old = options.resume
     const how = old && (can[old.how] ? old.how : can.load ? ('load' as const) : undefined)
     if (old && how) {

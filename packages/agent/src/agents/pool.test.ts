@@ -67,6 +67,24 @@ const askAndAnswer = async (state: LiveState, pool: AgentPool, text: string, pla
 }
 const sessionOf = (answer: string) => /Session: (\S+)\.$/.exec(answer)?.[1]
 
+describe('AgentPool and workspaces', () => {
+  it('moves the session to a saved workspace’s key, and starts again with its folders in the same session', async () => {
+    const { state, pool, open } = setup()
+    const [a, b] = [folder(), folder()]
+    await open(a)
+    await pool.connect({ providerId: 'fake' })
+    const first = await askAndAnswer(state, pool, 'Hello?')
+    const key = join(a, 'acme.poney-workspace')
+    pool.rekey(a, key)
+    state.rekey(a, key)
+    state.setWorkspace({ key, name: 'Acme', file: key, folders: [folderAt(a), folderAt(b)], documents: [] })
+    await until(() => !!pool.get(key)?.connected)
+    expect(pool.get(a)).toBeUndefined()
+    expect(pool.get(key)!.folders).toEqual([a, b])
+    expect(sessionOf(await askAndAnswer(state, pool, 'And now?'))).toBe(sessionOf(first))
+  }, 20_000)
+})
+
 describe('AgentPool', () => {
   it('starts the default agent when a project opens', async () => {
     const { state, pool, open } = setup()

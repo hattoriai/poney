@@ -1,6 +1,6 @@
 import { toJSON, validateDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
-import { useStudio, type OpenDocument } from './store'
+import { useStudio, type OpenDocument, type OpenWorkspace } from './store'
 import { openFile } from './agent'
 
 /**
@@ -134,4 +134,46 @@ export async function openExample() {
   const result = validateDocument(commerce, { extensions: knownExtensions() })
   if (!result.ok || !result.document) throw new Error(`The example is invalid: ${result.issues[0]?.path} ${result.issues[0]?.message}`)
   useStudio.getState().loadDocument(result.document, 'example')
+}
+
+/** A workspace opened before: a folder, or a .poney-workspace file. Poney on this computer opens it again by its key. */
+export interface RecentWorkspace {
+  key: string
+  name: string
+  file: string | null
+  folders: string[]
+  at: string
+}
+
+const WORKSPACES = 'poney:recent-workspaces'
+
+export function listRecentWorkspaces(): RecentWorkspace[] {
+  try {
+    const raw = localStorage.getItem(WORKSPACES)
+    return raw ? (JSON.parse(raw) as RecentWorkspace[]) : []
+  } catch {
+    return []
+  }
+}
+
+function writeWorkspaces(list: RecentWorkspace[]) {
+  try {
+    localStorage.setItem(WORKSPACES, JSON.stringify(list.slice(0, MAX)))
+  } catch {
+    /* see above */
+  }
+}
+
+/**
+ * Keeps a workspace at the top of the list. A folder saved as a workspace file
+ * replaces the folder's own entry: it is the same work, under a new key.
+ */
+export function saveRecentWorkspace(w: OpenWorkspace) {
+  const entry: RecentWorkspace = { key: w.key, name: w.name, file: w.file, folders: w.folders.map((f) => f.path), at: new Date().toISOString() }
+  const replaced = (r: RecentWorkspace) => r.key === w.key || (!!w.file && !r.file && r.key === w.folders[0]?.path)
+  writeWorkspaces([entry, ...listRecentWorkspaces().filter((r) => !replaced(r))])
+}
+
+export function forgetRecentWorkspace(key: string) {
+  writeWorkspaces(listRecentWorkspaces().filter((r) => r.key !== key))
 }
