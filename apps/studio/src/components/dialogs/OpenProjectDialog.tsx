@@ -5,8 +5,9 @@ import { FileBrowser } from '@/components/agent/FileBrowser'
 import { Modal } from './Modal'
 
 /**
- * Opens a workspace: a folder on this computer, or a repository cloned from a
- * Git address. Its Poney documents are in docs/poney/, and agents work there.
+ * Opens a workspace: a .poney-workspace file, a folder on this computer, or a
+ * repository cloned from a Git address. A folder with its own workspace file
+ * opens that file; with several, the person chooses one.
  */
 export function OpenProjectDialog() {
   const open = useStudio((s) => s.projectOpen)
@@ -14,18 +15,21 @@ export function OpenProjectDialog() {
   const [source, setSource] = useState<'local' | 'git'>('local')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [several, setSeveral] = useState<string[] | null>(null)
   const choose = async (path: string) => {
     setError(null)
     try {
-      await openProjectFolder(path)
-      rememberFolder(path)
+      const r = await openProjectFolder(path)
+      if (r.choose) return setSeveral(r.choose)
+      rememberFolder(path.endsWith('.poney-workspace') ? path.slice(0, path.lastIndexOf('/')) : path)
+      setSeveral(null)
       setOpen(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
   }
   return (
-    <Modal open={open} onOpenChange={setOpen} title="Open a workspace" description="A folder on this computer, usually a Git repository. Its Poney documents are in docs/poney/, and agents work there." width={620}>
+    <Modal open={open} onOpenChange={setOpen} title="Open a workspace" description="A folder on this computer, usually a Git repository, or a .poney-workspace file. Agents work in its folders." width={620}>
       <div className="space-y-3 px-5 py-5">
         <div role="tablist" className="inline-flex rounded-lg border border-rule bg-sunken/60 p-0.5 text-[12.5px]">
           {(['local', 'git'] as const).map((k) => (
@@ -34,7 +38,20 @@ export function OpenProjectDialog() {
             </button>
           ))}
         </div>
-        {source === 'local' ? <FileBrowser start={lastFolder()} onPickFolder={(p) => void choose(p)} /> : <CloneForm onCloned={(p) => void choose(p)} setBusy={setBusy} setError={setError} />}
+        {several ? (
+          <div className="space-y-1">
+            <p className="text-[13px] text-ink-2">This folder has several workspaces. Choose one.</p>
+            {several.map((f) => (
+              <button key={f} type="button" onClick={() => void choose(f)} className="block w-full truncate rounded-lg border border-rule px-3 py-2 text-left font-mono text-[12.5px] hover:bg-sunken">
+                {f.split('/').pop()}
+              </button>
+            ))}
+          </div>
+        ) : source === 'local' ? (
+          <FileBrowser start={lastFolder()} onPickFolder={(p) => void choose(p)} onOpenFile={(p) => void choose(p)} extensions={['.poney-workspace']} />
+        ) : (
+          <CloneForm onCloned={(p) => void choose(p)} setBusy={setBusy} setError={setError} />
+        )}
         {(error || busy) && (
           <p role={error ? 'alert' : 'status'} className={`text-[12.5px] ${error ? 'text-removed' : 'text-ink-3'}`}>
             {error ?? busy}

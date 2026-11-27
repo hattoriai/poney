@@ -8,6 +8,7 @@
  * person; it continues its session when its project opens again.
  */
 import type { LiveState } from '../live/state'
+import { presentFolders } from '../live/workspace-file'
 import { builtInProviders, customProvider, type ProviderSpec } from './providers'
 import { ProjectAgent, type McpLaunch } from './bridge'
 import { agentKey, SessionStore, type AgentChoice } from './sessions'
@@ -21,6 +22,8 @@ export class AgentPool {
   private agents = new Map<string, ProjectAgent>()
   /** Settles when the agent has started, or failed to. */
   private ready = new WeakMap<ProjectAgent, Promise<void>>()
+  /** A workspace whose agent stopped to move to a new key or new folders: it starts again there. */
+  private restart = new Set<string>()
 
   constructor(
     private readonly state: LiveState,
@@ -63,13 +66,22 @@ export class AgentPool {
     const project = this.state.projectKey()
     // No project: no agent answers.
     if (!project) return this.state.setSession(null, null)
+    const folders = presentFolders(this.state.workspace!).map((f) => f.cwd)
     let agent = this.agents.get(project)
+    // The workspace's folders changed: the agent starts again with them, in the same session, when it is not working.
+    if (agent?.connected && !agent.busy && agent.folders.join('\n') !== folders.join('\n')) {
+      this.agents.delete(project)
+      agent.stop()
+      agent = undefined
+      this.restart.add(project)
+    }
     if (agent) {
       this.agents.delete(project)
       this.agents.set(project, agent)
-    } else if (start) {
+    } else if (start || this.restart.has(project)) {
+      this.restart.delete(project)
       const d = this.store.defaultAgent()
-      if (d) agent = this.start(project, d.agent, this.state.project!.cwd)
+      if (d) agent = this.start(project, d.agent, folders)
     }
     // Until this project's agent runs, no other project's agent answers here.
     if (!agent) return this.state.setSession(null, null)
@@ -122,14 +134,32 @@ export class AgentPool {
     this.state.setSession(null, null)
   }
 
-  private start(project: string, choice: AgentChoice, cwd: string): ProjectAgent {
+  /**
+   * A workspace's new key (a folder saved as a workspace file): its agent session moves there, and
+   * its agent starts again with the new key when the workspace opens.
+   */
+  rekey(from: string, to: string): void {
+    if (from === to) return
+    const saved = this.store.session(from)
+    if (saved) {
+      this.store.setSession(to, saved)
+      this.store.forget(from)
+    }
+    const agent = this.agents.get(from)
+    if (!agent) return
+    this.agents.delete(from)
+    agent.stop()
+    this.restart.add(to)
+  }
+
+  private start(project: string, choice: AgentChoice, folders: string[]): ProjectAgent {
     const agent = new ProjectAgent(this.state, project, this.mcp, this.store)
     agent.onChange = () => this.changed(agent)
     this.agents.set(project, agent)
     let started: Promise<void>
     try {
       const spec = providerFor(choice, this.providers)
-      started = spec ? agent.start(spec, choice, cwd) : Promise.reject(new Error(`Poney does not know the agent "${agentKey(choice)}".`))
+      started = spec ? agent.start(spec, choice, folders[0], folders.slice(1)) : Promise.reject(new Error(`Poney does not know the agent "${agentKey(choice)}".`))
     } catch (e) {
       // Any failure goes the same way: the agent leaves the pool, so the next activation tries again.
       started = Promise.reject(e)

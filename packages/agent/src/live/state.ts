@@ -10,6 +10,7 @@ import { EventEmitter } from 'node:events'
 import type { OverlayResult } from '../plugins/types'
 import type { AgentStatus, Message, MessageInput, Place, StudioState, WorkspaceDocuments } from './types'
 import { withIdentity, type Folder } from './folder'
+import { folderWorkspace, type Workspace } from './workspace-file'
 
 /** Answers the person's questions: an agent the Studio started. */
 export type Responder = (question: Extract<Message, { from: 'person' }>) => void
@@ -23,7 +24,7 @@ interface Events {
   edited: [document: unknown]
   /** The file the open document is saved to, if any. */
   file: [path: string | undefined]
-  workspace: [workspace: Folder | undefined]
+  workspace: [workspace: Workspace | undefined]
   /** The documents of the open folder, and the one shown. */
   documents: [documents: WorkspaceDocuments]
   message: [message: Message]
@@ -46,7 +47,7 @@ export class LiveState extends EventEmitter<Events> {
   private waiters = new Set<() => void>()
   private responder: Responder | null = null
   private session: AgentStatus['session'] = null
-  private workspace?: Folder
+  private space?: Workspace
   private path?: string
   studio?: StudioState
   private shownOverlays: Record<string, OverlayResult> = {}
@@ -58,8 +59,9 @@ export class LiveState extends EventEmitter<Events> {
   open(document: unknown, source: Source = 'agent'): number {
     // What an agent opens joins the open project when that project belongs to the agent's folder (its file is there, or it has none);
     // otherwise it is the folder's own project. A file opens as it is.
-    const joins = !this.path || (this.workspace && this.path.startsWith(`${this.workspace.cwd}/`))
-    this.document = this.workspace && source === 'agent' ? withIdentity(document, { id: (joins ? this.openProjectId : undefined) ?? this.workspace.id, name: this.workspace.name }) : document
+    const first = this.project
+    const joins = !this.path || (first && this.inWorkspace(this.path))
+    this.document = first && source === 'agent' ? withIdentity(document, { id: (joins ? this.openProjectId : undefined) ?? first.id, name: first.name }) : document
     this.source = source
     this.revision++
     this.studio = undefined
@@ -129,7 +131,7 @@ export class LiveState extends EventEmitter<Events> {
 
   /** The key of the open project's thread. */
   projectKey(): string {
-    return this.workspace?.cwd ?? ''
+    return this.space?.key ?? ''
   }
 
   thread(project = this.projectKey()): Message[] {
@@ -210,25 +212,57 @@ export class LiveState extends EventEmitter<Events> {
 
   /* ─── The workspace ─────────────────────────────────────────────────── */
 
-  /** The project folder: the folder the open document belongs to, where agents work. */
+  /** The open workspace's first folder: where its agent runs, and where a folder's documents are. */
   get project(): Folder | undefined {
-    return this.workspace
+    return this.space?.folders.find((f) => !(f as { missing?: boolean }).missing) ?? this.space?.folders[0]
+  }
+
+  /** The open workspace: its key, its folders and, when saved, its file and documents. */
+  get workspace(): Workspace | undefined {
+    return this.space
+  }
+
+  /** True when a file is one of the open workspace's documents, or is in one of its folders. */
+  inWorkspace(path: string): boolean {
+    const w = this.space
+    if (!w) return false
+    return !!w.documents?.includes(path) || w.folders.some((f) => path.startsWith(`${f.cwd}/`))
   }
 
   /**
-   * Opens a folder as the project, or, with a document tied to it, records
-   * the folder it belongs to. What opens for it (its file, the document already
-   * open, or an empty project) is decided where files are known.
+   * Opens a workspace (a folder opens as a workspace of its own), or, with a
+   * document tied to it, records the workspace it belongs to. What opens for
+   * it (its document, the document already open, or an empty one) is decided
+   * where files are known.
    */
-  setWorkspace(w: Folder | undefined) {
-    if (w?.cwd === this.workspace?.cwd) {
-      // The same folder again. Nothing to do, unless the shown document is not the folder's: then it opens again. The thread and the agent stay.
-      if (!w || (this.file?.startsWith(`${w.cwd}/`) && this.openProjectId === w.id)) return
+  setWorkspace(next: Workspace | Folder | undefined) {
+    const w = next && 'cwd' in next ? folderWorkspace(next) : next
+    if (w && w.key === this.space?.key) {
+      const changed = JSON.stringify(w) !== JSON.stringify(this.space)
+      this.space = w
+      // The same workspace again. Nothing to do, unless it changed (its folders or documents) or the shown document is not its own: then it opens again. The thread and the agent stay.
+      if (!changed && this.file && this.inWorkspace(this.file)) return
       return void this.emit('workspace', w)
     }
-    this.workspace = w
+    if (!w && !this.space) return
+    this.space = w
     this.emit('workspace', w)
     this.emit('thread', this.thread())
+  }
+
+  /** Moves a workspace's conversation to a new key, as when a folder is saved as a workspace file. */
+  rekey(from: string, to: string) {
+    if (from === to) return
+    const messages = this.threads.get(from)
+    if (messages) {
+      this.threads.set(to, [...(this.threads.get(to) ?? []), ...messages])
+      this.threads.delete(from)
+    }
+    const delivered = this.delivered.get(from)
+    if (delivered !== undefined) {
+      this.delivered.set(to, Math.max(delivered, this.delivered.get(to) ?? 0))
+      this.delivered.delete(from)
+    }
   }
 
   /** The id of the open document's project. */

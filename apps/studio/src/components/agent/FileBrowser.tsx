@@ -8,7 +8,18 @@ import { listFolders, type Folder } from '@/features/agent'
  * chosen; with `onOpenFile`, the .poney files in it are listed and open on a
  * click.
  */
-export function FileBrowser({ start, onPickFolder, onOpenFile }: { start?: string; onPickFolder?(path: string): void; onOpenFile?(path: string): void }) {
+export function FileBrowser({
+  start,
+  onPickFolder,
+  onOpenFile,
+  extensions = ['.poney'],
+}: {
+  start?: string
+  onPickFolder?(path: string): void
+  onOpenFile?(path: string): void
+  /** The files listed, by ending. */
+  extensions?: string[]
+}) {
   const [dir, setDir] = useState<Folder | null>(null)
   const [error, setError] = useState<string | null>(null)
   const go = (path?: string) =>
@@ -25,7 +36,7 @@ export function FileBrowser({ start, onPickFolder, onOpenFile }: { start?: strin
   }, [])
   if (error) return <p className="text-[12.5px] text-removed">{error}</p>
   if (!dir) return <p className="text-[12.5px] text-ink-3">Reading folders…</p>
-  const files = onOpenFile ? dir.files : []
+  const files = onOpenFile ? dir.files.filter((f) => extensions.some((x) => f.name.endsWith(x))) : []
   return (
     <div className="overflow-hidden rounded-xl border border-rule">
       <div className="flex items-center gap-2 border-b border-rule bg-sunken/50 px-2 py-1.5">

@@ -34,6 +34,7 @@ export class ProjectAgent {
   private spec?: ProviderSpec
   private key = ''
   private cwd = ''
+  private others: string[] = []
   /** Counts starts and stops, so a start that a stop overtook does not keep its agent. */
   private run = 0
   private queue: Question[] = []
@@ -86,13 +87,19 @@ export class ProjectAgent {
     return this.choices.size
   }
 
-  /** Starts the agent in a folder with the Poney tools, in the project's earlier session when it can. */
-  async start(spec: ProviderSpec, choice: AgentChoice, cwd: string): Promise<void> {
+  /** The folders the agent was started with: where it runs, then the others it may read. */
+  get folders(): string[] {
+    return [this.cwd, ...this.others]
+  }
+
+  /** Starts the agent in a folder with the Poney tools, in the project's earlier session when it can. `others`: more folders of the workspace. */
+  async start(spec: ProviderSpec, choice: AgentChoice, cwd: string, others: string[] = []): Promise<void> {
     this.stop()
     const run = this.run
     this.spec = spec
     this.key = agentKey(choice)
     this.cwd = cwd
+    this.others = others
     const saved = this.store.session(this.project)
     // A thread with messages shows the session already; an empty one gets its history from the agent.
     const resume = saved?.agentKey === this.key ? { sessionId: saved.sessionId, how: this.state.thread(this.project).length ? ('resume' as const) : ('load' as const) } : undefined
@@ -105,7 +112,8 @@ export class ProjectAgent {
     try {
       agent = await startAgent(spec, cwd, {
         mcpServers: [{ name: 'poney', command: mcp.command, args: mcp.args, env: [{ name: 'PONEY_HUB_URL', value: mcp.hubUrl }, { name: 'PONEY_PROJECT', value: this.project }] }],
-        systemPrompt: briefing(cwd),
+        additionalDirectories: others,
+        systemPrompt: briefing(cwd, others),
         resume,
         onUpdate: (n) => this.onUpdate(n),
         onPermission: (p) => this.onPermission(p),
@@ -260,8 +268,8 @@ export class ProjectAgent {
     const parts = [where.length ? `[${where.join(' ')}]` : '', q.text].filter(Boolean)
     if (!this.briefed) {
       this.briefed = true
-      parts.unshift(briefing(this.cwd))
-    } else if (!this.systemPrompt) parts.unshift(reminder(this.cwd))
+      parts.unshift(briefing(this.cwd, this.others))
+    } else if (!this.systemPrompt) parts.unshift(reminder(this.cwd, this.others))
     return parts.join('\n\n')
   }
 
@@ -278,7 +286,7 @@ export class ProjectAgent {
         this.writing = undefined
         // The agent replays the prompt as sent: the person sees their own words.
         this.asked = (this.asking ? this.asked : '') + u.content.text
-        const text = personWords(this.asked, this.cwd)
+        const text = personWords(this.asked, this.cwd, this.others)
         this.asking = this.put(this.asking ? { ...this.asking, text } : { from: 'person', text }) as Question
         return
       }
@@ -332,15 +340,15 @@ export class ProjectAgent {
 const keepInitial = (next: SessionSetting[], before: SessionSetting[]) => next.map((s) => ({ ...s, initial: before.find((b) => b.id === s.id)?.initial ?? s.initial }))
 
 /** What each request starts with when the agent did not take the briefing as system instructions. */
-const reminder = (cwd: string) => `[Poney Studio: explain the code in ${cwd}, with Poney documents when a picture helps. Say so briefly if the request is about something else.]`
+const reminder = (cwd: string, others: string[] = []) => `[Poney Studio: explain the code in ${[cwd, ...others].join(', ')}, with Poney documents when a picture helps. Say so briefly if the request is about something else.]`
 
 /** How the blocks start that say where the person is (see promptFor). */
 const WHERE = ['[They are reading ', '[They selected ', '[The question is about:']
 
 /** The person's words in a prompt that promptFor built: without the briefing, the reminder, or where they were. */
-export function personWords(sent: string, cwd: string): string {
+export function personWords(sent: string, cwd: string, others: string[] = []): string {
   let text = sent
-  for (const head of [briefing(cwd), reminder(cwd)]) if (text.startsWith(`${head}\n\n`)) text = text.slice(head.length + 2)
+  for (const head of [briefing(cwd, others), reminder(cwd, others)]) if (text.startsWith(`${head}\n\n`)) text = text.slice(head.length + 2)
   const end = text.indexOf(']\n\n')
   if (WHERE.some((w) => text.startsWith(w)) && end >= 0) text = text.slice(end + 3)
   return text
@@ -350,8 +358,11 @@ export function personWords(sent: string, cwd: string): string {
  * What an agent started by the Studio is told: its system prompt when it
  * accepts one, otherwise the start of its first request.
  */
-export function briefing(cwd: string): string {
-  return `You work for a person in Poney Studio. Poney Studio shows walkthroughs and tours of the code in ${cwd} as diagrams and scenes. Your job is to help the person understand this code, and the way you answer is with Poney documents.
+export function briefing(cwd: string, others: string[] = []): string {
+  const more = others.length
+    ? `\n\nThe person's workspace also has these folders, which you may read: ${others.join(', ')}. Explain how the folders work together when the person asks. For poney_check, poney_excerpt, poney_import and poney_overlay, give the folder of the code as \`repo\`.`
+    : ''
+  return `You work for a person in Poney Studio. Poney Studio shows walkthroughs and tours of the code in ${cwd} as diagrams and scenes. Your job is to help the person understand this code, and the way you answer is with Poney documents.${more}
 
 How to work:
 - Call poney_guide once before you write a document: topic "tour" to teach code as it is, topic "change" to explain a commit or a branch. Follow it.

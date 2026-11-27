@@ -9,6 +9,8 @@ Every package in this repository has the same version. The format has its own ve
 - A folder can have several documents. **Open a workspace** (before: **Open a project**) opens a folder; its documents are the `.poney` files in `docs/poney/`. With one, it opens; with several, the one you read last opens, or Studio asks you to select one. Before, a folder with several documents opened a new, empty one.
 - The document menu, at the top of the sidebar, lists the folder's documents, and **New document…** starts another one in `docs/poney/`.
 - Names in the interface: workspace in place of project, and **Overview** in place of **Project overview**.
+- A workspace can have several folders, kept in a `.poney-workspace` file with paths relative to the file. **Add a folder…** and **Save the workspace…** are in the document menu. A folder with its own workspace file opens that file. Saving a workspace keeps its conversation and agent session.
+- **Import from the code…** asks which folder of the workspace to read.
 - You can close an open document: the × on the document in the **Open** list on the start page, or in the document menu. A closed document stays in **Recent**.
 - You can delete the `.poney` file of a document when Poney on this computer keeps it: **Delete file…** in the document menu, or the trash button on the document in the start page's lists. Studio asks first. The delete is permanent.
 - New route `POST /api/files/delete` in the local server. It deletes only a valid Poney document, and with `project` only a file that holds that document.
@@ -18,7 +20,9 @@ Every package in this repository has the same version. The format has its own ve
 - `poney_open` and `poney_import` take `file`: the document to write to, relative to the folder. A path that does not exist starts a new document there. Without `file`, they write to the document the person reads, as before; when the folder has several documents and none is shown, they ask for `file`.
 - `poney_read` returns the folder's documents and the one shown.
 - A document keeps its own `project.id`. Before, every document an agent opened in a folder took the folder's id.
-- The local server remembers the document shown last in each folder, in `~/.poney/workspaces.json`. New route `POST /api/documents/new`, and a `documents` event for the Studio.
+- One agent works for a workspace and reads all its folders, through ACP `additionalDirectories` (Claude Code and Codex support it). An agent that does not gets the other folders' paths in its instructions. When the folders change, the agent starts again in the same session.
+- `poney_read` returns the workspace's folders.
+- The local server remembers the document shown last in each workspace, in `~/.poney/workspaces.json`. New routes `POST /api/documents/new`, `/api/workspace/save`, `/api/workspace/folders` and `/api/workspace/documents/remove`, and `documents` and `workspace` events for the Studio.
 
 ## 0.3.1
 

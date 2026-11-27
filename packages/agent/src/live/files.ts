@@ -15,6 +15,7 @@ import { checkFolder } from '../agents/workspace'
 import type { LiveState } from './state'
 import type { WorkspaceDocument } from './types'
 import { emptyDocument, folderAt, folderDocument, slug, withIdentity, type Folder } from './folder'
+import { readWorkspace, workspaceFilesIn, workspaceFor, writeWorkspace, type Workspace } from './workspace-file'
 import { execFileSync } from 'node:child_process'
 
 /** The top folder of the git repository a folder is in, if any, as a real path. */
@@ -47,23 +48,38 @@ export function projectOf(path: string): { root?: string; file: string } {
 /** Where a folder's Poney file goes when it has none. */
 export const workspaceFile = (w: Folder) => join(w.cwd, 'docs', 'poney', `${w.id}.poney`)
 
+/** A document's entry in a list: its id and name, or why it is not a valid document. */
+function entryFor(path: string): WorkspaceDocument {
+  const fallback = { path, id: basename(path, '.poney'), name: basename(path, '.poney') }
+  if (!existsSync(path)) return { ...fallback, invalid: 'The file is missing.' }
+  try {
+    const text = readFileSync(path, 'utf8')
+    const { result, report } = check({ text })
+    const project = (JSON.parse(text) as { project?: { id?: string; name?: string } }).project
+    const entry = { path, id: project?.id ?? fallback.id, name: project?.name ?? fallback.name }
+    return result?.ok ? entry : { ...entry, invalid: report.split('\n')[0] || 'Not a valid document.' }
+  } catch {
+    return { ...fallback, invalid: 'Not a valid document.' }
+  }
+}
+
 /** The documents of a folder: the .poney files in its docs/poney/, by name. */
 export function documentsIn(cwd: string): WorkspaceDocument[] {
   const dir = join(cwd, 'docs', 'poney')
   const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.poney')).sort() : []
-  return names.map((f) => {
-    const path = join(dir, f)
-    const fallback = { path, id: f.replace(/\.poney$/, ''), name: f.replace(/\.poney$/, '') }
-    try {
-      const text = readFileSync(path, 'utf8')
-      const { result, report } = check({ text })
-      const project = (JSON.parse(text) as { project?: { id?: string; name?: string } }).project
-      const entry = { path, id: project?.id ?? fallback.id, name: project?.name ?? fallback.name }
-      return result?.ok ? entry : { ...entry, invalid: report.split('\n')[0] || 'Not a valid document.' }
-    } catch {
-      return { ...fallback, invalid: 'Not a valid document.' }
-    }
-  })
+  return names.map((f) => entryFor(join(dir, f)))
+}
+
+/** The documents of a workspace: a saved one's list, else its folder's docs/poney/. */
+export function documentsOf(w: Workspace): WorkspaceDocument[] {
+  return w.file ? (w.documents ?? []).map(entryFor) : documentsIn(w.folders[0].cwd)
+}
+
+/** The id and empty document a workspace starts with when it has no document. */
+function starter(w: Workspace): { id: string; document: unknown } {
+  if (!w.file) return { id: w.folders[0].id, document: folderDocument(w.folders[0]) }
+  const id = slug(w.name)
+  return { id, document: emptyDocument(id, w.name, '') }
 }
 
 /** The same file, whatever path names it. */
@@ -111,10 +127,10 @@ function invalidFile(path: string): string | undefined {
 /** Why nothing was saved over a file that is not a valid document. */
 export const NOT_SAVED = "The project's file is not a valid document. Not saved."
 
-/** The refusal when a folder has several documents and none is shown. */
-function chooseOne(w: Folder): string {
-  const list = documentsIn(w.cwd).map((d) => `${d.path} (${d.name})`)
-  return `Not opened: ${w.cwd} has several documents, and none is shown. Give \`file\`: one of ${list.join(', ')}, or a new path in docs/poney/.`
+/** The refusal when a workspace has several documents and none is shown. */
+function chooseOne(w: Workspace): string {
+  const list = documentsOf(w).map((d) => `${d.path} (${d.name})`)
+  return `Not opened: the workspace "${w.name}" has several documents, and none is shown. Give \`file\`: one of ${list.join(', ')}, or a new path in docs/poney/.`
 }
 
 const isEmpty = (doc: unknown) => {
@@ -131,9 +147,9 @@ export class DocumentFiles {
   private project?: string
   /** The file a save was refused for, so the person is told once. */
   private refused?: string
-  /** The file each folder showed last, by folder. */
+  /** The file each workspace showed last, by workspace key. */
   private tied = readLast()
-  /** Watches the open folder's docs/poney/, so the list of documents stays true. */
+  /** Watches what lists the open workspace's documents (its file, or its folder's docs/poney/), so the list stays true. */
   private dirWatcher?: { dir: string; watcher?: FSWatcher }
   private listTimer?: ReturnType<typeof setTimeout>
 
@@ -155,11 +171,11 @@ export class DocumentFiles {
     writeLast(this.tied)
   }
 
-  /** Sends the open folder's documents, and the one shown, to the Studio. */
+  /** Sends the open workspace's documents, and the one shown, to the Studio. */
   refresh(): void {
-    const cwd = this.state.project?.cwd
-    this.state.setDocuments({ documents: cwd ? documentsIn(cwd) : [], shown: this.state.file ?? null })
-    const dir = cwd ? join(cwd, 'docs', 'poney') : undefined
+    const w = this.state.workspace
+    this.state.setDocuments({ documents: w ? documentsOf(w) : [], shown: this.state.file ?? null })
+    const dir = w?.file ?? (w ? join(w.folders[0].cwd, 'docs', 'poney') : undefined)
     if (this.dirWatcher?.dir === dir && (this.dirWatcher?.watcher || !dir || !existsSync(dir))) return
     this.dirWatcher?.watcher?.close()
     this.dirWatcher = dir ? { dir } : undefined
@@ -167,32 +183,122 @@ export class DocumentFiles {
     try {
       this.dirWatcher!.watcher = watch(dir, () => {
         clearTimeout(this.listTimer)
-        this.listTimer = setTimeout(() => this.refresh(), 150)
+        this.listTimer = setTimeout(() => this.reread(), 150)
       })
     } catch {
       /* the list is then read again on the next change here */
     }
   }
 
+  /** A change on disk: a saved workspace's file is read again (an editor, git pull); then the list. */
+  private reread() {
+    const w = this.state.workspace
+    if (w?.file && existsSync(w.file)) {
+      try {
+        const next = readWorkspace(w.file)
+        if (JSON.stringify(next) !== JSON.stringify(w)) return this.state.setWorkspace(next)
+      } catch (e) {
+        this.state.put({ from: 'notice', text: e instanceof Error ? e.message : String(e), tone: 'error' })
+      }
+    }
+    this.refresh()
+  }
+
+  /** Adds a document to the open workspace's file, when it is saved and does not list it yet. */
+  private adopt(path: string) {
+    const w = this.state.workspace
+    if (!w?.file || w.documents?.includes(path)) return
+    const next = { ...w, file: w.file, documents: [...(w.documents ?? []), path] }
+    writeWorkspace(next)
+    this.state.setWorkspace(next)
+  }
+
   /**
-   * A new, empty document in the open folder's docs/poney/, shown at once.
-   * Its id comes from its name, and is not one another document of the folder has.
+   * A new, empty document in docs/poney/ of the open workspace's first folder (or `folder`), shown at once.
+   * Its id comes from its name, and is not one another document of the workspace has.
    */
-  create(name: string): string {
-    const w = this.state.project
-    if (!w) throw new Error('Open a folder first.')
+  create(name: string, folder?: string): string {
+    const w = this.state.workspace
+    const first = folder ? w?.folders.find((f) => f.cwd === folder) : this.state.project
+    if (!w || !first) throw new Error('Open a workspace first.')
     const title = name.trim()
     if (!title) throw new Error('Give the document a name.')
-    const dir = join(w.cwd, 'docs', 'poney')
-    const taken = new Set(documentsIn(w.cwd).map((d) => d.id))
+    const dir = join(first.cwd, 'docs', 'poney')
+    const taken = new Set([...documentsOf(w), ...documentsIn(first.cwd)].map((d) => d.id))
     const base = slug(title)
     let id = base
     for (let n = 2; taken.has(id) || existsSync(join(dir, `${id}.poney`)); n++) id = `${base}-${n}`
     const path = join(dir, `${id}.poney`)
     mkdirSync(dir, { recursive: true })
     writeFileSync(path, `${JSON.stringify(emptyDocument(id, title, ''), null, 2)}\n`)
-    this.load(path, w.cwd)
+    this.adopt(path)
+    this.load(path, first.cwd)
     return path
+  }
+
+  /** Removes a document from a saved workspace's list. The file stays. */
+  removeDocument(path: string): void {
+    const w = this.state.workspace
+    if (!w?.file) throw new Error('Only a saved workspace lists its documents. Delete the file instead.')
+    if (!w.documents?.includes(path)) throw new Error(`"${path}" is not in this workspace.`)
+    if (this.state.file === path) {
+      this.tie(undefined)
+      this.state.clear()
+    }
+    const next = { ...w, file: w.file, documents: w.documents.filter((d) => d !== path) }
+    writeWorkspace(next)
+    this.state.setWorkspace(next)
+  }
+
+  /**
+   * Saves the open workspace as a .poney-workspace file. A folder workspace lists its folder and its
+   * documents. Returns the old and the new key: the conversation and the agent session move to the new one.
+   */
+  saveWorkspace(file: string, name?: string): { from: string; to: string; workspace: Workspace } {
+    const w = this.state.workspace
+    if (!w) throw new Error('Open a workspace first.')
+    if (!file.endsWith('.poney-workspace')) throw new Error('The file must end in .poney-workspace.')
+    if (existsSync(file) && !sameFile(file, w.file ?? '')) throw new Error(`"${file}" exists already.`)
+    const documents = documentsOf(w).map((d) => d.path)
+    const shown = this.state.file
+    if (shown && !documents.includes(shown) && existsSync(shown)) documents.push(shown)
+    mkdirSync(dirname(file), { recursive: true })
+    writeWorkspace({ ...w, name: name?.trim() || w.name, file, documents })
+    const saved = readWorkspace(file)
+    this.rekey(w.key, saved.key)
+    return { from: w.key, to: saved.key, workspace: saved }
+  }
+
+  /** Adds a folder to the open workspace, which must be saved. Its documents in docs/poney/ join the list. */
+  addFolder(path: string): Workspace {
+    const w = this.state.workspace
+    if (!w?.file) throw new Error('Save the workspace first.')
+    const folder = folderAt(checkFolder(path))
+    if (w.folders.some((f) => f.cwd === folder.cwd)) return w
+    const documents = [...(w.documents ?? [])]
+    for (const d of documentsIn(folder.cwd)) if (!documents.includes(d.path)) documents.push(d.path)
+    const next = { ...w, file: w.file, folders: [...w.folders, folder], documents }
+    writeWorkspace(next)
+    return next
+  }
+
+  /** Removes a folder from the open workspace, which must be saved and keep one folder. Its documents stay listed. */
+  removeFolder(path: string): Workspace {
+    const w = this.state.workspace
+    if (!w?.file) throw new Error('Save the workspace first.')
+    if (w.folders.length < 2) throw new Error('A workspace keeps at least one folder.')
+    const next = { ...w, file: w.file, folders: w.folders.filter((f) => f.cwd !== path) }
+    writeWorkspace(next)
+    return next
+  }
+
+  /** The document a workspace showed last moves with it to its new key. */
+  private rekey(from: string, to: string) {
+    const last = this.tied.get(from)
+    if (last === undefined || from === to) return
+    this.tied.delete(from)
+    this.tied.set(to, last)
+    writeLast(this.tied)
   }
 
   /**
@@ -203,19 +309,20 @@ export class DocumentFiles {
    */
   agentOpen(document: unknown, options: { project?: string; file?: string } = {}): AgentOpened {
     const background = !!options.project && options.project !== this.state.projectKey()
-    const folder = background ? folderAt(checkFolder(options.project!)) : this.state.project
+    const space = background ? workspaceFor(options.project!) : this.state.workspace
+    const folder = space?.folders.find((f) => !f.missing) ?? space?.folders[0]
     const target = options.file ? (isAbsolute(options.file) ? options.file : resolve(folder?.cwd ?? process.cwd(), options.file)) : undefined
     if (target && !target.endsWith('.poney')) return { refused: 'Not opened: `file` must end in .poney.' }
     const name = (document as { project?: { name?: string } } | null)?.project?.name ?? (target ? basename(target, '.poney') : folder?.name ?? 'the document')
     if (background) {
-      const saved = this.saveFor(folder!, document, target)
+      const saved = this.saveFor(space!, document, target)
       if (saved === 'invalid') return { refused: NOT_SAVED }
-      if (saved === 'nofile') return { refused: chooseOne(folder!) }
+      if (saved === 'nofile') return { refused: chooseOne(space!) }
       if (saved === 'saved') this.state.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this workspace.`, tone: 'info' }, options.project)
       return { saved: true }
     }
     if (!target || (this.state.file && sameFile(target, this.state.file))) {
-      if (folder && !this.state.shown()) return { refused: chooseOne(folder) }
+      if (space && !this.state.shown()) return { refused: chooseOne(space) }
       return { revision: this.state.open(document) }
     }
     if (existsSync(target)) {
@@ -224,14 +331,15 @@ export class DocumentFiles {
       if (saved === 'saved') this.state.put({ from: 'notice', text: `The agent saved “${name}”. Select it in the document menu to see it.`, tone: 'info' })
       return { saved: true }
     }
-    // A new document: it keeps its own id, unless another document of the folder has it.
+    // A new document: it keeps its own id, unless another document of the workspace has it.
     const root = projectOf(target).root
-    const taken = new Set(root ? documentsIn(root).map((d) => d.id) : [])
+    const taken = new Set([...(space ? documentsOf(space) : []), ...(root ? documentsIn(root) : [])].map((d) => d.id))
     const own = (document as { project?: { id?: string } } | null)?.project?.id
     const id = own && !taken.has(own) ? own : slug(basename(target, '.poney'))
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, `${JSON.stringify(withIdentity(document, { id }), null, 2)}\n`)
-    this.load(target, root)
+    this.adopt(realpathSync(target))
+    this.load(realpathSync(target), root)
     return { revision: this.state.shown()?.revision }
   }
 
@@ -256,7 +364,7 @@ export class DocumentFiles {
       // Nothing is saved over another file meanwhile; the project then ties its own file, and the document stays.
       this.tie(undefined)
       this.state.open(given, 'file')
-      return this.state.setWorkspace(folderAt(root))
+      return this.state.setWorkspace(this.workspaceOfFile(file, root))
     }
     this.load(file, root)
   }
@@ -289,13 +397,30 @@ export class DocumentFiles {
    * The document of a folder: the one it showed last, else its only document, else (none) the folder's own
    * name in docs/poney/. Undefined when it has several and none was shown yet: the person selects one.
    */
-  fileOf(w: Folder): string | undefined {
-    const tied = this.tied.get(w.cwd)
-    if (tied && existsSync(tied)) return tied
-    const found = documentsIn(w.cwd)
+  fileOf(w: Workspace): string | undefined {
+    const tied = this.tied.get(w.key)
+    if (tied && existsSync(tied) && (!w.file || w.documents?.includes(tied))) return tied
+    const found = documentsOf(w).filter((d) => existsSync(d.path))
     if (found.length === 1) return found[0].path
-    if (found.length === 0) return tied ?? workspaceFile(w)
+    if (found.length === 0) return (!w.file && tied) || join(w.folders[0].cwd, 'docs', 'poney', `${starter(w).id}.poney`)
     return undefined
+  }
+
+  /**
+   * The workspace a file opens in: a .poney-workspace file at the top of its project folder that lists it,
+   * else its project folder, else none.
+   */
+  private workspaceOfFile(file: string, root: string | undefined): Workspace | Folder | undefined {
+    if (!root) return undefined
+    for (const candidate of workspaceFilesIn(root)) {
+      try {
+        const w = readWorkspace(candidate)
+        if (w.documents?.includes(file)) return w
+      } catch {
+        /* not a workspace this file opens in */
+      }
+    }
+    return folderAt(root)
   }
 
   private load(path: string, root: string | undefined) {
@@ -304,10 +429,11 @@ export class DocumentFiles {
     if (!result?.ok) throw new Error(`"${path}" is not a valid Poney document.\n${report}`)
     const doc = JSON.parse(text) as { project?: { id?: string } }
     this.tie(path, doc.project?.id, text)
-    if (root) this.remember(root, path)
     this.state.open(doc, 'file')
-    // Agents work in the file's project; a file of no project leaves none open.
-    if (root !== this.state.project?.cwd) this.state.setWorkspace(root ? folderAt(root) : undefined)
+    // Agents work in the file's workspace; a file of no project leaves none open.
+    if (!this.state.inWorkspace(path)) this.state.setWorkspace(this.workspaceOfFile(path, root))
+    const key = this.state.projectKey()
+    if (key) this.remember(key, path)
   }
 
   /**
@@ -317,36 +443,39 @@ export class DocumentFiles {
    * a file when there is something to keep, or, when the folder has several
    * documents and none was shown yet, none: the person selects one.
    */
-  private openWorkspace(w: Folder) {
+  private openWorkspace(w: Workspace) {
     const open = this.state.shown()?.document
     const file = this.state.file
-    if (file && file.startsWith(`${w.cwd}/`)) return this.refresh()
+    const first = w.folders.find((f) => !f.missing) ?? w.folders[0]
+    const start = starter(w)
+    if (file && this.state.inWorkspace(file)) return this.refresh()
     if (open && !file && !isEmpty(open)) {
-      const id = this.state.openProjectId ?? w.id
-      const path = join(w.cwd, 'docs', 'poney', `${id}.poney`)
+      const id = this.state.openProjectId ?? start.id
+      const path = join(first.cwd, 'docs', 'poney', `${id}.poney`)
       this.tie(path, id)
-      this.remember(w.cwd, path)
+      this.remember(w.key, path)
       this.save(open)
       return this.refresh()
     }
     const path = this.fileOf(w)
     if (!path) {
       this.tie(undefined)
-      return this.state.clear()
+      this.state.clear()
+      return this.refresh()
     }
     if (existsSync(path)) {
       try {
-        return this.load(path, w.cwd)
+        return this.load(path, first.cwd)
       } catch (e) {
         this.state.put({ from: 'notice', text: e instanceof Error ? e.message.split('\n')[0] : String(e), tone: 'error' })
         // The file is the person's to fix: nothing is saved over it.
         this.tie(undefined)
-        if (this.state.openProjectId !== w.id) this.state.open(folderDocument(w), 'workspace')
+        if (this.state.openProjectId !== start.id) this.state.open(start.document, 'workspace')
         return
       }
     }
-    this.tie(path, w.id)
-    if (this.state.openProjectId !== w.id) this.state.open(folderDocument(w), 'workspace')
+    this.tie(path, start.id)
+    if (this.state.openProjectId !== start.id) this.state.open(start.document, 'workspace')
   }
 
   private tie(path: string | undefined, project?: string, text?: string) {
@@ -363,24 +492,26 @@ export class DocumentFiles {
    * Saves a document into another project's file, whether or not that project is open.
    * Nothing for an empty document or when unchanged, and never over a file that is not a valid document.
    */
-  saveFor(w: Folder, doc: unknown, file?: string): 'saved' | 'unchanged' | 'invalid' | 'nofile' {
+  saveFor(w: Workspace, doc: unknown, file?: string): 'saved' | 'unchanged' | 'invalid' | 'nofile' {
     const path = file ?? this.fileOf(w)
     if (!path) return 'nofile'
     if (invalidFile(path)) return 'invalid'
-    // Into an existing document, with its id; a new one keeps its own id when it names the file, else takes the folder's.
+    // Into an existing document, with its id; a new one keeps its own id when it names the file, else takes the workspace's.
     const existing = existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as { project?: { id?: string } }).project?.id : undefined
     const own = (doc as { project?: { id?: string } } | null)?.project?.id
-    const into = withIdentity(doc, { id: existing ?? (file && own ? own : w.id), name: w.name })
+    const into = withIdentity(doc, { id: existing ?? (file && own ? own : starter(w).id), name: w.name })
     if (isEmpty(into)) return 'unchanged'
     const text = `${JSON.stringify(into, null, 2)}\n`
     if (existsSync(path) && readFileSync(path, 'utf8') === text) return 'unchanged'
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, text)
+    // A new document of a saved workspace joins its list.
+    if (w.file && !w.documents?.includes(path)) writeWorkspace({ ...w, file: w.file, documents: [...(w.documents ?? []), path] })
     return 'saved'
   }
 
   /** The document saved in a project's file: none when the file is missing, `invalid` when it is not a valid document. */
-  savedFor(w: Folder): { document?: unknown; invalid?: string } {
+  savedFor(w: Workspace): { document?: unknown; invalid?: string } {
     const path = this.fileOf(w)
     if (!path || !existsSync(path)) return {}
     const invalid = invalidFile(path)
@@ -399,6 +530,7 @@ export class DocumentFiles {
       this.tie(workspaceFile(w), w.id)
       return this.save(doc)
     }
+    const first = !existsSync(path)
     const text = `${JSON.stringify(doc, null, 2)}\n`
     if (text === this.written) return
     // A file that changed on disk into something that is not a document (a merge conflict, a bad edit) is the person's to fix.
@@ -411,6 +543,7 @@ export class DocumentFiles {
     mkdirSync(dirname(path), { recursive: true })
     this.written = text
     writeFileSync(path, text)
+    if (first) this.adopt(path)
     if (!this.watcher) {
       this.watch(path)
       this.refresh()

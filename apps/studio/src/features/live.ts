@@ -108,6 +108,7 @@ function connect(base: string, attempt = 0) {
   })
   events.addEventListener('overlays', (e) => useStudio.getState().setOverlays(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('file', (e) => useStudio.getState().setLiveFile((JSON.parse((e as MessageEvent).data) as { path: string | null }).path))
+  events.addEventListener('workspace', (e) => useStudio.getState().setWorkspace(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('documents', (e) => useStudio.getState().setFolderDocuments(JSON.parse((e as MessageEvent).data) as WorkspaceDocuments))
 
   // Report what the person does, a moment after they do it.
