@@ -81,7 +81,7 @@ export const Risk = z.enum(['look', 'routine'])
  * - `hot-path`: the main path; the line or box stands out.
  * - `slow`: this takes time (a slow call, a long job).
  * - `failing`: this fails, or is where an error comes from.
- * - `blocked`: nothing gets through here (a closed door, a lock, a limit).
+ * - `blocked`: nothing gets through here (a lock, a limit, a closed path).
  */
 export const EffectKind = z.enum(['flow', 'attention', 'hot-path', 'slow', 'failing', 'blocked'])
 export type EffectKind = z.infer<typeof EffectKind>

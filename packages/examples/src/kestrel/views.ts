@@ -50,7 +50,7 @@ const platform = [
 ]
 
 const zones = [
-  { id: 'zone-apps', label: 'Apps and edge', description: 'What people use, and the single door into the platform.', members: ['storefront', 'back-office', 'api-gateway'] },
+  { id: 'zone-apps', label: 'Apps and edge', description: 'What people use, and the only way into the platform.', members: ['storefront', 'back-office', 'api-gateway'] },
   {
     id: 'zone-services',
     label: 'Services',
