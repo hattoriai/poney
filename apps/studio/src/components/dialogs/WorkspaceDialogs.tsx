@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useStudio } from '@/features/store'
+import { useStudio, type OpenWorkspace } from '@/features/store'
 import { addFolder, saveWorkspace } from '@/features/agent'
 import { FileBrowser } from '@/components/agent/FileBrowser'
 import { Modal } from './Modal'
 
-/** The file a workspace is saved to by default: in its first folder, named after it. */
-const defaultFile = (folder: string, name: string) => `${folder}/${name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'workspace'}.poney-workspace`
+/** The file a workspace is saved to by default: next to its document when it is a document opened alone, else in its first folder; named after it. */
+const defaultFile = (w: OpenWorkspace, name = w.name) => {
+  const dir = w.key.startsWith('document:') ? w.key.slice('document:'.length, w.key.lastIndexOf('/')) : w.folders[0].path
+  return `${dir}/${name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'workspace'}.poney-workspace`
+}
 
 /**
  * Adds a folder to the open workspace. A workspace with more than one folder
@@ -22,20 +25,22 @@ export function AddFolderDialog() {
     if (!open) return
     setPicked(null)
     setError(null)
-    if (workspace) setFile(defaultFile(workspace.folders[0].path, workspace.name))
+    if (workspace) setFile(defaultFile(workspace))
   }, [open, workspace])
   const close = () => useStudio.getState().setWorkspaceDialog(null)
   const add = async (path: string) => {
     setError(null)
     try {
-      if (!workspace?.file) await saveWorkspace(file)
+      // A document alone gets the folder attached; a workspace that is not saved is saved first.
+      if (workspace && !workspace.file) await saveWorkspace(file)
       await addFolder(path)
       close()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
   }
-  const first = workspace?.folders[0]?.path
+  const liveFile = useStudio((s) => s.liveFile)
+  const first = workspace?.folders[0]?.path ?? liveFile ?? undefined
   return (
     <Modal open={open} onOpenChange={(o) => !o && close()} title="Add a folder" description="The agent can read every folder of the workspace." width={620}>
       <div className="space-y-3 px-5 py-5">
@@ -58,7 +63,7 @@ export function AddFolderDialog() {
             </div>
           </>
         ) : (
-          <FileBrowser start={first ? first.slice(0, first.lastIndexOf('/')) : undefined} onPickFolder={(p) => (workspace?.file ? void add(p) : setPicked(p))} />
+          <FileBrowser start={first ? first.slice(0, first.lastIndexOf('/')) : undefined} onPickFolder={(p) => (!workspace || workspace.file ? void add(p) : setPicked(p))} />
         )}
         {error && (
           <p role="alert" className="text-[12.5px] text-removed">
@@ -81,7 +86,7 @@ export function SaveWorkspaceDialog() {
     if (!open || !workspace) return
     setError(null)
     setName(workspace.name)
-    setFile(defaultFile(workspace.folders[0].path, workspace.name))
+    setFile(defaultFile(workspace))
   }, [open, workspace])
   const close = () => useStudio.getState().setWorkspaceDialog(null)
   return (
@@ -103,7 +108,7 @@ export function SaveWorkspaceDialog() {
           value={name}
           onChange={(e) => {
             setName(e.target.value)
-            if (workspace) setFile(defaultFile(workspace.folders[0].path, e.target.value))
+            if (workspace) setFile(defaultFile(workspace, e.target.value))
           }}
           aria-label="Name"
           placeholder="Name"

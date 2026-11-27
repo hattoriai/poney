@@ -156,7 +156,7 @@ export function StartPage() {
                     <span className="min-w-0">
                       <span className="block truncate">{w.name}</span>
                       <span className="block truncate text-[11.5px] text-ink-3">
-                        {w.folders.length > 1 ? `${w.folders.length} folders` : 'Folder'}, {when(w.at)}
+                        {w.key.startsWith('document:') ? 'Document with a folder' : w.folders.length > 1 ? `${w.folders.length} folders` : 'Folder'}, {when(w.at)}
                       </span>
                     </span>
                     {openWorkspace?.key === w.key && <span className="ml-auto shrink-0 text-[11px] text-ink-3">Open</span>}

@@ -322,8 +322,8 @@ export class LiveServer {
       case 'POST /api/workspace/folders': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
         const r = (await body(req)) as { add?: string; remove?: string }
-        const w = r.add ? this.files.addFolder(r.add) : r.remove ? this.files.removeFolder(r.remove) : undefined
-        if (!w) return json(res, 400, { error: 'Give a folder to add or remove' })
+        if (!r.add && !r.remove) return json(res, 400, { error: 'Give a folder to add or remove' })
+        const w = r.add ? this.files.addFolder(r.add) : this.files.removeFolder(r.remove!)
         s.setWorkspace(w)
         return json(res, 200, describe(w))
       }
