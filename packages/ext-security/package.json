@@ -1,6 +1,6 @@
 {
   "name": "@hattoriai/poney-ext-security",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "Poney extension: trust zones, sensitive data, and how connections are protected; with lints.",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@hattoriai/poney-core": "0.3.1",
+    "@hattoriai/poney-core": "0.4.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
