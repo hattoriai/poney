@@ -4792,7 +4792,7 @@
             "value": "One new column, orders.payment_attempts, default 0."
           },
           {
-            "label": "Tests",
+            "label": "Proof",
             "value": "CI green, 9 new tests, 1 case without a test."
           },
           {

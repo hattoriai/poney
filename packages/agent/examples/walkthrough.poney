@@ -379,7 +379,7 @@
             "value": "Two new columns on users."
           },
           {
-            "label": "Tests",
+            "label": "Proof",
             "value": "6 new tests; the email has no test yet."
           }
         ],

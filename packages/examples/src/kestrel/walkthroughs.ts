@@ -37,7 +37,7 @@ export const retryWalkthrough: WalkthroughInput = {
       { label: 'Undo', value: 'A revert undoes it, and brings back the cancel on the first decline.' },
       { label: 'Other systems', value: 'None new. Paystream is called the same way.' },
       { label: 'Data', value: 'One new column, orders.payment_attempts, default 0.' },
-      { label: 'Tests', value: 'CI green, 9 new tests, 1 case without a test.' },
+      { label: 'Proof', value: 'CI green, 9 new tests, 1 case without a test.' },
       { label: 'To read', value: 'About 8 minutes: 96 lines to read, 129 to skim.' },
     ],
   },
