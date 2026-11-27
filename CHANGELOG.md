@@ -2,7 +2,7 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
-## Next
+## 0.4.0
 
 ### Poney Studio
 
