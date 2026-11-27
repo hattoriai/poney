@@ -170,8 +170,11 @@ describe('a document opened alone, with a folder', () => {
     a.state.setWorkspace(a.files.addFolder(api))
     expect(a.state.projectKey()).toBe(`document:${doc}`)
     expect(a.state.project?.cwd).toBe(api)
-    // The document first, then its folder's documents.
-    expect(a.state.documents.documents.map((d) => d.id)).toEqual(['plan', 'billing'])
+    // One document: more need a saved workspace.
+    expect(a.state.documents.documents.map((d) => d.id)).toEqual(['plan'])
+    expect(() => a.files.create('Another')).toThrow(/document opened alone/)
+    expect(a.files.agentOpen(tour, { file: join(api, 'docs', 'poney', 'more.poney') }).refused).toMatch(/document opened alone/)
+    expect(a.files.agentOpen(tour).revision).toBeGreaterThan(0)
     expect(a.state.file).toBe(doc)
     a.files.close()
     const b = hub()

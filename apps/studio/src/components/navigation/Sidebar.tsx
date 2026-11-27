@@ -177,17 +177,19 @@ function ProjectSwitcher() {
                   )}
                 </div>
               ))}
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
-                onClick={() => {
-                  setOpen(false)
-                  useStudio.getState().setNewDocumentOpen(true)
-                }}
-              >
-                <FilePlus2 size={14} />
-                New document…
-              </button>
+              {!workspace.key.startsWith('document:') && (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
+                  onClick={() => {
+                    setOpen(false)
+                    useStudio.getState().setNewDocumentOpen(true)
+                  }}
+                >
+                  <FilePlus2 size={14} />
+                  New document…
+                </button>
+              )}
               <p className="px-2.5 pb-0.5 pt-2 text-[11.5px] font-medium text-ink-3">Folders</p>
               {workspace.folders.map((f) => (
                 <div key={f.path} className="group relative">

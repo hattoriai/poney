@@ -72,11 +72,9 @@ export function documentsIn(cwd: string): WorkspaceDocument[] {
 
 /** The documents of a workspace: a saved one's list, else its folder's docs/poney/. */
 export function documentsOf(w: Workspace): WorkspaceDocument[] {
-  if (w.file) return (w.documents ?? []).map(entryFor)
-  const own = documentsIn(w.folders[0].cwd)
-  // A document opened alone comes first, then the documents of its folder.
-  if (w.documents) return [...w.documents.map(entryFor), ...own.filter((d) => !w.documents!.includes(d.path))]
-  return own
+  // A saved workspace lists its documents; a document opened alone has only itself; a folder has its docs/poney/.
+  if (w.documents) return w.documents.map(entryFor)
+  return documentsIn(w.folders[0].cwd)
 }
 
 /** The id and empty document a workspace starts with when it has no document. */
@@ -116,6 +114,9 @@ function invalidFile(path: string): string | undefined {
 
 /** Why nothing was saved over a file that is not a valid document. */
 export const NOT_SAVED = "The project's file is not a valid document. Not saved."
+
+/** Why a document opened alone gets no second document. */
+const ALONE = 'This is a document opened alone, with one document. To add documents, save it as a workspace (Save the workspace… in the document menu).'
 
 /** The refusal when a workspace has several documents and none is shown. */
 function chooseOne(w: Workspace): string {
@@ -211,6 +212,7 @@ export class DocumentFiles {
     const w = this.state.workspace
     const first = folder ? w?.folders.find((f) => f.cwd === folder) : this.state.project
     if (!w || !first) throw new Error('Open a workspace first.')
+    if (w.key.startsWith(DOCUMENT_KEY)) throw new Error(ALONE)
     const title = name.trim()
     if (!title) throw new Error('Give the document a name.')
     const dir = join(first.cwd, 'docs', 'poney')
@@ -334,6 +336,8 @@ export class DocumentFiles {
       if (space && !this.state.shown()) return { refused: chooseOne(space) }
       return { revision: this.state.open(document) }
     }
+    // A document opened alone is one document: another one needs a saved workspace.
+    if (space?.key.startsWith(DOCUMENT_KEY)) return { refused: `Not opened: ${ALONE}` }
     if (existsSync(target)) {
       const saved = this.saveInto(target, document)
       if (saved === 'invalid') return { refused: NOT_SAVED }
