@@ -2,6 +2,12 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
+## Next
+
+### The guide for agents
+
+- The examples and the guide (`poney brief`) name the facts of a verdict with plain labels: Undo, Other systems, Data, Tests, To read. Before, the examples used Door, Outside, Proof and Your time, and agents copied a business idiom into their walkthroughs. The guide now asks for the plain words a developer uses.
+
 ## 0.3.0
 
 ### Reading documents

@@ -34,11 +34,11 @@ export const retryWalkthrough: WalkthroughInput = {
   verdict: {
     risk: 'look',
     facts: [
-      { label: 'Door', value: 'Two-way. A revert brings back the cancel on the first decline.' },
-      { label: 'Outside', value: 'Nothing new. Paystream is called the same way.' },
+      { label: 'Undo', value: 'A revert undoes it, and brings back the cancel on the first decline.' },
+      { label: 'Other systems', value: 'None new. Paystream is called the same way.' },
       { label: 'Data', value: 'One new column, orders.payment_attempts, default 0.' },
-      { label: 'Proof', value: 'CI green, 9 new tests, 1 case without a test.' },
-      { label: 'Your time', value: 'About 8 minutes: 96 lines to read, 129 to skim.' },
+      { label: 'Tests', value: 'CI green, 9 new tests, 1 case without a test.' },
+      { label: 'To read', value: 'About 8 minutes: 96 lines to read, 129 to skim.' },
     ],
   },
   marks: [
