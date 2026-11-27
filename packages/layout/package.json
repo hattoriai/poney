@@ -1,6 +1,6 @@
 {
   "name": "@hattoriai/poney-layout",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "description": "Lays out Poney views: diagram graphs to positioned scenes (ELK and custom layouts). No UI framework.",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@hattoriai/poney-core": "0.4.0",
+    "@hattoriai/poney-core": "0.5.0",
     "elkjs": "^0.9.3"
   },
   "devDependencies": {
