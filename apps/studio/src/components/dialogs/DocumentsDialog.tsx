@@ -64,10 +64,13 @@ export function DocumentsDialog() {
   )
 }
 
-/** Makes a new, empty document in the open folder, and shows it. */
+/** Makes a new, empty document in docs/poney/ of a folder of the workspace, and shows it. */
 export function NewDocumentDialog() {
   const open = useStudio((s) => s.newDocumentOpen)
-  const folder = useStudio((s) => s.project)
+  const workspace = useStudio((s) => s.workspace)
+  const folders = workspace?.folders.filter((f) => !f.missing) ?? []
+  const [chosen, setChosen] = useState<string | undefined>(undefined)
+  const folder = folders.find((f) => f.path === chosen) ?? folders[0]
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const close = () => {
@@ -76,20 +79,32 @@ export function NewDocumentDialog() {
     useStudio.getState().setNewDocumentOpen(false)
   }
   return (
-    <Modal open={open} onOpenChange={(o) => !o && close()} title="New document" description={folder ? `It is saved in ${folder.name}/docs/poney/.` : undefined} width={460}>
+    <Modal open={open} onOpenChange={(o) => !o && close()} title="New document" description={folder ? `It is saved in ${folder.name}/docs/poney/.` : 'Add a folder first: a new document is saved in its docs/poney/.'} width={460}>
       <form
         className="space-y-3 px-5 py-5"
         onSubmit={async (e) => {
           e.preventDefault()
           setError(null)
           try {
-            await newDocument(name)
+            await newDocument(name, folder?.path)
             close()
           } catch (err) {
             setError(err instanceof Error ? err.message : String(err))
           }
         }}
       >
+        {folders.length > 1 && (
+          <label className="flex items-center gap-2 text-[13px] text-ink-2">
+            Folder
+            <select value={folder?.path} onChange={(e) => setChosen(e.target.value)} className="h-8 rounded-lg border border-rule bg-paper px-2 text-[13px]">
+              {folders.map((f) => (
+                <option key={f.path} value={f.path}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <input
           autoFocus
           value={name}

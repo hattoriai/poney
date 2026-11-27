@@ -1,15 +1,16 @@
 import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpenText, Check, DatabaseZap, Folder, FolderGit2, FolderPlus, ChevronDown, ChevronRight, FileInput, FilePlus2, FileText, House, LayoutGrid, Save, Search, Star, Trash2, X } from 'lucide-react'
+import { BookOpenText, Check, DatabaseZap, FolderGit2, ChevronDown, ChevronRight, FileInput, House, LayoutGrid, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import type { Entity, View } from '@hattoriai/poney-core'
-import { OVERVIEW, useIndex, useStudio, type OpenWorkspace } from '@/features/store'
+import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
 import { fileOfDocument } from '@/features/recent'
-import { openFile, removeDocument, removeFolder } from '@/features/agent'
+import { newWorkspace } from '@/features/agent'
 import { diagramFor } from '@hattoriai/poney-react'
 import { iconFor } from '@hattoriai/poney-react'
 import { toneColor } from '@hattoriai/poney-react'
 import { MadeBy } from '@/components/shared/MadeBy'
+import { WorkspacePanel } from '@/components/workspace/WorkspacePanel'
 import { categoryLabel, orderCategories } from './categories'
 
 export function Sidebar() {
@@ -25,7 +26,8 @@ export function Sidebar() {
         }`}
       >
         <ProjectSwitcher />
-        <div className="px-2 pb-1">
+        <WorkspacePanel />
+        <div className="px-2 pb-1 pt-1">
           <button
             type="button"
             onClick={() => useStudio.getState().setPaletteOpen(true)}
@@ -44,11 +46,6 @@ export function Sidebar() {
   )
 }
 
-/** The workspace folder a document is in, for a workspace with several folders. */
-function folderName(w: OpenWorkspace, path: string): string {
-  return w.folders.find((f) => path.startsWith(`${f.path}/`))?.name ?? path.slice(0, path.lastIndexOf('/'))
-}
-
 function ProjectSwitcher() {
   const projects = useStudio((s) => s.projects)
   const projectId = useStudio((s) => s.projectId)
@@ -57,8 +54,6 @@ function ProjectSwitcher() {
   useStudio((s) => [s.live.state, s.liveFile].join())
   const file = open ? fileOfDocument(projectId) : undefined
   const workspace = useStudio((s) => (s.live.state === 'on' ? s.workspace : null))
-  const liveOn = useStudio((s) => s.live.state === 'on')
-  const liveFile = useStudio((s) => s.liveFile)
   const inFolder = useStudio((s) => s.folderDocuments)
   // The workspace's documents are listed under it; the others (pasted, imported, examples) above it.
   const loose = workspace ? projects.filter((p) => !inFolder.documents.some((d) => d.id === p.id)) : projects
@@ -124,118 +119,6 @@ function ProjectSwitcher() {
               </button>
             </div>
           ))}
-          {!workspace && liveOn && liveFile && (
-            <>
-              {loose.length > 0 && <div className="my-1 h-px bg-rule" />}
-              <button
-                type="button"
-                title="So an agent can read the code this document explains."
-                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
-                onClick={() => {
-                  setOpen(false)
-                  useStudio.getState().setWorkspaceDialog('add-folder')
-                }}
-              >
-                <FolderPlus size={14} />
-                Add a folder…
-              </button>
-            </>
-          )}
-          {workspace && (
-            <>
-              {loose.length > 0 && <div className="my-1 h-px bg-rule" />}
-              <p className="px-2.5 pb-0.5 pt-1.5 text-[11.5px] font-medium text-ink-3">{workspace.name}</p>
-              {inFolder.documents.map((d) => (
-                <div key={d.path} className="group relative">
-                  <button
-                    type="button"
-                    disabled={!!d.invalid}
-                    title={d.invalid ?? d.path}
-                    className={`flex w-full items-center gap-2 rounded-md py-1.5 pl-2.5 text-left hover:bg-sunken disabled:opacity-50 ${workspace.file ? 'pr-8' : 'pr-2.5'}`}
-                    onClick={() => {
-                      setOpen(false)
-                      if (d.path !== inFolder.shown) void openFile(d.path).catch((e) => useStudio.getState().notify(e instanceof Error ? e.message.split('\n')[0] : String(e)))
-                    }}
-                  >
-                    <FileText size={14} className="shrink-0 text-ink-3" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{d.name}</span>
-                      {workspace.folders.length > 1 && <span className="block truncate text-[11.5px] text-ink-3">{folderName(workspace, d.path)}</span>}
-                    </span>
-                    {d.path === inFolder.shown && <Check size={14} className={`text-poney ${workspace.file ? 'group-hover:invisible' : ''}`} />}
-                  </button>
-                  {workspace.file && (
-                    <button
-                      type="button"
-                      aria-label={`Remove ${d.name} from the workspace`}
-                      title="Remove from the workspace. The file stays."
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 opacity-0 hover:bg-raised hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
-                      onClick={() => void removeDocument(d.path).catch((e) => useStudio.getState().notify(e instanceof Error ? e.message : String(e)))}
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {!workspace.key.startsWith('document:') && (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
-                  onClick={() => {
-                    setOpen(false)
-                    useStudio.getState().setNewDocumentOpen(true)
-                  }}
-                >
-                  <FilePlus2 size={14} />
-                  New document…
-                </button>
-              )}
-              <p className="px-2.5 pb-0.5 pt-2 text-[11.5px] font-medium text-ink-3">Folders</p>
-              {workspace.folders.map((f) => (
-                <div key={f.path} className="group relative">
-                  <p title={f.missing ? `${f.path} is missing` : f.path} className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 pr-8 ${f.missing ? 'text-ink-4 line-through' : 'text-ink-2'}`}>
-                    <Folder size={14} className="shrink-0 text-ink-3" />
-                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                  </p>
-                  {((workspace.file && workspace.folders.length > 1) || workspace.key.startsWith('document:')) && (
-                    <button
-                      type="button"
-                      aria-label={`Remove the folder ${f.name} from the workspace`}
-                      title="Remove from the workspace. The folder stays."
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-4 opacity-0 hover:bg-raised hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
-                      onClick={() => void removeFolder(f.path).catch((e) => useStudio.getState().notify(e instanceof Error ? e.message : String(e)))}
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
-                onClick={() => {
-                  setOpen(false)
-                  useStudio.getState().setWorkspaceDialog('add-folder')
-                }}
-              >
-                <FolderPlus size={14} />
-                Add a folder…
-              </button>
-              {!workspace.file && (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-ink-2 hover:bg-sunken"
-                  onClick={() => {
-                    setOpen(false)
-                    useStudio.getState().setWorkspaceDialog('save')
-                  }}
-                >
-                  <Save size={14} />
-                  Save the workspace…
-                </button>
-              )}
-            </>
-          )}
           <div className="my-1 h-px bg-rule" />
           {file && (
             <button
@@ -261,6 +144,19 @@ function ProjectSwitcher() {
             <FileInput size={14} />
             Open or paste a model…
           </button>
+          {useStudio.getState().live.state === 'on' && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-ink-2 hover:bg-sunken"
+              onClick={() => {
+                setOpen(false)
+                void newWorkspace().catch((e) => useStudio.getState().notify(e instanceof Error ? e.message : String(e)))
+              }}
+            >
+              <Plus size={14} />
+              New workspace
+            </button>
+          )}
           {useStudio.getState().live.state === 'on' && (
             <button
               type="button"

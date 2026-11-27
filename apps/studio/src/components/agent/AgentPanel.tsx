@@ -96,7 +96,7 @@ export function AgentPanel() {
       {session && messages.filter((m) => m.from === 'person').length === 0 && (
         <div className="flex flex-wrap gap-1.5 border-t border-rule px-3 py-3">
           {starters.map((s) => (
-            <button key={s.label} type="button" onClick={() => void ask(s.prompt)} className="rounded-full border border-rule bg-paper px-3 py-1.5 text-[12.5px] font-medium hover:border-rule-strong">
+            <button key={s.label} type="button" title="Puts this request in the message box. You send it." onClick={() => useStudio.getState().suggest(s.prompt)} className="rounded-full border border-rule bg-paper px-3 py-1.5 text-[12.5px] font-medium hover:border-rule-strong">
               {s.label}
             </button>
           ))}

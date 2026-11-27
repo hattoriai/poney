@@ -309,6 +309,12 @@ export class LiveServer {
       }
 
       /* The open workspace */
+      case 'POST /api/workspace/new': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot keep workspaces.' })
+        const w = this.files.newWorkspace()
+        s.setWorkspace(w)
+        return json(res, 200, describe(w))
+      }
       case 'POST /api/workspace/save': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
         const r = (await body(req)) as { file?: string; name?: string }
@@ -323,9 +329,19 @@ export class LiveServer {
         if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })
         const r = (await body(req)) as { add?: string; remove?: string }
         if (!r.add && !r.remove) return json(res, 400, { error: 'Give a folder to add or remove' })
-        const w = r.add ? this.files.addFolder(r.add) : this.files.removeFolder(r.remove!)
-        s.setWorkspace(w)
-        return json(res, 200, describe(w))
+        if (r.remove) {
+          const w = this.files.removeFolder(r.remove)
+          s.setWorkspace(w)
+          return json(res, 200, describe(w))
+        }
+        const { workspace, from } = this.files.addFolder(r.add!)
+        // A folder opened alone became a workspace: its conversation and agent session go with it.
+        if (from) {
+          s.rekey(from, workspace.key)
+          this.agents?.rekey(from, workspace.key)
+        }
+        s.setWorkspace(workspace)
+        return json(res, 200, describe(workspace))
       }
       case 'POST /api/workspace/documents/remove': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot save files.' })

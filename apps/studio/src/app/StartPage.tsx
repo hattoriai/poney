@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, ClipboardPaste, FileText, FileUp, Folder, FolderGit2, Folders, MessageCircle, Moon, PanelLeft, Plug, Sun, Trash2, X } from 'lucide-react'
+import { BookOpen, ClipboardPaste, FileText, FileUp, Folder, FolderGit2, Folders, MessageCircle, Moon, PanelLeft, Plug, Plus, Sun, Trash2, X } from 'lucide-react'
 import * as RT from '@radix-ui/react-tooltip'
 import { useStudio } from '@/features/store'
 import { detectFormat, importText, isTyping } from '@/features/io'
 import { fileOfDocument, forgetRecent, forgetRecentWorkspace, listRecent, listRecentWorkspaces, openExample, openRecent, type Recent } from '@/features/recent'
-import { openProjectFolder } from '@/features/agent'
+import { newWorkspace, openProjectFolder } from '@/features/agent'
+import { WorkspacePanel } from '@/components/workspace/WorkspacePanel'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 import { McpSetup } from '@/components/agent/McpSetup'
 import { Mark } from '@/components/navigation/Sidebar'
@@ -109,7 +110,7 @@ export function StartPage() {
         <ToolbarButton label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'} onClick={() => useStudio.getState().toggleSidebar()} side="bottom">
           <PanelLeft size={16} />
         </ToolbarButton>
-        <span className="ml-2 text-[13px] font-semibold">Start</span>
+        <span className="ml-2 text-[13px] font-semibold">{live.state === 'on' && openWorkspace ? openWorkspace.name : 'Start'}</span>
         <span className="flex-1" />
         <ToolbarButton label={theme === 'light' ? 'Dark theme' : 'Light theme'} onClick={() => useStudio.getState().toggleTheme()} side="bottom">
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -156,7 +157,8 @@ export function StartPage() {
                     <span className="min-w-0">
                       <span className="block truncate">{w.name}</span>
                       <span className="block truncate text-[11.5px] text-ink-3">
-                        {w.key.startsWith('document:') ? 'Document with a folder' : w.folders.length > 1 ? `${w.folders.length} folders` : 'Folder'}, {when(w.at)}
+                        {w.key.startsWith('document:') ? 'Document with a folder' : w.folders.length !== 1 ? `${w.folders.length} folders` : 'Folder'}
+                        {w.key.startsWith('untitled:') ? ', not saved' : ''}, {when(w.at)}
                       </span>
                     </span>
                     {openWorkspace?.key === w.key && <span className="ml-auto shrink-0 text-[11px] text-ink-3">Open</span>}
@@ -222,9 +224,15 @@ export function StartPage() {
     >
       <main className="mx-auto grid max-w-[1080px] gap-x-14 gap-y-12 px-6 pb-20 pt-14 sm:px-10 sm:pt-20 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div>
-          <p className="text-[14px] font-semibold text-poney">Poney Studio</p>
-          <h1 className="mt-3 max-w-[18ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] sm:text-[44px]">Software, explained in diagrams.</h1>
-          <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-ink-2">An agent writes walkthroughs of a change, or tours of a codebase. You read them here, explore the system, and ask the agent questions.</p>
+          {live.state === 'on' && openWorkspace ? (
+            <WorkspacePanel variant="page" />
+          ) : (
+            <>
+              <p className="text-[14px] font-semibold text-poney">Poney Studio</p>
+              <h1 className="mt-3 max-w-[18ch] text-[36px] font-semibold leading-[1.08] tracking-[-0.025em] sm:text-[44px]">Software, explained in diagrams.</h1>
+              <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-ink-2">An agent writes walkthroughs of a change, or tours of a codebase. You read them here, explore the system, and ask the agent questions.</p>
+            </>
+          )}
 
           {hasOpen && (
             <button type="button" onClick={() => useStudio.getState().showStart(false)} className="mt-6 text-[14px] font-semibold text-poney hover:underline">
@@ -238,13 +246,22 @@ export function StartPage() {
             </h2>
             <div className="mt-2">
               {live.state === 'on' && (
-                <button type="button" className={row} onClick={() => useStudio.getState().setProjectOpen(true)}>
-                  <FolderGit2 size={19} className="mt-0.5 shrink-0 text-ink-2" />
-                  <span>
-                    <span className="block text-[15.5px] font-semibold">Open a workspace</span>
-                    <span className="mt-0.5 block text-[13.5px] text-ink-3">A folder or a Git repository, with its Poney documents.</span>
-                  </span>
-                </button>
+                <>
+                  <button type="button" className={row} onClick={() => void newWorkspace().catch((e: unknown) => setProblem({ title: 'No new workspace', lines: [e instanceof Error ? e.message : String(e)] }))}>
+                    <Plus size={19} className="mt-0.5 shrink-0 text-ink-2" />
+                    <span>
+                      <span className="block text-[15.5px] font-semibold">New workspace</span>
+                      <span className="mt-0.5 block text-[13.5px] text-ink-3">Blank. Then add the folders with the code, and documents.</span>
+                    </span>
+                  </button>
+                  <button type="button" className={row} onClick={() => useStudio.getState().setProjectOpen(true)}>
+                    <FolderGit2 size={19} className="mt-0.5 shrink-0 text-ink-2" />
+                    <span>
+                      <span className="block text-[15.5px] font-semibold">Open a workspace</span>
+                      <span className="mt-0.5 block text-[13.5px] text-ink-3">A .poney-workspace file, or a folder with its Poney documents.</span>
+                    </span>
+                  </button>
+                </>
               )}
               <button type="button" className={row} onClick={chooseFile}>
                 <FileUp size={19} className="mt-0.5 shrink-0 text-ink-2" />

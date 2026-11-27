@@ -64,8 +64,8 @@ export class AgentPool {
 
   private async activateNow(start: boolean): Promise<void> {
     const project = this.state.projectKey()
-    // No project: no agent answers.
-    if (!project) return this.state.setSession(null, null)
+    // No project, or a workspace with no folder yet: no agent answers.
+    if (!project || !this.state.project) return this.state.setSession(null, null)
     const folders = presentFolders(this.state.workspace!).map((f) => f.cwd)
     let agent = this.agents.get(project)
     // The workspace's folders changed: the agent starts again with them, in the same session, when it is not working.
@@ -95,6 +95,7 @@ export class AgentPool {
   async connect(choice: AgentChoice): Promise<void> {
     const project = this.state.projectKey()
     if (!project) throw new Error('Open a workspace first.')
+    if (!this.state.project) throw new Error('Add a folder to the workspace first: the agent works in it.')
     const key = this.setDefault(choice)
     const running = this.agents.get(project)
     if (running && running.agentKey !== key) {

@@ -2,6 +2,22 @@
 
 Every package in this repository has the same version. The format has its own version, in `poneyVersion` (see [spec/SPEC.md](spec/SPEC.md)).
 
+## Next
+
+### Poney Studio
+
+- **New workspace** opens a blank workspace: add its folders and documents from inside it. Before, a workspace started from a folder.
+- The workspace's **Folders** and **Documents** show at the top of the sidebar and on the start page, each with a **+** to add one. Before, they were in the document menu.
+- A workspace with several folders needs no file. Poney keeps it until you choose **Save as…**, named after its folders. A folder opened alone becomes such a workspace when you add a second folder, and keeps its conversation and agent session.
+- Adding a folder opens none of its documents.
+- The folder browser takes a typed or pasted path (`~` is the home folder).
+- The suggested requests in the agent panel and on an empty document put their text in the message box. They no longer send it on a click.
+- A tab that reloads, or a local server that restarts, opens the workspace again.
+
+### Agents
+
+- No agent starts in a workspace with no folder. **Connect an agent** says to add a folder first.
+
 ## 0.4.0
 
 ### Poney Studio

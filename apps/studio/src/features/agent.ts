@@ -105,6 +105,12 @@ export const openProjectFolder = async (path: string) => {
   if (r.choose) useStudio.setState({ documentWanted: false })
   return r
 }
+/** Opens a new, blank workspace: no folders and no documents yet. It shows on the start page. */
+export const newWorkspace = async () => {
+  const w = await call<unknown>('/api/workspace/new', {})
+  useStudio.getState().showStart(true)
+  return w
+}
 /** Saves the open workspace as a .poney-workspace file. Its conversation and agent session move with it. */
 export const saveWorkspace = (file: string, name?: string) => call<{ key: string }>('/api/workspace/save', { file, ...(name ? { name } : {}) })
 /** Adds a folder to the open workspace, which must be saved. */
@@ -117,7 +123,7 @@ export const openFile = (path: string) => wanted(() => call<{ path: string }>('/
 /** Deletes a .poney file for good. The server deletes it only when it holds the document `project`. */
 export const deleteFile = (path: string, project: string) => call('/api/files/delete', { path, project })
 /** Makes a new, empty document in the open folder's docs/poney/, and shows it. */
-export const newDocument = (name: string) => wanted(() => call<{ path: string }>('/api/documents/new', { name }))
+export const newDocument = (name: string, folder?: string) => wanted(() => call<{ path: string }>('/api/documents/new', { name, ...(folder ? { folder } : {}) }))
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
 
 /** Importers and overlays, with what each would read in the project's folder. */

@@ -137,6 +137,8 @@ interface State {
   workspaceDialog: 'add-folder' | 'save' | null
   /** Workspace files to choose from, when a folder has several. */
   chooseWorkspace: string[] | null
+  /** Text for the message box: a suggested request the person reads, changes and sends. */
+  draft: string | null
 }
 
 /** The open workspace, as Poney on this computer describes it. */
@@ -186,6 +188,10 @@ interface Actions {
   setWorkspace(workspace: OpenWorkspace | null): void
   setWorkspaceDialog(dialog: State['workspaceDialog']): void
   setChooseWorkspace(files: string[] | null): void
+  /** Puts a suggested request in the message box, and opens the agent panel. Nothing is sent. */
+  suggest(text: string): void
+  /** Takes the suggested request, once. */
+  takeDraft(): string | null
   /** Adds a project to the list without opening it. */
   keepProject(doc: PoneyDocument, origin: OpenDocument['origin']): void
   importOpen: boolean
@@ -374,6 +380,13 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   setWorkspace: (workspace) => set({ workspace }),
   setWorkspaceDialog: (workspaceDialog) => set({ workspaceDialog }),
   setChooseWorkspace: (chooseWorkspace) => set({ chooseWorkspace }),
+  draft: null,
+  suggest: (draft) => set({ draft, agentPanelOpen: true }),
+  takeDraft() {
+    const draft = get().draft
+    if (draft !== null) set({ draft: null })
+    return draft
+  },
   // With several documents and none shown, the person selects one.
   setFolderDocuments: (folderDocuments) => set({ folderDocuments, ...(folderDocuments.shown === null && folderDocuments.documents.length > 1 ? { documentsOpen: true } : {}) }),
   setDocumentsOpen: (documentsOpen) => set({ documentsOpen }),
