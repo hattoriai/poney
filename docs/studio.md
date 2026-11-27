@@ -78,6 +78,8 @@ Commit the walkthrough alongside the code it describes. Run `poney check <file> 
 
 A workspace can hold several folders, such as a web app and its API in two repositories. One agent works for the whole workspace and can read every folder, so it can explain how they work together.
 
+The start page is outside any workspace, so it has no agent. A workspace has its own home page, with its folders, its documents and its agent; the agent panel says which workspace it works in. Select the workspace's name at the top of the sidebar to go to its home page.
+
 On the start page, choose **New workspace**: a blank workspace opens, with no folders and no documents. Its **Folders** and **Documents** show on the start page and at the top of the sidebar, each with a **+**: **Add a folder** (type or paste a path, or browse), and **New document**. Adding a folder opens none of its documents; select the one to read.
 
 A workspace you have not saved is kept by Poney on this computer, in `~/.poney/workspaces.json`, and is named after its folders. Choose **Save as…** to keep it in a `.poney-workspace` file that you commit and share. Its conversation and agent session go with it. A folder you open alone becomes a workspace when you add a second folder, with its conversation and agent session.

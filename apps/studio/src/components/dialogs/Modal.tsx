@@ -2,6 +2,13 @@ import * as D from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+/** How the person last acted: with a pointer, or with the keyboard. */
+let lastInput: 'pointer' | 'keyboard' = 'pointer'
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', () => (lastInput = 'pointer'), true)
+  window.addEventListener('keydown', () => (lastInput = 'keyboard'), true)
+}
+
 export function Modal({
   open,
   onOpenChange,
@@ -24,8 +31,20 @@ export function Modal({
       <D.Portal>
         <D.Overlay className="fade-in fixed inset-0 z-40 bg-ink/25 backdrop-blur-[1px]" />
         <D.Content
-          className="fade-in fixed left-1/2 top-[12vh] z-50 flex max-h-[76vh] w-[calc(100vw-32px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-rule bg-raised shadow-float"
+          className="fade-in fixed left-1/2 top-[12vh] z-50 flex max-h-[76vh] w-[calc(100vw-32px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-rule bg-raised shadow-float outline-none"
           style={{ maxWidth: width }}
+          // Focus goes to the first field to type in, else to the dialog itself, never to the close button:
+          // a browser shows focus moved by code with the keyboard ring, as if the person had tabbed there.
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            const box = e.currentTarget as HTMLElement
+            const field = box.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]), textarea, select, [contenteditable="true"]')
+            ;(field ?? box).focus({ preventScroll: true })
+          }}
+          // Back to what opened the dialog only for a keyboard user; after a click, that button would show the ring.
+          onCloseAutoFocus={(e) => {
+            if (lastInput === 'pointer') e.preventDefault()
+          }}
           aria-describedby={description ? undefined : undefined}
         >
           {hideHeader ? (

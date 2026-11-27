@@ -1,7 +1,7 @@
 import { plainText } from '@hattoriai/poney-core'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Check, CircleAlert, Loader2, MessageCircle, Plug, Square, Wrench, X } from 'lucide-react'
-import { useStudio, WALK, type ContextItem, type Message } from '@/features/store'
+import { useStudio, WALK, type ContextItem, type Message, screenOf } from '@/features/store'
 import { MessageBox } from './MessageBox'
 import { SessionBar } from './SessionBar'
 import { ask, cancelAgent, choosePermission, disconnectAgent, startersFor, useProjectRoot } from '@/features/agent'
@@ -34,7 +34,10 @@ export function AgentPanel() {
 
   const doc = useStudio((s) => s.history?.present)
   const project = useProjectRoot()
-  if (!live) return null
+  // The start page is outside any workspace: no agent there.
+  const outside = useStudio((s) => screenOf(s) === 'start')
+  const workspaceName = useStudio((s) => s.workspace?.name)
+  if (!live || outside) return null
 
   if (!open)
     return (
@@ -60,7 +63,7 @@ export function AgentPanel() {
             <span className={`h-2 w-2 shrink-0 rounded-full ${session || listening ? 'bg-new' : 'bg-ink-4'}`} aria-hidden />
             {session ? (
               <span className="truncate" title={project?.root}>
-                {session.busy ? 'Working' : 'Ready'}{project ? ` in ${project.name}` : ''}
+                {session.busy ? 'Working' : 'Ready'}{workspaceName ? ` in ${workspaceName}` : project ? ` in ${project.name}` : ''}
               </span>
             ) : listening ? (
               'Linked from another session'
@@ -110,8 +113,14 @@ export function AgentPanel() {
 /** What the panel says before anything is asked: how to get an agent. */
 function Empty() {
   const { session, listening } = useStudio((s) => s.agent)
+  const reading = useStudio((s) => screenOf(s) === 'document')
+  const workspace = useStudio((s) => s.workspace)
   if (session || listening)
-    return <li className="text-[13.5px] leading-snug text-ink-3">It sees the scene you are on and what you select.</li>
+    return (
+      <li className="text-[13.5px] leading-snug text-ink-3">
+        {reading ? 'It sees the scene you are on and what you select.' : `It reads the folders of ${workspace?.name ?? 'this workspace'}: ${workspace?.folders.map((f) => f.name).join(', ') || 'none yet'}.`}
+      </li>
+    )
   return (
     <li className="space-y-2.5 text-[13.5px] leading-snug">
       <button type="button" onClick={() => useStudio.getState().setConnectOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-lg bg-ink px-3.5 text-[13.5px] font-semibold text-paper hover:opacity-90">
@@ -196,6 +205,7 @@ function Where({ walkthrough, scene, prefix, link }: { walkthrough?: string; sce
       onClick={() => {
         const s = useStudio.getState()
         s.showStart(false)
+        s.showHome(false)
         if (s.viewId !== `${WALK}${w.id}`) s.navigate(`${WALK}${w.id}`)
         setTimeout(() => useStudio.getState().jumpTo(scene), 60)
       }}
@@ -208,6 +218,8 @@ function Where({ walkthrough, scene, prefix, link }: { walkthrough?: string; sce
 
 function Composer({ busy }: { busy: boolean }) {
   const [error, setError] = useState<string | null>(null)
+  // The agent answers in one workspace: the box says which.
+  const workspace = useStudio((s) => s.workspace?.name)
 
   const send = async ({ text, context }: { text: string; context: ContextItem[] }) => {
     try {
@@ -222,7 +234,7 @@ function Composer({ busy }: { busy: boolean }) {
   return (
     <div className="border-t border-rule p-3">
       <MessageBox
-        placeholder={busy ? 'Ask next; it waits its turn' : 'Ask about the code'}
+        placeholder={busy ? 'Ask next; it waits its turn' : workspace ? `Ask about ${workspace}` : 'Ask about the code'}
         onSend={send}
         actions={(submit, empty) => (
           <>

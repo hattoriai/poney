@@ -1,6 +1,6 @@
 import { toJSON, validateDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
-import { useStudio, type OpenDocument, type OpenWorkspace } from './store'
+import { screenOf, useStudio, type OpenDocument, type OpenWorkspace } from './store'
 import { openFile } from './agent'
 
 /**
@@ -106,7 +106,7 @@ export function trackRecent() {
   let timer = 0
   let seen: unknown
   useStudio.subscribe((s) => {
-    writeDocParam(s.history && !s.startOpen && s.projects.find((x) => x.id === s.projectId)?.origin !== 'example' ? s.projectId : null)
+    writeDocParam(s.history && screenOf(s) === 'document' && s.projects.find((x) => x.id === s.projectId)?.origin !== 'example' ? s.projectId : null)
     if (!s.history || s.startOpen || s.history.present === seen) return
     seen = s.history.present
     clearTimeout(timer)

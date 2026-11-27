@@ -21,3 +21,18 @@ describe('closeDocument', () => {
     expect(useStudio.getState()).toMatchObject({ projects: [], projectId: '', history: undefined, startOpen: true })
   })
 })
+
+describe('screenOf', () => {
+  const live = { state: 'on' as const }
+  const workspace = { key: '/code/tug', name: 'tug', file: null, folders: [{ path: '/code/tug', name: 'tug' }] }
+  const history = {} as never
+  it('keeps the start page outside any workspace, and shows a workspace home before a document', async () => {
+    const { screenOf } = await import('./store')
+    expect(screenOf({ startOpen: true, homeOpen: false, history, workspace, live })).toBe('start')
+    expect(screenOf({ startOpen: false, homeOpen: false, history: undefined as never, workspace, live })).toBe('home')
+    expect(screenOf({ startOpen: false, homeOpen: true, history, workspace, live })).toBe('home')
+    expect(screenOf({ startOpen: false, homeOpen: false, history, workspace, live })).toBe('document')
+    // Without Poney on this computer, there is no workspace to be in.
+    expect(screenOf({ startOpen: false, homeOpen: true, history: undefined as never, workspace, live: { state: 'off' } })).toBe('start')
+  })
+})

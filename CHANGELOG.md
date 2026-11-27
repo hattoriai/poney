@@ -7,6 +7,9 @@ Every package in this repository has the same version. The format has its own ve
 ### Poney Studio
 
 - **New workspace** opens a blank workspace: add its folders and documents from inside it. Before, a workspace started from a folder.
+- The start page is outside any workspace, so it has no agent: no agent panel and no **Ask the agent**. A workspace has its own home page with its folders, its documents and its agent. The agent panel names the workspace it works in ("Ask about tug").
+- The document list no longer opens over the page by itself when a workspace has several documents: its home page lists them.
+- A dialog opened or closed with the mouse shows no focus ring: it focuses its first field, and gives focus back only to a keyboard user.
 - The workspace's **Folders** and **Documents** show at the top of the sidebar and on the start page, each with a **+** to add one. Before, they were in the document menu.
 - A workspace with several folders needs no file. Poney keeps it until you choose **Save as…**, named after its folders. A folder opened alone becomes such a workspace when you add a second folder, and keeps its conversation and agent session.
 - Adding a folder opens none of its documents.

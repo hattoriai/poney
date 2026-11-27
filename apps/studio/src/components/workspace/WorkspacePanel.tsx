@@ -55,7 +55,13 @@ export function WorkspacePanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 
       {workspace && (
         <div className={`flex items-center gap-2 ${page ? 'mb-6' : 'px-2 pb-1 pt-2'}`}>
           <span className="min-w-0 flex-1">
-            <span className={`block truncate font-semibold ${page ? 'text-[28px] tracking-[-0.02em]' : 'text-[12px] uppercase tracking-wide text-ink-3'}`}>{workspace.name}</span>
+            {page ? (
+              <span className="block truncate text-[28px] font-semibold tracking-[-0.02em]">{workspace.name}</span>
+            ) : (
+              <button type="button" title="The workspace's page: its folders and documents" onClick={() => useStudio.getState().showHome(true)} className="block max-w-full truncate rounded text-left text-[12px] font-semibold uppercase tracking-wide text-ink-3 hover:text-ink">
+                {workspace.name}
+              </button>
+            )}
             {page && <span className="mt-1 block truncate text-[13.5px] text-ink-3">{workspace.file ?? (workspace.key.startsWith('untitled:') ? 'Not saved. Save it to commit it and share it.' : folders.length ? folders[0].path : '')}</span>}
           </span>
           {!workspace.file && folders.length > 0 && (
@@ -96,7 +102,7 @@ export function WorkspacePanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 
                 disabled={!!d.invalid}
                 current={d.path === shown}
                 title={d.invalid ?? d.path}
-                open={() => (d.path === shown ? useStudio.getState().showStart(false) : void openFile(d.path).catch(fail))}
+                open={() => (d.path === shown && useStudio.getState().history ? useStudio.getState().showHome(false) : void openFile(d.path).catch(fail))}
                 remove={lists ? { label: `Remove ${d.name} from the workspace. The file stays.`, run: () => void removeDocument(d.path).catch(fail) } : undefined}
                 className={item}
               />

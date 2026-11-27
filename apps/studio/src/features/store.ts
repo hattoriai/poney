@@ -139,6 +139,20 @@ interface State {
   chooseWorkspace: string[] | null
   /** Text for the message box: a suggested request the person reads, changes and sends. */
   draft: string | null
+  /** The workspace's own page shows: its folders and documents, before a document is read, or when the person asks for it. */
+  homeOpen: boolean
+}
+
+/**
+ * The screen that shows. The start page is outside any workspace: it has no agent. The workspace's home
+ * and its documents are inside it, where its agent works.
+ */
+export type Screen = 'start' | 'home' | 'document'
+export function screenOf(s: Pick<State, 'startOpen' | 'homeOpen' | 'history' | 'workspace' | 'live'>): Screen {
+  if (s.startOpen) return 'start'
+  const workspace = s.live.state === 'on' && !!s.workspace
+  if (workspace && (s.homeOpen || !s.history)) return 'home'
+  return s.history ? 'document' : 'start'
 }
 
 /** The open workspace, as Poney on this computer describes it. */
@@ -178,6 +192,8 @@ interface Actions {
   openContextMenu(menu: ContextMenu | null): void
   jumpTo(scene: string): void
   showStart(open: boolean): void
+  /** Shows the open workspace's home page; false goes back to the document. */
+  showHome(open: boolean): void
   switchProject(id: string): void
   /** Removes a document from the open list. Closing the open one opens the next, else the start page. */
   closeDocument(id: string): void
@@ -266,7 +282,9 @@ export const useStudio = create<State & Actions>()((set, get) => ({
   agent: { session: null, listening: false },
   jump: null,
   startOpen: true,
-  showStart: (startOpen) => set({ startOpen: startOpen || !get().history }),
+  showStart: (startOpen) => set({ startOpen: startOpen || (!get().history && !get().workspace), ...(startOpen ? { homeOpen: false } : {}) }),
+  homeOpen: false,
+  showHome: (homeOpen) => set({ homeOpen, ...(homeOpen ? { startOpen: false } : { startOpen: !get().history && !get().workspace }) }),
   setLive: (live) => set({ live }),
   setActiveScene: (activeScene) => set({ activeScene }),
   setConversation: (conversation) => set({ conversation }),
@@ -323,6 +341,7 @@ export const useStudio = create<State & Actions>()((set, get) => ({
     const keep = selection && idx.exists(selection) ? selection : null
     set({
       startOpen: false,
+      homeOpen: false,
       projects: [...get().projects.filter((p) => p.id !== doc.project.id), { id: doc.project.id, doc, origin }],
       history: createHistory(doc),
       viewId: stillThere ? viewId : doc.walkthroughs[0] ? `${WALK}${doc.walkthroughs[0].id}` : (doc.project.defaultView ?? doc.views[0]?.id ?? OVERVIEW),
@@ -339,6 +358,7 @@ export const useStudio = create<State & Actions>()((set, get) => ({
     const initial = doc.walkthroughs[0] ? `${WALK}${doc.walkthroughs[0].id}` : (doc.project.defaultView ?? doc.views[0]?.id ?? OVERVIEW)
     set({
       startOpen: false,
+      homeOpen: false,
       projects: [...others, { id: doc.project.id, doc, origin }],
       projectId: doc.project.id,
       history: createHistory(doc),
@@ -387,8 +407,8 @@ export const useStudio = create<State & Actions>()((set, get) => ({
     if (draft !== null) set({ draft: null })
     return draft
   },
-  // With several documents and none shown, the person selects one.
-  setFolderDocuments: (folderDocuments) => set({ folderDocuments, ...(folderDocuments.shown === null && folderDocuments.documents.length > 1 ? { documentsOpen: true } : {}) }),
+  // With several documents and none shown, the workspace's home lists them: nothing opens over the page.
+  setFolderDocuments: (folderDocuments) => set({ folderDocuments }),
   setDocumentsOpen: (documentsOpen) => set({ documentsOpen }),
   setNewDocumentOpen: (newDocumentOpen) => set({ newDocumentOpen }),
 
