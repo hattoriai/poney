@@ -112,7 +112,7 @@ export function App() {
         <TopBar />
         <div className="flex min-h-0 flex-1">
           <Sidebar />
-          <main id="main" className="relative min-w-0 flex-1" aria-label={walkthrough ? `Walkthrough: ${plainText(walkthrough.title)}` : view ? `${view.title} diagram` : 'Project overview'}>
+          <main id="main" className="relative min-w-0 flex-1" aria-label={walkthrough ? `Walkthrough: ${plainText(walkthrough.title)}` : view ? `${view.title} diagram` : 'Overview'}>
             {walkthrough ? <WalkthroughPage key={walkthrough.id} walkthrough={walkthrough} /> : view ? <DiagramStage key={view.id} view={view} /> : <Overview />}
           </main>
           {!walkthrough && <Inspector />}

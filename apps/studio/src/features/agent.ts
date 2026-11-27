@@ -73,12 +73,25 @@ export const listFolders = (path?: string) => call<Folder>(`/api/workspace/folde
 /** Changes one of the agent's session settings: the model, the effort, the mode… */
 export const setSetting = (id: string, value: string | boolean) => call('/api/agent/setting', { id, value })
 
+/** A request that opens a document: the document it sends next shows, even from the start page. */
+async function wanted<T>(request: () => Promise<T>): Promise<T> {
+  useStudio.setState({ documentWanted: true })
+  try {
+    return await request()
+  } catch (e) {
+    useStudio.setState({ documentWanted: false })
+    throw e
+  }
+}
+
 /** Opens a folder (a repository) as the project: agents work there, and its document is saved there. */
-export const openProjectFolder = (path: string) => call<{ root: string }>('/api/project/open', { path })
+export const openProjectFolder = (path: string) => wanted(() => call<{ root: string }>('/api/project/open', { path }))
 /** Opens a .poney file on this computer; the Studio keeps it saved. */
-export const openFile = (path: string) => call<{ path: string }>('/api/files/open', { path })
+export const openFile = (path: string) => wanted(() => call<{ path: string }>('/api/files/open', { path }))
 /** Deletes a .poney file for good. The server deletes it only when it holds the document `project`. */
 export const deleteFile = (path: string, project: string) => call('/api/files/delete', { path, project })
+/** Makes a new, empty document in the open folder's docs/poney/, and shows it. */
+export const newDocument = (name: string) => wanted(() => call<{ path: string }>('/api/documents/new', { name }))
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
 
 /** Importers and overlays, with what each would read in the project's folder. */

@@ -45,9 +45,9 @@ export function CommandPalette() {
           )}
 
           <Command.Group heading="Diagrams">
-            <Command.Item className={item} value="Project overview" onSelect={() => run(() => useStudio.getState().navigate(OVERVIEW))}>
+            <Command.Item className={item} value="Overview" onSelect={() => run(() => useStudio.getState().navigate(OVERVIEW))}>
               <LayoutGrid size={15} className="text-ink-3" />
-              Project overview
+              Overview
             </Command.Item>
             {doc.views.map((v) => {
               const Icon = diagramFor(v)?.icon ?? LayoutGrid

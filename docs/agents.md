@@ -27,12 +27,12 @@ In another MCP client, use `poney-mcp` as the server command, or `npx` with the 
 | `poney_schema` | Returns the document’s JSON Schema for structured output. |
 | `poney_check` | Reports errors and warnings with hints. Pass `repo` to check excerpts, diffs, cited tests and `sourceRefs` against the code. Set `rev` to a commit, a range (`a..b`) or `working` for uncommitted changes. |
 | `poney_render` | Renders a scene or view as a PNG. Defaults to the document open in Studio. |
-| `poney_open` | Opens a document in Studio and updates connected windows. |
-| `poney_read` | Returns the reader’s current scene, selection, answers, notes and conversation. Includes the document if the reader edited it. |
+| `poney_open` | Opens a document in Studio and updates connected windows. With `file`, writes to another document of the workspace, or starts a new one at that path. |
+| `poney_read` | Returns the reader’s current scene, selection, answers, notes and conversation, and the workspace's documents. Includes the document if the reader edited it. |
 | `poney_wait` | Waits for a question from Studio and returns it with the reader’s scene and selection. |
 | `poney_reply` | Posts an answer in Studio, with an optional link to a scene. |
 | `poney_excerpt` | Copies lines from a source file into a scene’s `code` block. |
-| `poney_import` | Adds tables or module dependencies from a repository and preserves existing entries. |
+| `poney_import` | Adds tables or module dependencies from a repository and preserves existing entries. Takes `file` like `poney_open`. |
 | `poney_overlay` | Uses source paths to show test coverage or recent changes for each part of the system. |
 
 ## The CLI

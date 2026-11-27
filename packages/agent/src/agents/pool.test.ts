@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LiveState } from '../live/state'
 import type { Message, Place } from '../live/types'
-import { workspaceProject } from '../live/workspace-project'
+import { folderAt } from '../live/folder'
 import { AgentPool } from './pool'
 import { SessionStore } from './sessions'
 import type { ProviderSpec } from './providers'
@@ -48,7 +48,7 @@ const setup = (max?: number, autoStart = true) => {
   const pool = new AgentPool(state, mcp, new SessionStore(), max, providers, autoStart)
   pools.push(pool)
   const open = async (cwd: string) => {
-    state.setWorkspace(workspaceProject(cwd))
+    state.setWorkspace(folderAt(cwd))
     await pool.activate()
   }
   return { state, pool, open }
@@ -176,8 +176,8 @@ describe('AgentPool', () => {
     await pool.connect({ providerId: 'fake' })
     const agent = pool.get(a)
     const id = new SessionStore().session(a)?.sessionId
-    state.setWorkspace(workspaceProject(a))
-    state.setWorkspace(workspaceProject(a))
+    state.setWorkspace(folderAt(a))
+    state.setWorkspace(folderAt(a))
     await pool.activate()
     expect(pool.get(a)).toBe(agent)
     expect(new SessionStore().session(a)?.sessionId).toBe(id)
@@ -219,7 +219,7 @@ describe('AgentPool', () => {
     const { state, pool } = setup()
     const a = folder()
     new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
-    state.setWorkspace(workspaceProject(a))
+    state.setWorkspace(folderAt(a))
     state.ask('Where does it start?')
     await until(() => state.thread(a).some((m) => m.from === 'permission'))
     pool.get(a)!.choose(state.thread(a).find((m) => m.from === 'permission')!.id, 'yes')
@@ -233,7 +233,7 @@ describe('AgentPool', () => {
     const store = new SessionStore()
     store.setDefaultAgent({ agent: { providerId: 'stubborn' }, settings: {} })
     store.setSession(a, { agentKey: 'stubborn', sessionId: 'old-1', at: new Date().toISOString() })
-    state.setWorkspace(workspaceProject(a))
+    state.setWorkspace(folderAt(a))
     state.ask('Where does it start?')
     await until(() => state.thread(a).some((m) => m.from === 'permission'))
     pool.get(a)!.choose(state.thread(a).find((m) => m.from === 'permission')!.id, 'yes')
@@ -259,8 +259,8 @@ describe('AgentPool', () => {
     const { state, pool } = setup()
     const [a, b] = [folder(), folder()]
     new SessionStore().setDefaultAgent({ agent: { providerId: 'fake' }, settings: {} })
-    state.setWorkspace(workspaceProject(a))
-    state.setWorkspace(workspaceProject(b))
+    state.setWorkspace(folderAt(a))
+    state.setWorkspace(folderAt(b))
     await pool.activate()
     await until(() => !!pool.get(a)?.connected)
     expect(state.status().session).toMatchObject({ cwd: b })
@@ -308,7 +308,7 @@ describe('AgentPool', () => {
     store.defaultAgent = () => ({ agent: 'claude-code' as never, settings: {} })
     const pool = new AgentPool(state, mcp, store, undefined, providers, true)
     pools.push(pool)
-    state.setWorkspace(workspaceProject(folder()))
+    state.setWorkspace(folderAt(folder()))
     await expect(pool.activate()).resolves.toBeUndefined()
     expect(state.status().session).toBeNull()
     expect(state.thread()).toContainEqual(expect.objectContaining({ from: 'notice', tone: 'error' }))
@@ -324,7 +324,7 @@ describe('AgentPool', () => {
     const pool = new AgentPool(state, mcp, store, undefined, providers, true)
     pools.push(pool)
     const a = folder()
-    state.setWorkspace(workspaceProject(a))
+    state.setWorkspace(folderAt(a))
     await pool.activate()
     expect(pool.get(a)).toBeUndefined()
     broken = false
@@ -334,6 +334,6 @@ describe('AgentPool', () => {
 
   it('needs an open project to connect', async () => {
     const { pool } = setup()
-    await expect(pool.connect({ providerId: 'fake' })).rejects.toThrow('Open a project first.')
+    await expect(pool.connect({ providerId: 'fake' })).rejects.toThrow('Open a workspace first.')
   })
 })

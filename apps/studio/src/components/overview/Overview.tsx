@@ -37,7 +37,7 @@ export function Overview() {
   return (
     <div className="scrollbar-quiet h-full overflow-y-auto">
       <div className="mx-auto max-w-[920px] px-6 pb-20 pt-12 sm:px-10">
-        <p className="text-[13px] text-ink-3">Project</p>
+        <p className="text-[13px] text-ink-3">Overview</p>
         <h1 className="mt-1 text-[34px] font-semibold leading-tight tracking-[-0.02em]">{doc.project.name}</h1>
         <p className="mt-3 max-w-[64ch] text-[16px] leading-relaxed text-ink-2">{doc.project.description}</p>
         <p className="font-tabular mt-4 text-[13px] text-ink-3">{counts.map(([n, l]) => `${n} ${l}`).join(', ')}, shown in {doc.views.length} diagram{doc.views.length === 1 ? '' : 's'}.</p>
@@ -207,7 +207,7 @@ function EmptyProject({ name, description }: { name: string; description: string
   return (
     <div className="scrollbar-quiet h-full overflow-y-auto">
       <div className="mx-auto max-w-[760px] px-6 pb-20 pt-14 sm:px-10">
-        <p className="text-[13px] text-ink-3">Project</p>
+        <p className="text-[13px] text-ink-3">Overview</p>
         <h1 className="mt-1 text-[34px] font-semibold leading-tight tracking-[-0.02em]">{name}</h1>
         {description && <p className="mt-3 max-w-[64ch] text-[16px] leading-relaxed text-ink-2">{description}</p>}
         <p className="mt-8 text-[15px] text-ink-2">{busy ? 'The agent is working on it. What it opens shows here.' : 'Nothing is drawn yet.'}</p>

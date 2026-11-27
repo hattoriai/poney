@@ -14,6 +14,7 @@ import { ConnectDialog } from './components/agent/ConnectDialog'
 import { OpenFileDialog } from './components/dialogs/OpenFileDialog'
 import { OpenProjectDialog } from './components/dialogs/OpenProjectDialog'
 import { DeleteFileDialog } from './components/dialogs/DeleteFileDialog'
+import { DocumentsDialog, NewDocumentDialog } from './components/dialogs/DocumentsDialog'
 import { StudioRender } from './story/StudioRender'
 import { ImportCodeDialog } from './components/dialogs/ImportCodeDialog'
 import { RenameField } from './components/canvas/RenameField'
@@ -62,6 +63,8 @@ function Root() {
       <OpenFileDialog />
       <OpenProjectDialog />
       <DeleteFileDialog />
+      <DocumentsDialog />
+      <NewDocumentDialog />
       <ImportCodeDialog />
       <RenameField />
       <ContextMenu />

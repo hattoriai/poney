@@ -201,8 +201,8 @@ export function StartPage() {
                 <button type="button" className={row} onClick={() => useStudio.getState().setProjectOpen(true)}>
                   <FolderGit2 size={19} className="mt-0.5 shrink-0 text-ink-2" />
                   <span>
-                    <span className="block text-[15.5px] font-semibold">Open a project</span>
-                    <span className="mt-0.5 block text-[13.5px] text-ink-3">A folder or a Git repository. Its Poney document opens.</span>
+                    <span className="block text-[15.5px] font-semibold">Open a workspace</span>
+                    <span className="mt-0.5 block text-[13.5px] text-ink-3">A folder or a Git repository, with its Poney documents.</span>
                   </span>
                 </button>
               )}

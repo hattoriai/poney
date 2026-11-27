@@ -25,11 +25,11 @@ import { checkFolder, cloneRepository, listFolders, searchFiles } from '../agent
 import { checkProvider } from '../agents/check'
 import type { AgentChoice } from '../agents/sessions'
 import { check } from '../ops'
-import type { DocumentFiles } from './files'
+import { documentsIn, type DocumentFiles } from './files'
 
 
 import type { Place } from './types'
-import { workspaceProject } from './workspace-project'
+import { folderAt } from './folder'
 import { buildStamp } from './stamp'
 import { mcpCommand, studioDist } from '../paths'
 
@@ -45,7 +45,6 @@ const TYPES: Record<string, string> = {
   '.json': 'application/json',
 }
 const NOT_VALID = "The project's file is not a valid document."
-const NOT_SAVED = `${NOT_VALID} Not saved.`
 /** The Studio's dev server may also use the hub. */
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
@@ -75,6 +74,7 @@ export class LiveServer {
     state.on('file', (path) => send('file', { path: path ?? null }))
     state.on('workspace', (w) => send('project', { root: w?.cwd ?? null, name: w?.name ?? null }))
     state.on('overlays', (o) => send('overlays', o))
+    state.on('documents', (d) => send('documents', d))
   }
 
   get url() {
@@ -169,30 +169,27 @@ export class LiveServer {
         s.report((await body(req)) as object)
         return void res.writeHead(204).end()
       case 'POST /api/live/open': {
-        const { document, project } = (await body(req)) as { document?: unknown; project?: string }
+        const { document, project, file } = (await body(req)) as { document?: unknown; project?: string; file?: string }
         if (document === undefined) return json(res, 400, { error: 'Give a document' })
-        // An agent of a project that is not open: its document is saved in that project, not shown.
-        if (project && project !== s.projectKey()) {
-          if (!this.files) return json(res, 400, { error: 'This hub cannot save documents.' })
-          const w = workspaceProject(checkFolder(project))
-          const saved = this.files.saveFor(w, document)
-          if (saved === 'invalid') return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, refused: NOT_SAVED })
-          if (saved === 'saved') {
-            const name = (document as { project?: { name?: string } } | null)?.project?.name ?? w.name
-            s.put({ from: 'notice', text: `The agent saved “${name}”. It shows when you open this project.`, tone: 'info' }, project)
-          }
-          return json(res, 200, { revision: s.shown()?.revision ?? 0, viewers: this.viewers, saved: true })
+        if (!this.files) {
+          if ((project && project !== s.projectKey()) || file) return json(res, 400, { error: 'This hub cannot save documents.' })
+          return json(res, 200, { revision: s.open(document), viewers: this.viewers })
         }
-        return json(res, 200, { revision: s.open(document), viewers: this.viewers })
+        // An agent of a project that is not open: its document is saved in that project, not shown. `file` names the target document.
+        const opened = this.files.agentOpen(document, { project, file })
+        return json(res, 200, { revision: opened.revision ?? s.shown()?.revision ?? 0, viewers: this.viewers, ...(opened.saved ? { saved: true } : {}), ...(opened.refused ? { refused: opened.refused } : {}) })
       }
       case 'GET /api/live/read': {
         // An agent of a project that is not open reads its own project: the saved document and its thread.
         const project = url.searchParams.get('project')
         if (project && project !== s.projectKey() && this.files) {
-          const { document, invalid } = this.files.savedFor(workspaceProject(checkFolder(project)))
-          return json(res, 200, { viewers: this.viewers, current: document ?? null, ...(invalid ? { invalid: NOT_VALID } : {}), thread: s.thread(project) })
+          const w = folderAt(checkFolder(project))
+          const { document, invalid } = this.files.savedFor(w)
+          const workspace = { folder: w.cwd, documents: documentsIn(w.cwd), shown: this.files.fileOf(w) ?? null }
+          return json(res, 200, { viewers: this.viewers, current: document ?? null, ...(invalid ? { invalid: NOT_VALID } : {}), thread: s.thread(project), workspace })
         }
-        return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread() })
+        const workspace = s.project ? { folder: s.project.cwd, ...s.documents } : undefined
+        return json(res, 200, { viewers: this.viewers, studio: s.studio, current: s.current(), thread: s.thread(), ...(workspace ? { workspace } : {}) })
       }
       case 'GET /api/live/wait': {
         const ms = Math.min(900_000, Math.max(0, Number(url.searchParams.get('timeout') ?? 300_000)))
@@ -228,7 +225,7 @@ export class LiveServer {
         const r = (await body(req)) as AgentChoice & { folder?: string }
         if (!providerFor(r)) return json(res, 400, { error: 'Unknown agent' })
         if (r.folder) {
-          const w = workspaceProject(checkFolder(r.folder))
+          const w = folderAt(checkFolder(r.folder))
           // The default first, so the folder's agent starts once, as this agent.
           this.agents.setDefault(r)
           s.setWorkspace(w)
@@ -290,7 +287,7 @@ export class LiveServer {
       }
       case 'POST /api/project/open': {
         const r = (await body(req)) as { path?: string }
-        s.setWorkspace(workspaceProject(checkFolder(r.path ?? '')))
+        s.setWorkspace(folderAt(checkFolder(r.path ?? '')))
         return json(res, 200, { root: s.project?.cwd })
       }
 
@@ -301,6 +298,11 @@ export class LiveServer {
         if (!r.path) return json(res, 400, { error: 'Give a path' })
         this.files.open(r.path, r.document)
         return json(res, 200, { path: s.file })
+      }
+      case 'POST /api/documents/new': {
+        if (!this.files) return json(res, 400, { error: 'This hub cannot make files.' })
+        const r = (await body(req)) as { name?: string }
+        return json(res, 200, { path: this.files.create(r.name ?? '') })
       }
       case 'POST /api/files/delete': {
         if (!this.files) return json(res, 400, { error: 'This hub cannot delete files.' })
@@ -339,6 +341,7 @@ export class LiveServer {
     res.write(`event: file\ndata: ${JSON.stringify({ path: this.state.file ?? null })}\n\n`)
     res.write(`event: project\ndata: ${JSON.stringify({ root: this.state.project?.cwd ?? null, name: this.state.project?.name ?? null })}\n\n`)
     res.write(`event: overlays\ndata: ${JSON.stringify(this.state.overlays)}\n\n`)
+    res.write(`event: documents\ndata: ${JSON.stringify(this.state.documents)}\n\n`)
     this.clients.add(res)
     const beat = setInterval(() => res.write(': beat\n\n'), 20_000)
     req.on('close', () => {

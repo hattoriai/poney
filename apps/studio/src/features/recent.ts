@@ -1,6 +1,6 @@
 import { toJSON, validateDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
-import { useStudio, type Project } from './store'
+import { useStudio, type OpenDocument } from './store'
 import { openFile } from './agent'
 
 /**
@@ -11,7 +11,7 @@ export interface Recent {
   id: string
   name: string
   description: string
-  origin: Project['origin']
+  origin: OpenDocument['origin']
   at: string
   json: string
   /** The file the document is saved to, when Poney on this computer keeps it. */
@@ -40,7 +40,7 @@ function write(list: Recent[]) {
   }
 }
 
-export function saveRecent(doc: PoneyDocument, origin: Project['origin'], path?: string) {
+export function saveRecent(doc: PoneyDocument, origin: OpenDocument['origin'], path?: string) {
   const entry: Recent = { id: doc.project.id, name: doc.project.name, description: doc.project.description, origin, at: new Date().toISOString(), json: toJSON(doc), ...(path ? { path } : {}) }
   write([entry, ...listRecent().filter((r) => r.id !== doc.project.id)])
   try {
