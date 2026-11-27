@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, CircleAlert, Compass, FileCode2, FolderGit2, GitMerge, Info, Maximize2, MessageCircleQuestion, Pause, Play, X } from 'lucide-react'
+import { Check, CircleAlert, Compass, FileCode2, FolderGit2, GitMerge, Info, Maximize2, MessageCircleQuestion, Minimize2, X } from 'lucide-react'
 import { marksOf, parseRef, refKey, type Scene, type Walkthrough, plainText } from '@hattoriai/poney-core'
 import { OVERVIEW, useIndex, useStudio } from '@/features/store'
 import { revealRef } from '@/features/navigation'
@@ -8,6 +8,7 @@ import { CodeBlock } from './CodeBlock'
 import { EditableText } from '@/components/text/EditableText'
 import { Prose } from '@/components/text/Prose'
 import { STATE_LABEL, stepLetter, type Mode } from '@hattoriai/poney-react'
+import { FIRST_STEP_MS, STEP_MS, StepPlayer } from '@/components/shared/StepPlayer'
 
 /* ─── Per-reader state, kept in this browser ──────────────────────────────── */
 
@@ -137,32 +138,36 @@ function SelectionCard({ walkthrough }: { walkthrough?: Walkthrough }) {
   )
 }
 
-/** A scene opened over the page, for when it needs more room. */
-function Expanded({ title, onClose, children }: { title: string; onClose(): void; children: React.ReactNode }) {
+/**
+ * A diagram that opens over the page when it needs more room. It stays the
+ * same element, so the groups the reader opened, the zoom and any edit stay.
+ */
+function ExpandableFigure({ expanded, onClose, title, className, children }: { expanded: boolean; onClose(): void; title: string; className: string; children: React.ReactNode }) {
   useEffect(() => {
+    if (!expanded) return
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
-  }, [onClose])
+  }, [expanded, onClose])
   return (
-    <div className="fade-in fixed inset-0 z-40 bg-ink/30 p-4 backdrop-blur-[2px] sm:p-8" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="flex h-full flex-col overflow-hidden rounded-2xl border border-rule bg-raised shadow-float" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 border-b border-rule px-4 py-3">
-          <span className="flex-1 text-[14px] font-semibold">{title}</span>
-          <button type="button" autoFocus onClick={onClose} aria-label="Close" className="rounded-md p-1.5 text-ink-3 hover:bg-sunken hover:text-ink">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="relative min-h-0 flex-1">{children}</div>
-      </div>
-    </div>
+    <>
+      {expanded && <div className="fade-in fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />}
+      <figure
+        role={expanded ? 'dialog' : undefined}
+        aria-modal={expanded || undefined}
+        aria-label={expanded ? title : undefined}
+        className={expanded ? 'fixed inset-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-rule bg-raised shadow-float sm:inset-8' : className}
+      >
+        {children}
+      </figure>
+    </>
   )
 }
 
-function ExpandButton({ onClick }: { onClick(): void }) {
+function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick(): void }) {
   return (
-    <button type="button" onClick={onClick} aria-label="Expand the diagram" title="Expand" className="rounded-md p-1.5 text-ink-3 hover:bg-sunken hover:text-ink">
-      <Maximize2 size={15} />
+    <button type="button" onClick={onClick} aria-label={expanded ? 'Restore the diagram' : 'Expand the diagram'} title={expanded ? 'Restore' : 'Expand'} className="rounded-md p-1.5 text-ink-3 hover:bg-sunken hover:text-ink">
+      {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
     </button>
   )
 }
@@ -180,6 +185,15 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
   const [hot, setHot] = useState<string | null>(null)
   const [active, setActive] = useState(0)
   const [expanded, setExpanded] = useState<'hero' | 'scene' | null>(null)
+  const collapse = useCallback(() => setExpanded(null), [])
+  const toggleExpanded = (which: 'hero' | 'scene') => setExpanded((cur) => (cur === which ? null : which))
+  // The agent panel and the connect dialog are behind an expanded diagram: it makes room for them.
+  const agentShown = useStudio((s) => s.agentShown)
+  const connectOpen = useStudio((s) => s.connectOpen)
+  useEffect(() => setExpanded(null), [agentShown])
+  useEffect(() => {
+    if (connectOpen) setExpanded(null)
+  }, [connectOpen])
   const [read, setRead] = useLocal<string[]>(`poney:read:${idx.doc.project.id}:${w.id}`, [])
   const [answers, setAnswers] = useLocal<Record<string, string>>(`poney:answers:${idx.doc.project.id}:${w.id}`, {})
   const [notes, setNotes] = useLocal<Record<string, string>>(`poney:notes:${idx.doc.project.id}:${w.id}`, {})
@@ -207,7 +221,7 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
         if (next >= scene.trace.length) setPlaying(false)
         else setTraceStep(next)
       },
-      traceStep === null ? 60 : 1900,
+      traceStep === null ? FIRST_STEP_MS : STEP_MS,
     )
     return () => clearTimeout(t)
   }, [playing, traceStep, scene.trace.length])
@@ -296,20 +310,22 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
           )}
         </div>
         {overview && (
-          <figure className="relative mt-8 flex h-[min(620px,72vh)] flex-col overflow-hidden rounded-2xl border border-rule bg-raised">
+          <div className="mt-8 h-[min(620px,72vh)]">
+          <ExpandableFigure expanded={expanded === 'hero'} onClose={collapse} title={overview.title} className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-rule bg-raised">
             <figcaption className="flex flex-wrap items-center gap-3 border-b border-rule px-4 py-3">
               <span className="text-[13px] font-semibold">{overview.title}</span>
               <span className="hidden text-[12.5px] text-ink-3 md:inline">{tour ? 'Open a group to see what is inside it.' : 'Switch between before and after to see what moves.'}</span>
               <span className="flex-1" />
               {!tour && <Legend />}
               {!tour && <ModeSwitch mode={heroMode} onChange={setHeroMode} />}
-              <ExpandButton onClick={() => setExpanded('hero')} />
+              <ExpandButton expanded={expanded === 'hero'} onClick={() => toggleExpanded('hero')} />
             </figcaption>
             <div className="relative min-h-0 flex-1">
-              <SceneView view={overview} walkthrough={w} marks={marks} mode={heroMode} focus={[]} callouts={[]} hot={hot} setHot={setHot} maxScale={1.1} />
+              <SceneView view={overview} walkthrough={w} marks={marks} mode={heroMode} focus={[]} callouts={[]} hot={hot} setHot={setHot} maxScale={expanded === 'hero' ? 1.4 : 1.1} />
               <SelectionCard walkthrough={w} />
             </div>
-          </figure>
+          </ExpandableFigure>
+          </div>
         )}
       </section>
 
@@ -324,10 +340,10 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
               {(!tour || w.verdict.risk === 'look') && <RiskPill risk={w.verdict.risk} />}
             </div>
             <dl className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
-              {w.verdict.facts.map((f) => (
+              {w.verdict.facts.map((f, i) => (
                 <div key={f.label}>
                   <dt className="text-[12.5px] text-ink-3">{f.label}</dt>
-                  <dd className="mt-1 text-[14px] leading-snug">{f.value}</dd>
+                  <EditableText as="dd" label={f.label} value={f.value} onSave={(v) => edit(['verdict', 'facts', i, 'value'], v)} className="mt-1 block text-[14px] leading-snug" />
                 </div>
               ))}
             </dl>
@@ -429,14 +445,15 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
           ))}
         </div>
         <div className="order-1 lg:order-2">
-          <figure className="sticky top-4 flex h-[46vh] flex-col overflow-hidden rounded-2xl border border-rule bg-raised lg:top-8 lg:h-[calc(100vh-8rem)]">
+          <ExpandableFigure expanded={expanded === 'scene'} onClose={collapse} title={`${active + 1}. ${plainText(scene.title)}`} className="sticky top-4 flex h-[46vh] flex-col overflow-hidden rounded-2xl border border-rule bg-raised lg:top-8 lg:h-[calc(100vh-8rem)]">
             <figcaption className="flex flex-wrap items-center gap-3 border-b border-rule px-4 py-3">
               <span className="font-tabular text-[12.5px] text-ink-3">
                 {active + 1} / {w.scenes.length}
               </span>
               <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{sceneView?.title ?? 'Code only'}</span>
               {scene.trace.length > 0 && sceneView && (
-                <TracePlayer
+                <StepPlayer
+                  label="Play the path"
                   count={scene.trace.length}
                   step={traceStep}
                   playing={playing}
@@ -450,7 +467,7 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
               )}
               {!tour && <Legend />}
               {!tour && <ModeSwitch mode={sceneMode} onChange={setSceneMode} />}
-              {sceneView && <ExpandButton onClick={() => setExpanded('scene')} />}
+              {sceneView && <ExpandButton expanded={expanded === 'scene'} onClick={() => toggleExpanded('scene')} />}
             </figcaption>
             <div className="relative min-h-0 flex-1">
               {sceneView ? (
@@ -466,6 +483,7 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
                   setHot={setHot}
                   sceneData={scene}
                   traceStep={traceStep}
+                  maxScale={expanded === 'scene' ? 1.4 : undefined}
                 />
               ) : (
                 <div className="grid h-full place-items-center px-8 text-center text-ink-3">This scene is about code only. Read it on the left.</div>
@@ -480,20 +498,9 @@ export function WalkthroughPage({ walkthrough: w }: { walkthrough: Walkthrough }
               )}
               <SelectionCard walkthrough={w} />
             </div>
-          </figure>
+          </ExpandableFigure>
         </div>
       </section>
-
-      {expanded === 'hero' && overview && (
-        <Expanded title={overview.title} onClose={() => setExpanded(null)}>
-          <SceneView view={overview} walkthrough={w} marks={marks} mode={heroMode} focus={[]} callouts={[]} hot={hot} setHot={setHot} maxScale={1.4} />
-        </Expanded>
-      )}
-      {expanded === 'scene' && sceneView && (
-        <Expanded title={`${active + 1}. ${plainText(scene.title)}`} onClose={() => setExpanded(null)}>
-          <SceneView view={sceneView} walkthrough={w} marks={marks} mode={sceneMode} focus={scene.focus} callouts={scene.callouts.map((c) => c.target)} hot={traceKey ?? hot} setHot={setHot} maxScale={1.4} sceneData={scene} traceStep={traceStep} />
-        </Expanded>
-      )}
 
       <footer className="mx-auto max-w-[1320px] border-t border-rule px-6 py-10 sm:px-10">
         <button type="button" onClick={() => useStudio.getState().navigate(OVERVIEW)} className="inline-flex items-center gap-2 text-[14px] font-semibold text-poney hover:underline">
@@ -734,25 +741,3 @@ function CheckQuestion({ question, answer, onAnswer, live }: { question: string;
 }
 
 /** Plays a scene's path: one step at a time, or all of it. */
-function TracePlayer({ count, step, playing, onPlay, onPause, onStep }: { count: number; step: number | null; playing: boolean; onPlay(): void; onPause(): void; onStep(k: number | null): void }) {
-  const btn = 'grid h-7 w-7 place-items-center rounded-md text-ink-2 hover:bg-sunken disabled:opacity-30'
-  return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-sunken/60 p-0.5" role="group" aria-label="Play the path">
-      <button type="button" className={btn} aria-label="Previous step" disabled={step === null || step === 0} onClick={() => onStep((step ?? 0) - 1)}>
-        <ChevronLeft size={15} />
-      </button>
-      {playing ? (
-        <button type="button" onClick={onPause} className="inline-flex h-7 items-center gap-1.5 rounded-md bg-raised px-2.5 text-[12.5px] font-semibold text-ink shadow-[0_1px_2px_#0000001a]">
-          <Pause size={13} /> Pause
-        </button>
-      ) : (
-        <button type="button" onClick={onPlay} className="inline-flex h-7 items-center gap-1.5 rounded-md bg-raised px-2.5 text-[12.5px] font-semibold text-ink shadow-[0_1px_2px_#0000001a]">
-          <Play size={13} /> {step === null ? 'Play the path' : step >= count - 1 ? 'Again' : 'Play'}
-        </button>
-      )}
-      <button type="button" className={btn} aria-label="Next step" disabled={step !== null && step >= count - 1} onClick={() => onStep(step === null ? 0 : step + 1)}>
-        <ChevronRight size={15} />
-      </button>
-    </div>
-  )
-}

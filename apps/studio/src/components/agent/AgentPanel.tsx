@@ -5,6 +5,7 @@ import { useStudio, WALK, type ContextItem, type Message, screenOf } from '@/fea
 import { MessageBox } from './MessageBox'
 import { SessionBar } from './SessionBar'
 import { ask, cancelAgent, choosePermission, disconnectAgent, startersFor, useProjectRoot } from '@/features/agent'
+import { Markdown } from '@/components/text/Markdown'
 
 /**
  * The agent panel: the conversation with whichever agent answers.
@@ -144,12 +145,8 @@ function Item({ m }: { m: Message }) {
     case 'agent':
       return (
         <li className="mr-4">
-          <div className="space-y-2 text-[13.5px] leading-relaxed text-ink">
-            {m.text.split(/\n{2,}/).map((p, i) => (
-              <p key={i} className="whitespace-pre-wrap">
-                {p}
-              </p>
-            ))}
+          <div className="text-[13.5px] leading-relaxed text-ink">
+            <Markdown text={m.text} />
           </div>
           <Where walkthrough={m.walkthrough} scene={m.scene} prefix="Show" link />
         </li>

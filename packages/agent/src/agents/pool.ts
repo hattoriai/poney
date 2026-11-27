@@ -180,6 +180,11 @@ export class AgentPool {
   /** An agent's status changed: only the open project's agent shows. An agent that stopped leaves the pool. */
   private changed(agent: ProjectAgent) {
     if (this.agents.get(agent.project) !== agent) return
+    if (agent.connected && !agent.busy && this.state.projectKey() === agent.project && this.state.workspace) {
+      // Folders added while it started or worked: it starts again with them now.
+      const folders = presentFolders(this.state.workspace).map((f) => f.cwd)
+      if (agent.folders.join('\n') !== folders.join('\n')) return void this.activate(false)
+    }
     if (agent.connected) return this.publish(agent)
     this.agents.delete(agent.project)
     if (this.state.projectKey() === agent.project) this.state.setSession(null, null)

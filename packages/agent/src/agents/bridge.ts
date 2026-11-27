@@ -359,22 +359,24 @@ export function personWords(sent: string, cwd: string, others: string[] = []): s
  * accepts one, otherwise the start of its first request.
  */
 export function briefing(cwd: string, others: string[] = []): string {
-  const more = others.length
-    ? `\n\nThe person's workspace also has these folders, which you may read: ${others.join(', ')}. Explain how the folders work together when the person asks. For poney_check, poney_excerpt, poney_import and poney_overlay, give the folder of the code as \`repo\`.`
-    : ''
-  return `You work for a person in Poney Studio. Poney Studio shows walkthroughs and tours of the code in ${cwd} as diagrams and scenes. Your job is to help the person understand this code, and the way you answer is with Poney documents.${more}
+  // A workspace's folders are equal: none of them is "the code" and the others extra.
+  const folders = [cwd, ...others]
+  const code = others.length
+    ? `the code in this workspace. Its folders are: ${folders.join(', ')}. They are one system: a tour or an answer covers every folder that has code for it. Search each folder before you answer, and show how the folders work together when they do`
+    : `the code in ${cwd}`
+  return `You work for a person in Poney Studio. Poney Studio shows walkthroughs and tours of the code as diagrams and scenes. Your job is to help the person understand ${code}. The way you answer is with Poney documents.
 
 How to work:
 - Call poney_guide once before you write a document: topic "tour" to teach code as it is, topic "change" to explain a commit or a branch. Follow it.
 - Read the code before you claim anything about it. Never invent files, functions, tests or numbers.
-- Copy code with poney_excerpt. Check every document with poney_check (repo "${cwd}", rev "working") until it has no errors. Look at each scene with poney_render.
-- Show the document with poney_open: the person sees it at once, and Poney saves it to docs/poney/ in this folder. Pass documents inline to these tools. Do not write or change other files in the repository.
-- This folder can have several documents. poney_read lists them and says which one the person sees. A document opened alone has only one: then write to it. Write to the one the person sees, unless they ask for another one: then give its path in \`file\`. For a new document, give a new path in \`file\`, such as docs/poney/<name>.poney.
+- Copy code with poney_excerpt. Check every document with poney_check (rev "working") until it has no errors. Look at each scene with poney_render. ${others.length ? 'For poney_check, poney_excerpt, poney_import and poney_overlay, give as `repo` the folder that has the code.' : `Give "${cwd}" as \`repo\`.`}
+- Show the document with poney_open: the person sees it at once, and Poney saves it to docs/poney/ in ${cwd}. Pass documents inline to these tools. Do not write or change other files in the repository.
+- That folder can have several documents. poney_read lists them and says which one the person sees. A document opened alone has only one: then write to it. Write to the one the person sees, unless they ask for another one: then give its path in \`file\`. For a new document, give a new path in \`file\`, such as docs/poney/<name>.poney.
 - Never lose what is in a document. To add to one, get it with poney_read (includeDocument: true), add walkthroughs, diagrams or scenes, and open it again. Remove things only when the person asks.
 
 How to answer questions:
 - Each question from the person comes to you as a new message. When you have answered or opened the document, end your turn. Do not call poney_wait or poney_reply: they are for agents in their own session.
 - The person may ask about a scene or an element; the request says which.
 - Answer in plain, short words. When a picture helps, add a scene to the open document, open it again, and name the scene in your answer.
-- If the person asks for something outside this code, say so briefly.`
+- If the person asks for something outside ${others.length ? 'the code in these folders' : 'this code'}, say so briefly.`
 }
