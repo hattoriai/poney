@@ -111,7 +111,15 @@ function connect(base: string, attempt = 0) {
   events.addEventListener('workspace', (e) => {
     const w = JSON.parse((e as MessageEvent).data) as OpenWorkspace | null
     useStudio.getState().setWorkspace(w)
-    if (w) saveRecentWorkspace(w)
+    if (w) {
+      saveRecentWorkspace(w)
+      // Kept for this tab: a reload, or a local server that restarted, opens it again.
+      try {
+        sessionStorage.setItem(LAST_WORKSPACE, w.key)
+      } catch {
+        /* storage can be unavailable */
+      }
+    }
   })
   events.addEventListener('documents', (e) => useStudio.getState().setFolderDocuments(JSON.parse((e as MessageEvent).data) as WorkspaceDocuments))
 
@@ -128,6 +136,8 @@ function connect(base: string, attempt = 0) {
 }
 
 let lastSent = ''
+/** The workspace open in this tab, by key. */
+const LAST_WORKSPACE = 'poney:last-workspace'
 
 function readLocal<T>(key: string): T | undefined {
   try {
@@ -176,11 +186,19 @@ async function giveBack(base: string) {
   const s = useStudio.getState()
   const doc = s.history?.present
   const origin = s.projects.find((p) => p.id === s.projectId)?.origin
-  if (!doc || origin === 'example' || s.startOpen) return
+  const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   const info = (await fetch(`${base}/api/live`).then((r) => r.json()).catch(() => ({}))) as { revision?: number }
   if (info.revision !== 0) return
+  // The workspace first, by its key (a folder, a workspace file, an untitled one): it opens its own document.
+  let key = s.workspace?.key
+  try {
+    key ??= sessionStorage.getItem(LAST_WORKSPACE) ?? undefined
+  } catch {
+    /* storage can be unavailable */
+  }
+  if (key && (await post('/api/project/open', { path: key }).then((r) => r.ok).catch(() => false))) return
+  if (!doc || origin === 'example' || s.startOpen) return
   const path = s.liveFile ?? listRecent().find((r) => r.id === doc.project.id)?.path
-  const post = (route: string, body: unknown) => fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   // With the document: a file not written yet still brings its project back, and with it the project's agent.
   const opened = path ? await post('/api/files/open', { path, document: doc }).then((r) => r.ok).catch(() => false) : false
   if (!opened) await post('/api/live/open', { document: doc }).catch(() => undefined)

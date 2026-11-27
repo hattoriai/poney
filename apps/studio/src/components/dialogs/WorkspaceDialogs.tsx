@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStudio, type OpenWorkspace } from '@/features/store'
-import { addFolder, saveWorkspace } from '@/features/agent'
+import { addFolder, lastFolder, saveWorkspace } from '@/features/agent'
 import { FileBrowser } from '@/components/agent/FileBrowser'
 import { Modal } from './Modal'
 
@@ -10,61 +10,31 @@ const defaultFile = (w: OpenWorkspace, name = w.name) => {
   return `${dir}/${name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'workspace'}.poney-workspace`
 }
 
-/**
- * Adds a folder to the open workspace. A workspace with more than one folder
- * is kept in a .poney-workspace file, so an unsaved one is saved first, in the
- * same step.
- */
+/** Adds a folder to the open workspace (or attaches one to a document opened alone). Nothing to save first. */
 export function AddFolderDialog() {
   const open = useStudio((s) => s.workspaceDialog === 'add-folder')
   const workspace = useStudio((s) => s.workspace)
-  const [picked, setPicked] = useState<string | null>(null)
-  const [file, setFile] = useState('')
+  const liveFile = useStudio((s) => s.liveFile)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    if (!open) return
-    setPicked(null)
-    setError(null)
-    if (workspace) setFile(defaultFile(workspace))
-  }, [open, workspace])
+    if (open) setError(null)
+  }, [open])
   const close = () => useStudio.getState().setWorkspaceDialog(null)
   const add = async (path: string) => {
     setError(null)
     try {
-      // A document alone gets the folder attached; a workspace that is not saved is saved first.
-      if (workspace && !workspace.file) await saveWorkspace(file)
       await addFolder(path)
       close()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
   }
-  const liveFile = useStudio((s) => s.liveFile)
-  const first = workspace?.folders[0]?.path ?? liveFile ?? undefined
+  // Start next to the last folder, or the document, or where the person browsed last.
+  const near = workspace?.folders.at(-1)?.path ?? liveFile ?? undefined
   return (
-    <Modal open={open} onOpenChange={(o) => !o && close()} title="Add a folder" description="The agent can read every folder of the workspace." width={620}>
+    <Modal open={open} onOpenChange={(o) => !o && close()} title="Add a folder" description="Usually a repository. The agent can read every folder of the workspace." width={620}>
       <div className="space-y-3 px-5 py-5">
-        {picked && !workspace?.file ? (
-          <>
-            <p className="text-[13px] text-ink-2">A workspace with more than one folder is saved as a file. You can commit it and share it.</p>
-            <input
-              value={file}
-              onChange={(e) => setFile(e.target.value)}
-              aria-label="Workspace file"
-              className="h-9 w-full rounded-lg border border-rule bg-paper px-3 font-mono text-[12.5px] outline-none focus:border-rule-strong"
-            />
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setPicked(null)} className="h-8 rounded-lg border border-rule px-3 text-[13px] font-medium hover:bg-sunken">
-                Back
-              </button>
-              <button type="button" disabled={!file.endsWith('.poney-workspace')} onClick={() => void add(picked)} className="h-8 rounded-lg bg-ink px-3 text-[13px] font-semibold text-paper hover:opacity-90 disabled:opacity-35">
-                Save and add the folder
-              </button>
-            </div>
-          </>
-        ) : (
-          <FileBrowser start={first ? first.slice(0, first.lastIndexOf('/')) : undefined} onPickFolder={(p) => (!workspace || workspace.file ? void add(p) : setPicked(p))} />
-        )}
+        <FileBrowser start={near ? near.slice(0, near.lastIndexOf('/')) : lastFolder()} onPickFolder={(p) => void add(p)} />
         {error && (
           <p role="alert" className="text-[12.5px] text-removed">
             {error}

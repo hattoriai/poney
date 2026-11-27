@@ -6,9 +6,10 @@ import './app/styles.css'
 import { registerStudioExtension } from './features/extensions'
 import { ownershipStudio } from './extensions/ownership'
 import { securityStudio } from './extensions/security'
-import { useStudio } from './features/store'
+import { screenOf, useStudio } from './features/store'
 import { App } from './app/App'
 import { START_HASH, StartPage } from './app/StartPage'
+import { HOME_HASH, WorkspaceHome } from './app/WorkspaceHome'
 import { AgentPanel } from './components/agent/AgentPanel'
 import { ConnectDialog } from './components/agent/ConnectDialog'
 import { OpenFileDialog } from './components/dialogs/OpenFileDialog'
@@ -36,8 +37,10 @@ async function start() {
   else restoreLast()
   const s = useStudio.getState()
   // Nothing open: the start page, whatever view an old address names.
-  if (!s.history && window.location.hash !== START_HASH) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${START_HASH}`)
+  if (!s.history && window.location.hash !== START_HASH && window.location.hash !== HOME_HASH) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${START_HASH}`)
   if (window.location.hash === START_HASH) s.showStart(true)
+  // A reload on a workspace's home page goes back there once the workspace is open again.
+  else if (window.location.hash === HOME_HASH) s.showHome(true)
   else if (s.history) {
     if (s.viewId.startsWith('walk:') && window.innerWidth < 1700) s.toggleSidebar(false)
     readLocation()
@@ -49,11 +52,13 @@ async function start() {
 
 /** The page, and what every page shares: the agent panel and the dialog that connects an agent. */
 function Root() {
-  const start = useStudio((s) => !s.history || s.startOpen)
+  const screen = useStudio(screenOf)
   return (
     <>
-      {start ? (
+      {screen === 'start' ? (
         <StartPage />
+      ) : screen === 'home' ? (
+        <WorkspaceHome />
       ) : (
         <StudioRender>
           <App />

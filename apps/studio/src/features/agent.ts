@@ -1,7 +1,7 @@
 import { indexOf, refKey, validateDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
 import type { OverlayResult, PluginItem, Provider, SessionSetting, SignInStatus } from '@hattoriai/poney/live'
-import { useStudio, walkId, type ContextItem } from './store'
+import { screenOf, useStudio, walkId, type ContextItem } from './store'
 
 /**
  * Talking to agents through the live hub (see poney): ask a question,
@@ -49,13 +49,15 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 export function ask(text: string, context: ContextItem[] = []) {
   const s = useStudio.getState()
   const w = walkId(s.viewId)
+  // Where the person is counts only when they read a document.
+  const reading = screenOf(s) === 'document'
   const doc = s.history?.present
   const described = doc && s.selection && indexOf(doc).exists(s.selection) ? indexOf(doc).describe(s.selection) : undefined
   return call('/api/live/ask', {
     text,
-    walkthrough: s.startOpen ? undefined : w,
-    scene: !s.startOpen && w ? s.activeScene ?? undefined : undefined,
-    selection: !s.startOpen && s.selection ? { ref: refKey(s.selection), title: described?.title ?? '', kind: described?.kind ?? s.selection.kind } : undefined,
+    walkthrough: reading ? w : undefined,
+    scene: reading && w ? s.activeScene ?? undefined : undefined,
+    selection: reading && s.selection ? { ref: refKey(s.selection), title: described?.title ?? '', kind: described?.kind ?? s.selection.kind } : undefined,
     ...(context.length ? { context } : {}),
   })
 }
@@ -101,9 +103,20 @@ async function wanted<T>(request: () => Promise<T>): Promise<T> {
 /** Opens a folder (a repository) as the project: agents work there, and its document is saved there. */
 /** Opens a workspace: a .poney-workspace file, or a folder (its own workspace file, else the folder alone). `choose`: the folder has several workspace files. */
 export const openProjectFolder = async (path: string) => {
-  const r = await wanted(() => call<{ root?: string; choose?: string[] }>('/api/project/open', { path }))
+  const r = await wanted(() => call<{ root?: string; choose?: string[]; revision?: number | null }>('/api/project/open', { path }))
   if (r.choose) useStudio.setState({ documentWanted: false })
+  // A workspace that shows no document opens on its home page.
+  else if (r.revision == null) {
+    useStudio.setState({ documentWanted: false })
+    useStudio.getState().showHome(true)
+  }
   return r
+}
+/** Opens a new, blank workspace: no folders and no documents yet. It shows on the start page. */
+export const newWorkspace = async () => {
+  const w = await call<unknown>('/api/workspace/new', {})
+  useStudio.getState().showHome(true)
+  return w
 }
 /** Saves the open workspace as a .poney-workspace file. Its conversation and agent session move with it. */
 export const saveWorkspace = (file: string, name?: string) => call<{ key: string }>('/api/workspace/save', { file, ...(name ? { name } : {}) })
@@ -117,7 +130,7 @@ export const openFile = (path: string) => wanted(() => call<{ path: string }>('/
 /** Deletes a .poney file for good. The server deletes it only when it holds the document `project`. */
 export const deleteFile = (path: string, project: string) => call('/api/files/delete', { path, project })
 /** Makes a new, empty document in the open folder's docs/poney/, and shows it. */
-export const newDocument = (name: string) => wanted(() => call<{ path: string }>('/api/documents/new', { name }))
+export const newDocument = (name: string, folder?: string) => wanted(() => call<{ path: string }>('/api/documents/new', { name, ...(folder ? { folder } : {}) }))
 export const cloneRepository = (url: string) => call<{ path: string }>('/api/workspace/clone', { url })
 
 /** Importers and overlays, with what each would read in the project's folder. */

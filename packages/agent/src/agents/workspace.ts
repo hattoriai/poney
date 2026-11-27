@@ -27,7 +27,8 @@ const isGit = (dir: string) => existsSync(join(dir, '.git'))
 
 /** The folders inside a folder, for a folder picker. Hidden folders are left out. */
 export function listFolders(path?: string): Folder {
-  const dir = resolve(path || homedir())
+  // "~" is the home folder, as in a terminal.
+  const dir = resolve((path || homedir()).replace(/^~(?=\/|$)/, homedir()))
   if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Error(`No folder "${dir}"`)
   const entries = readdirSync(dir, { withFileTypes: true })
   const files = entries.filter((e) => e.isFile() && (e.name.endsWith('.poney') || e.name.endsWith('.poney-workspace'))).map((e) => ({ name: e.name, path: join(dir, e.name) })).sort((a, b) => a.name.localeCompare(b.name))

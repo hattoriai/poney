@@ -14,6 +14,8 @@ export interface Memory {
   last: Record<string, string>
   /** The folders attached to a document opened alone, by the document's path. */
   attached: Record<string, string[]>
+  /** Workspaces not saved to a file yet, by id. */
+  untitled: Record<string, { name: string; folders: string[]; documents: string[] }>
 }
 
 const file = () => join(poneyHome(), 'workspaces.json')
@@ -21,9 +23,9 @@ const file = () => join(poneyHome(), 'workspaces.json')
 export function readMemory(): Memory {
   try {
     const v = existsSync(file()) ? (JSON.parse(readFileSync(file(), 'utf8')) as Partial<Memory>) : {}
-    return { version: 1, last: v.last ?? {}, attached: v.attached ?? {} }
+    return { version: 1, last: v.last ?? {}, attached: v.attached ?? {}, untitled: v.untitled ?? {} }
   } catch {
-    return { version: 1, last: {}, attached: {} }
+    return { version: 1, last: {}, attached: {}, untitled: {} }
   }
 }
 

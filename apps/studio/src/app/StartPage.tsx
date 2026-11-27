@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, ClipboardPaste, FileText, FileUp, Folder, FolderGit2, Folders, MessageCircle, Moon, PanelLeft, Plug, Sun, Trash2, X } from 'lucide-react'
+import { BookOpen, ClipboardPaste, FileText, FileUp, Folder, FolderGit2, Folders, Moon, PanelLeft, Plus, Sun, Trash2, X } from 'lucide-react'
 import * as RT from '@radix-ui/react-tooltip'
 import { useStudio } from '@/features/store'
 import { detectFormat, importText, isTyping } from '@/features/io'
 import { fileOfDocument, forgetRecent, forgetRecentWorkspace, listRecent, listRecentWorkspaces, openExample, openRecent, type Recent } from '@/features/recent'
-import { openProjectFolder } from '@/features/agent'
+import { newWorkspace, openProjectFolder } from '@/features/agent'
 import { ToolbarButton } from '@/components/shared/Toolbar'
 import { McpSetup } from '@/components/agent/McpSetup'
 import { Mark } from '@/components/navigation/Sidebar'
@@ -156,7 +156,8 @@ export function StartPage() {
                     <span className="min-w-0">
                       <span className="block truncate">{w.name}</span>
                       <span className="block truncate text-[11.5px] text-ink-3">
-                        {w.key.startsWith('document:') ? 'Document with a folder' : w.folders.length > 1 ? `${w.folders.length} folders` : 'Folder'}, {when(w.at)}
+                        {w.key.startsWith('document:') ? 'Document with a folder' : w.folders.length !== 1 ? `${w.folders.length} folders` : 'Folder'}
+                        {w.key.startsWith('untitled:') ? ', not saved' : ''}, {when(w.at)}
                       </span>
                     </span>
                     {openWorkspace?.key === w.key && <span className="ml-auto shrink-0 text-[11px] text-ink-3">Open</span>}
@@ -238,13 +239,22 @@ export function StartPage() {
             </h2>
             <div className="mt-2">
               {live.state === 'on' && (
-                <button type="button" className={row} onClick={() => useStudio.getState().setProjectOpen(true)}>
-                  <FolderGit2 size={19} className="mt-0.5 shrink-0 text-ink-2" />
-                  <span>
-                    <span className="block text-[15.5px] font-semibold">Open a workspace</span>
-                    <span className="mt-0.5 block text-[13.5px] text-ink-3">A folder or a Git repository, with its Poney documents.</span>
-                  </span>
-                </button>
+                <>
+                  <button type="button" className={row} onClick={() => void newWorkspace().catch((e: unknown) => setProblem({ title: 'No new workspace', lines: [e instanceof Error ? e.message : String(e)] }))}>
+                    <Plus size={19} className="mt-0.5 shrink-0 text-ink-2" />
+                    <span>
+                      <span className="block text-[15.5px] font-semibold">New workspace</span>
+                      <span className="mt-0.5 block text-[13.5px] text-ink-3">Blank. Then add the folders with the code, and documents.</span>
+                    </span>
+                  </button>
+                  <button type="button" className={row} onClick={() => useStudio.getState().setProjectOpen(true)}>
+                    <FolderGit2 size={19} className="mt-0.5 shrink-0 text-ink-2" />
+                    <span>
+                      <span className="block text-[15.5px] font-semibold">Open a workspace</span>
+                      <span className="mt-0.5 block text-[13.5px] text-ink-3">A .poney-workspace file, or a folder with its Poney documents.</span>
+                    </span>
+                  </button>
+                </>
               )}
               <button type="button" className={row} onClick={chooseFile}>
                 <FileUp size={19} className="mt-0.5 shrink-0 text-ink-2" />
@@ -330,34 +340,19 @@ function when(iso: string) {
 /** The agent as it is now: connected, linked from a terminal, or neither. One fact, one action. */
 function AgentCard() {
   const live = useStudio((s) => s.live.state === 'on')
-  const { session, listening } = useStudio((s) => s.agent)
-  const button = 'mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-ink px-3.5 text-[13.5px] font-semibold text-paper hover:opacity-90'
+  const workspace = useStudio((s) => s.workspace)
   const code = 'mt-1.5 block break-all rounded-lg bg-sunken px-2.5 py-2 font-mono text-[11.5px] text-ink'
-  if (session || listening)
-    return (
-      <div className="mt-3 text-[14px] leading-snug text-ink-2">
-        <p className="flex items-center gap-2">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-new" aria-hidden />
-          {session ? (
-            <span>
-              <span className="font-semibold text-ink">{session.name}</span> is ready in {session.cwd.split('/').pop()}.
-            </span>
-          ) : (
-            'Linked from your terminal.'
-          )}
-        </p>
-        <button type="button" onClick={() => useStudio.getState().setAgentPanelOpen(true)} className={button}>
-          <MessageCircle size={15} /> Ask the agent
-        </button>
-      </div>
-    )
+  // The start page is outside any workspace: the agent is inside one, so it is not asked from here.
   if (live)
     return (
       <div className="mt-3 text-[14px] leading-snug text-ink-2">
-        <button type="button" onClick={() => useStudio.getState().setConnectOpen(true)} className={button}>
-          <Plug size={15} /> Connect an agent
-        </button>
-        <p className="mt-4 border-t border-rule pt-4 text-[13px] font-semibold text-ink">Or use the one in your terminal</p>
+        <p>An agent works inside a workspace and reads its folders. Open a workspace, then ask it about the code.</p>
+        {workspace && (
+          <button type="button" onClick={() => useStudio.getState().showHome(true)} className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-ink px-3.5 text-[13.5px] font-semibold text-paper hover:opacity-90">
+            Go to {workspace.name}
+          </button>
+        )}
+        <p className="mt-4 border-t border-rule pt-4 text-[13px] font-semibold text-ink">Or use the agent in your terminal</p>
         <div className="mt-2">
           <McpSetup />
         </div>
@@ -374,6 +369,7 @@ function AgentCard() {
     </div>
   )
 }
+
 
 /** The buttons on a document in the sidebar: delete its file (when Poney on this computer keeps it), and close or remove it. */
 function ItemActions({ id, name, closeLabel, onClose }: { id: string; name: string; closeLabel: string; onClose(): void }) {

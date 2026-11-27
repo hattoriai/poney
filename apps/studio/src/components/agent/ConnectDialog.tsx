@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Folder as FolderIcon, Loader2, Plus, RotateCw, Trash2 } from 'lucide-react'
-import { useStudio } from '@/features/store'
+import { useStudio, screenOf } from '@/features/store'
 import { checkAgent, connectAgent, customAgents, lastFolder, rememberFolder, useProjectRoot, listAgents, saveCustomAgents, type AgentChoice, type Provider, type SignInStatus } from '@/features/agent'
 import { Modal } from '@/components/dialogs/Modal'
 import { FileBrowser } from './FileBrowser'
@@ -21,8 +21,8 @@ export function ConnectDialog() {
   const open = useStudio((s) => s.connectOpen)
   const setOpen = useStudio((s) => s.setConnectOpen)
   const projectRoot = useProjectRoot()
-  // From the start page, or with no document on screen, no project is open: the person picks the folder.
-  const onStart = useStudio((s) => s.startOpen || !s.history)
+  // From the start page no workspace is open: the person picks the folder.
+  const onStart = useStudio((s) => screenOf(s) === 'start')
   const project = onStart ? null : projectRoot
   // Set when the person picks an agent, so a default arriving later does not replace it.
   const touched = useRef(false)

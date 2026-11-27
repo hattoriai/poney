@@ -1,6 +1,6 @@
 import { toJSON, validateDocument, type PoneyDocument } from '@hattoriai/poney-core'
 import { knownExtensions } from './extensions'
-import { useStudio, type OpenDocument, type OpenWorkspace } from './store'
+import { screenOf, useStudio, type OpenDocument, type OpenWorkspace } from './store'
 import { openFile } from './agent'
 
 /**
@@ -106,7 +106,7 @@ export function trackRecent() {
   let timer = 0
   let seen: unknown
   useStudio.subscribe((s) => {
-    writeDocParam(s.history && !s.startOpen && s.projects.find((x) => x.id === s.projectId)?.origin !== 'example' ? s.projectId : null)
+    writeDocParam(s.history && screenOf(s) === 'document' && s.projects.find((x) => x.id === s.projectId)?.origin !== 'example' ? s.projectId : null)
     if (!s.history || s.startOpen || s.history.present === seen) return
     seen = s.history.present
     clearTimeout(timer)
@@ -169,6 +169,8 @@ function writeWorkspaces(list: RecentWorkspace[]) {
  * replaces the folder's own entry: it is the same work, under a new key.
  */
 export function saveRecentWorkspace(w: OpenWorkspace) {
+  // A blank workspace is worth coming back to once it has a folder.
+  if (w.key.startsWith('untitled:') && !w.folders.length) return
   const entry: RecentWorkspace = { key: w.key, name: w.name, file: w.file, folders: w.folders.map((f) => f.path), at: new Date().toISOString() }
   const replaced = (r: RecentWorkspace) => r.key === w.key || (!!w.file && !r.file && r.key === w.folders[0]?.path)
   writeWorkspaces([entry, ...listRecentWorkspaces().filter((r) => !replaced(r))])

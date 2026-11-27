@@ -95,6 +95,16 @@ export function MessageBox({
     setEmpty(false)
   }, [waiting, editor])
 
+  // A suggested request goes in the box, for the person to read, change and send. It is never sent by itself.
+  const draft = useStudio((s) => s.draft)
+  useEffect(() => {
+    if (!editor || draft === null) return
+    const text = useStudio.getState().takeDraft()
+    if (text === null) return
+    editor.chain().setContent({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] }).focus('end').run()
+    setEmpty(false)
+  }, [draft, editor])
+
   sendRef.current = () => {
     if (!editor) return
     const message = readMessage(editor.getJSON())

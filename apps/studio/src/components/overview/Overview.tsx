@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowUpRight, BookOpenText, CheckCircle2, ClipboardPaste
 import { validateDocument, type View, plainText } from '@hattoriai/poney-core'
 import { useIndex, useStudio } from '@/features/store'
 import { Prose } from '@/components/text/Prose'
-import { ask, STARTERS } from '@/features/agent'
+import { STARTERS } from '@/features/agent'
 import { knownExtensions } from '@/features/extensions'
 import { diagramFor } from '@hattoriai/poney-react'
 import { categoryLabel, orderCategories } from '../navigation/categories'
@@ -200,10 +200,8 @@ function pickStart(views: View[]): { view: View; why: string }[] {
 function EmptyProject({ name, description }: { name: string; description: string }) {
   const { session, listening } = useStudio((s) => s.agent)
   const busy = session?.busy
-  const start = (prompt: string) => {
-    useStudio.getState().setAgentPanelOpen(true)
-    void ask(prompt)
-  }
+  // A suggestion goes in the message box; the person sends it.
+  const start = (prompt: string) => useStudio.getState().suggest(prompt)
   return (
     <div className="scrollbar-quiet h-full overflow-y-auto">
       <div className="mx-auto max-w-[760px] px-6 pb-20 pt-14 sm:px-10">

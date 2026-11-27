@@ -15,7 +15,7 @@ import { checkFolder } from '../agents/workspace'
 import type { LiveState } from './state'
 import type { WorkspaceDocument } from './types'
 import { emptyDocument, folderAt, folderDocument, slug, withIdentity, type Folder } from './folder'
-import { attachedTo, documentWorkspace, DOCUMENT_KEY, readWorkspace, setAttached, workspaceFilesIn, workspaceFor, writeWorkspace, type Workspace } from './workspace-file'
+import { attachedTo, documentWorkspace, DOCUMENT_KEY, isUntitled, keepUntitled, newUntitled, readWorkspace, setAttached, untitledName, workspaceFilesIn, workspaceFor, writeWorkspace, type Workspace } from './workspace-file'
 import { execFileSync } from 'node:child_process'
 
 /** The top folder of the git repository a folder is in, if any, as a real path. */
@@ -74,12 +74,12 @@ export function documentsIn(cwd: string): WorkspaceDocument[] {
 export function documentsOf(w: Workspace): WorkspaceDocument[] {
   // A saved workspace lists its documents; a document opened alone has only itself; a folder has its docs/poney/.
   if (w.documents) return w.documents.map(entryFor)
-  return documentsIn(w.folders[0].cwd)
+  return w.folders[0] ? documentsIn(w.folders[0].cwd) : []
 }
 
 /** The id and empty document a workspace starts with when it has no document. */
 function starter(w: Workspace): { id: string; document: unknown } {
-  if (!w.file) return { id: w.folders[0].id, document: folderDocument(w.folders[0]) }
+  if (!w.file && !isUntitled(w) && w.folders[0]) return { id: w.folders[0].id, document: folderDocument(w.folders[0]) }
   const id = slug(w.name)
   return { id, document: emptyDocument(id, w.name, '') }
 }
@@ -166,7 +166,7 @@ export class DocumentFiles {
   refresh(): void {
     const w = this.state.workspace
     this.state.setDocuments({ documents: w ? documentsOf(w) : [], shown: this.state.file ?? null })
-    const dir = w?.file ?? (w ? join(w.folders[0].cwd, 'docs', 'poney') : undefined)
+    const dir = w?.file ?? (w && !w.documents && w.folders[0] ? join(w.folders[0].cwd, 'docs', 'poney') : undefined)
     if (this.dirWatcher?.dir === dir && (this.dirWatcher?.watcher || !dir || !existsSync(dir))) return
     this.dirWatcher?.watcher?.close()
     this.dirWatcher = dir ? { dir } : undefined
@@ -195,12 +195,18 @@ export class DocumentFiles {
     this.refresh()
   }
 
-  /** Adds a document to the open workspace's file, when it is saved and does not list it yet. */
+  /** Writes a workspace that lists its own folders and documents: a saved one to its file, an untitled one to the server's memory. */
+  private persist(w: Workspace) {
+    if (w.file) writeWorkspace({ ...w, file: w.file })
+    else if (isUntitled(w)) keepUntitled(w)
+  }
+
+  /** Adds a document to the open workspace's list (a saved or untitled one), when it does not list it yet. */
   private adopt(path: string) {
     const w = this.state.workspace
-    if (!w?.file || w.documents?.includes(path)) return
-    const next = { ...w, file: w.file, documents: [...(w.documents ?? []), path] }
-    writeWorkspace(next)
+    if (!w || !(w.file || isUntitled(w)) || w.documents?.includes(path)) return
+    const next = { ...w, documents: [...(w.documents ?? []), path] }
+    this.persist(next)
     this.state.setWorkspace(next)
   }
 
@@ -210,9 +216,10 @@ export class DocumentFiles {
    */
   create(name: string, folder?: string): string {
     const w = this.state.workspace
-    const first = folder ? w?.folders.find((f) => f.cwd === folder) : this.state.project
-    if (!w || !first) throw new Error('Open a workspace first.')
+    if (!w) throw new Error('Open a workspace first.')
     if (w.key.startsWith(DOCUMENT_KEY)) throw new Error(ALONE)
+    const first = folder ? w.folders.find((f) => f.cwd === folder) : this.state.project
+    if (!first) throw new Error('Add a folder first: a new document is saved in its docs/poney/.')
     const title = name.trim()
     if (!title) throw new Error('Give the document a name.')
     const dir = join(first.cwd, 'docs', 'poney')
@@ -228,67 +235,87 @@ export class DocumentFiles {
     return path
   }
 
-  /** Removes a document from a saved workspace's list. The file stays. */
+  /** Removes a document from a workspace's list (a saved or untitled one). The file stays. */
   removeDocument(path: string): void {
     const w = this.state.workspace
-    if (!w?.file) throw new Error('Only a saved workspace lists its documents. Delete the file instead.')
+    if (!w || !(w.file || isUntitled(w))) throw new Error('A folder lists the documents in its docs/poney/. Delete the file instead.')
     if (!w.documents?.includes(path)) throw new Error(`"${path}" is not in this workspace.`)
     if (this.state.file === path) {
       this.tie(undefined)
       this.state.clear()
     }
-    const next = { ...w, file: w.file, documents: w.documents.filter((d) => d !== path) }
-    writeWorkspace(next)
+    const next = { ...w, documents: w.documents.filter((d) => d !== path) }
+    this.persist(next)
     this.state.setWorkspace(next)
   }
 
+  /** A new, empty untitled workspace, shown at once with no document. */
+  newWorkspace(): Workspace {
+    this.tie(undefined)
+    this.state.clear()
+    return newUntitled()
+  }
+
   /**
-   * Saves the open workspace as a .poney-workspace file. A folder workspace lists its folder and its
-   * documents. Returns the old and the new key: the conversation and the agent session move to the new one.
+   * Saves the open workspace as a .poney-workspace file, to share it. Returns the old and the new key: the
+   * conversation and the agent session move to the new one.
    */
   saveWorkspace(file: string, name?: string): { from: string; to: string; workspace: Workspace } {
     const w = this.state.workspace
     if (!w) throw new Error('Open a workspace first.')
     if (!file.endsWith('.poney-workspace')) throw new Error('The file must end in .poney-workspace.')
+    if (!w.folders.length) throw new Error('Add a folder first.')
     if (existsSync(file) && !sameFile(file, w.file ?? '')) throw new Error(`"${file}" exists already.`)
     const documents = documentsOf(w).map((d) => d.path)
     const shown = this.state.file
     if (shown && !documents.includes(shown) && existsSync(shown)) documents.push(shown)
     mkdirSync(dirname(file), { recursive: true })
     writeWorkspace({ ...w, name: name?.trim() || w.name, file, documents })
-    // A document opened alone is in the saved workspace now; its file there says so.
+    // A document opened alone, or an untitled workspace, is in the saved file now.
     if (w.key.startsWith(DOCUMENT_KEY) && w.documents?.[0]) setAttached(w.documents[0], [])
+    if (isUntitled(w)) keepUntitled(w, true)
     const saved = readWorkspace(file)
     this.rekey(w.key, saved.key)
     return { from: w.key, to: saved.key, workspace: saved }
   }
 
   /**
-   * Adds a folder to the open workspace, which must be saved. Its documents in docs/poney/ join the list.
-   * A document opened alone, with no workspace, gets the folder attached: a workspace of its own.
+   * Adds a folder to the open workspace. Its documents in docs/poney/ join the list. A folder opened alone
+   * (or a document with a folder) becomes an untitled workspace with both folders: `from` is its old key,
+   * so its conversation and agent session move with it. A document opened alone, with no workspace, gets
+   * the folder attached.
    */
-  addFolder(path: string): Workspace {
+  addFolder(path: string): { workspace: Workspace; from?: string } {
     const w = this.state.workspace
     const doc = this.state.file
     if (!w) {
       if (!doc || !existsSync(doc)) throw new Error('Open a document or a workspace first.')
       const cwd = checkFolder(path)
       setAttached(doc, [cwd])
-      return documentWorkspace(doc, [cwd])
+      return { workspace: documentWorkspace(doc, [cwd]) }
     }
-    if (!w.file) throw new Error('Save the workspace first.')
     const folder = folderAt(checkFolder(path))
-    if (w.folders.some((f) => f.cwd === folder.cwd)) return w
-    const documents = [...(w.documents ?? [])]
+    if (w.folders.some((f) => f.cwd === folder.cwd)) return { workspace: w }
+    const documents = documentsOf(w).map((d) => d.path)
     for (const d of documentsIn(folder.cwd)) if (!documents.includes(d.path)) documents.push(d.path)
-    const next = { ...w, file: w.file, folders: [...w.folders, folder], documents }
-    writeWorkspace(next)
-    return next
+    if (w.file || isUntitled(w)) {
+      const folders = [...w.folders, folder]
+      const next = { ...w, name: w.file ? w.name : untitledName(w, folders), folders, documents }
+      this.persist(next)
+      return { workspace: next }
+    }
+    // A folder or a document opened alone: a workspace now, not saved yet.
+    const folders = [...w.folders, folder]
+    const next = { ...newUntitled(folders.map((f) => f.name).join(' + ')), folders, documents }
+    keepUntitled(next)
+    if (w.key.startsWith(DOCUMENT_KEY) && w.documents?.[0]) setAttached(w.documents[0], [])
+    this.rekey(w.key, next.key)
+    return { workspace: next, from: w.key }
   }
 
   /**
-   * Removes a folder from the open workspace, which must be saved and keep one folder. Its documents stay listed.
-   * A document opened alone gets its folder detached: it is alone again (undefined).
+   * Removes a folder from the open workspace. Its documents stay listed. A saved workspace keeps one folder;
+   * an untitled one may have none. A document opened alone gets its folder detached: it is alone again.
    */
   removeFolder(path: string): Workspace | undefined {
     const w = this.state.workspace
@@ -296,10 +323,11 @@ export class DocumentFiles {
       setAttached(w.documents[0], [])
       return undefined
     }
-    if (!w?.file) throw new Error('Save the workspace first.')
-    if (w.folders.length < 2) throw new Error('A workspace keeps at least one folder.')
-    const next = { ...w, file: w.file, folders: w.folders.filter((f) => f.cwd !== path) }
-    writeWorkspace(next)
+    if (!w || !(w.file || isUntitled(w))) throw new Error('A folder opened alone is its own workspace. Open another workspace instead.')
+    if (w.file && w.folders.length < 2) throw new Error('A saved workspace keeps at least one folder.')
+    const folders = w.folders.filter((f) => f.cwd !== path)
+    const next = { ...w, name: w.file ? w.name : untitledName(w, folders), folders }
+    this.persist(next)
     return next
   }
 
@@ -416,7 +444,11 @@ export class DocumentFiles {
     if (!w.file && w.documents?.length) return w.documents[0]
     const found = documentsOf(w).filter((d) => existsSync(d.path))
     if (found.length === 1) return found[0].path
-    if (found.length === 0) return (!w.file && tied) || join(w.folders[0].cwd, 'docs', 'poney', `${starter(w).id}.poney`)
+    if (found.length === 0) {
+      // An untitled workspace with no document shows none; a folder starts its own.
+      if (isUntitled(w) || !w.folders[0]) return undefined
+      return (!w.file && tied) || join(w.folders[0].cwd, 'docs', 'poney', `${starter(w).id}.poney`)
+    }
     return undefined
   }
 
@@ -464,7 +496,7 @@ export class DocumentFiles {
     const first = w.folders.find((f) => !f.missing) ?? w.folders[0]
     const start = starter(w)
     if (file && this.state.inWorkspace(file)) return this.refresh()
-    if (open && !file && !isEmpty(open)) {
+    if (open && !file && !isEmpty(open) && first) {
       const id = this.state.openProjectId ?? start.id
       const path = join(first.cwd, 'docs', 'poney', `${id}.poney`)
       this.tie(path, id)
@@ -472,7 +504,8 @@ export class DocumentFiles {
       this.save(open)
       return this.refresh()
     }
-    const path = this.fileOf(w)
+    // An untitled workspace shows the document the person read last in it, else none: adding folders opens nothing.
+    const path = isUntitled(w) ? (this.tied.get(w.key) && existsSync(this.tied.get(w.key)!) ? this.tied.get(w.key) : undefined) : this.fileOf(w)
     if (!path) {
       this.tie(undefined)
       this.state.clear()
@@ -480,7 +513,7 @@ export class DocumentFiles {
     }
     if (existsSync(path)) {
       try {
-        return this.load(path, first.cwd)
+        return this.load(path, first?.cwd)
       } catch (e) {
         this.state.put({ from: 'notice', text: e instanceof Error ? e.message.split('\n')[0] : String(e), tone: 'error' })
         // The file is the person's to fix: nothing is saved over it.

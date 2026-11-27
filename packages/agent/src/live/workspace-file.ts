@@ -8,7 +8,10 @@
  * with paths relative to the file; its key is the file's path. A document
  * opened alone, with a folder attached, is a workspace too: its key is
  * "document:" and the document's path, and the local server remembers its
- * folder. The key names the workspace's conversation and agent session.
+ * folder. A workspace not saved yet ("untitled", as in an editor) can hold
+ * any folders and documents; the local server keeps it, under the key
+ * "untitled:" and an id, until it is saved to a file. The key names the
+ * workspace's conversation and agent session.
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
@@ -33,6 +36,48 @@ export interface Workspace {
 
 /** The start of a document workspace's key. */
 export const DOCUMENT_KEY = 'document:'
+/** The start of an untitled workspace's key. */
+export const UNTITLED_KEY = 'untitled:'
+
+export const isUntitled = (w: Workspace | undefined) => !!w?.key.startsWith(UNTITLED_KEY)
+
+const folderOrMissing = (cwd: string) => ({ ...folderAt(cwd), ...(existsSync(cwd) ? {} : { missing: true }) })
+
+/** An untitled workspace the local server keeps, by key. */
+export function untitledWorkspace(key: string): Workspace {
+  const id = key.slice(UNTITLED_KEY.length)
+  const kept = readMemory().untitled[id]
+  if (!kept) throw new Error('This workspace was not saved and is gone.')
+  return { key, name: kept.name, folders: kept.folders.map(folderOrMissing), documents: kept.documents }
+}
+
+/** Keeps an untitled workspace (its name, folders and documents), or, with `remove`, forgets it. */
+export function keepUntitled(w: Workspace, remove = false): void {
+  const id = w.key.slice(UNTITLED_KEY.length)
+  changeMemory((m) => {
+    if (remove) delete m.untitled[id]
+    else m.untitled[id] = { name: w.name, folders: w.folders.map((f) => f.cwd), documents: w.documents ?? [] }
+  })
+}
+
+export const UNTITLED_NAME = 'Untitled workspace'
+
+/**
+ * The name of an untitled workspace whose folders change: its folders' names, until the person names it
+ * (by saving it). A name the person gave stays.
+ */
+export function untitledName(w: Workspace, folders: Folder[]): string {
+  const auto = (list: Folder[]) => list.map((f) => f.name).join(' + ')
+  if (w.name !== UNTITLED_NAME && w.name !== auto(w.folders)) return w.name
+  return auto(folders) || UNTITLED_NAME
+}
+
+/** A new, empty untitled workspace, kept by the local server. */
+export function newUntitled(name = UNTITLED_NAME): Workspace {
+  const w: Workspace = { key: `${UNTITLED_KEY}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, folders: [], documents: [] }
+  keepUntitled(w)
+  return w
+}
 
 /** A document opened alone, with the folders attached to it. */
 export function documentWorkspace(doc: string, folders: string[]): Workspace {
@@ -45,7 +90,7 @@ export function documentWorkspace(doc: string, folders: string[]): Workspace {
   return {
     key: `${DOCUMENT_KEY}${doc}`,
     name,
-    folders: folders.map((cwd) => ({ ...folderAt(cwd), ...(existsSync(cwd) ? {} : { missing: true }) })),
+    folders: folders.map(folderOrMissing),
     documents: [doc],
   }
 }
@@ -125,6 +170,7 @@ export function workspaceFilesIn(dir: string): string[] {
 /** The workspace a key names: a saved workspace's file, or a folder. */
 export function workspaceFor(key: string): Workspace {
   if (isWorkspaceFile(key)) return readWorkspace(key)
+  if (key.startsWith(UNTITLED_KEY)) return untitledWorkspace(key)
   if (key.startsWith(DOCUMENT_KEY)) {
     const doc = key.slice(DOCUMENT_KEY.length)
     const folders = attachedTo(doc)
@@ -142,7 +188,7 @@ export function workspaceFor(key: string): Workspace {
  */
 export function workspaceToOpen(path: string): Workspace | { choose: string[] } {
   if (isWorkspaceFile(path)) return readWorkspace(path)
-  if (path.startsWith(DOCUMENT_KEY)) return workspaceFor(path)
+  if (path.startsWith(DOCUMENT_KEY) || path.startsWith(UNTITLED_KEY)) return workspaceFor(path)
   const dir = checkFolder(path)
   const files = workspaceFilesIn(dir)
   if (files.length === 1) return readWorkspace(files[0])
